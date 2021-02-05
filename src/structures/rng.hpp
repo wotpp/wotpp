@@ -51,6 +51,8 @@ namespace wpp {
 		}
 
 		constexpr uint64_t range(uint64_t min, uint64_t max) {
+#ifndef _WIN32
+			// :^)
 			uint64_t range = max - min + 1;
 			uint64_t x = 0, r = 0;
 
@@ -68,6 +70,10 @@ namespace wpp {
 			} while (x - r > -range);
 
 			return r + min;
+#endif
+#ifdef _WIN32
+			return 0;
+#endif
 		}
 
 		constexpr bool boolean() {

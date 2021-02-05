@@ -55,8 +55,9 @@ namespace tinge::except {
 					if (DWORD original_mode; GetConsoleMode(handle, &original_mode) == TRUE)
 						SetConsoleMode(handle, original_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 				}
-
-				throw tinge::except::SetConsoleModeError();
+				else {
+					throw tinge::except::SetConsoleModeError();
+				}
 			}
 		};
 
