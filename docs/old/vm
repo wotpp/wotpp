@@ -1,0 +1,34 @@
+# vm
+
+push - push a string literal to the current stack
+take - pop from the parent stack to the current stack
+jsr  - push addr + 1 to callstack, jump to subroutine
+ret  - jump to addr popped from callstack
+flat - cat all strings in current stack
+cat  - cat top 2 strings on the current stack
+swap - swap top 2 strings on the current stack
+rot  - rotate the entire current stack circularly
+reverse - reverse the stack
+drop - remove top value from the current stack
+dup  - duplicate the top value on the current stack
+invk - call a shell and execute string on top of the stack
+file - read a file and push it to the stack as a string
+escp - escape all quotes in string on top of stack
+left - point to left side of deque
+right - point to right side of deque
+exec - execute string on stack as wot++ code
+
+# stacks
+global   - implicitly created at interpreter initialisation
+function - a new stack is created for every function call
+
+all operations operate on the current focused stack except
+for pop which operates on the parent stack or the caller.
+
+jsr - create a new stack
+pop - pop from parent stack, place value in current stack
+
+returning from a function joins its stack to the parent stack.
+
+
+

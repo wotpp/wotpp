@@ -1,0 +1,86 @@
+
+## inserts lorem ipsum
+{{lorem}}
+	Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent congue elit ultrices sem egestas, at efficitur lacus porta. Nulla non feugiat lectus, vitae sollicitudin erat. Mauris varius, dolor non commodo dapibus, sem erat ullamcorper sem, sed tempus tortor ante vel ligula. Nunc risus erat, euismod sit amet justo in, interdum venenatis eros. Ut ullamcorper lacinia ultrices. Nunc blandit, sem non rhoncus imperdiet, ipsum eros tempus eros, id scelerisque nunc nisi tempor lectus. Aenean at quam luctus, ullamcorper purus sed, tristique neque. Maecenas sodales, nulla in tincidunt luctus, nisi neque lacinia ex, quis convallis mi velit sed urna. Sed scelerisque enim.
+{{/lorem}}
+
+
+
+
+
+[title] Lorem ipsum
+[author] Jack Clarke
+[institution] Starfleet Academy
+
+
+
+
+[ab] Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean a dui dapibus, aliquet nulla eget, tempor nibh. Proin magna purus, tincidunt quis consectetur eget, posuere sit amet urna. Cras tempor, augue vel facilisis porttitor, ante lectus vulputate nulla, vitae lacinia.
+
+
+
+
+[h] macros
+[p] {lorem}
+
+
+## bold italics paragraph
+{{bip}}
+	[p] *_@str_*
+{{/bip}}
+
+
+## italisized author bold
+{{iab}} *_@author_* {{/iab}}
+
+
+{bip} hello there im a bold and italisized paragraph, the author is {iab} which is emboldened and italisized.
+
+
+
+[h] styles
+[p] Here is some *bold text.* and here is some _italisized text_. You can also use some --strikethrough text-- or some __underlined text.__
+
+
+
+
+## page breaks
+---
+
+
+[h] blocks
+
+[sh] code block
+```cpp
+	int main(int argc, const char* argv[]) {
+		return 0;
+	}
+```
+
+
+
+[sh] math block
+## the quadratic formula
+$$
+	x = { -b +- sqrt { b sub 2 -4ac } } over 2a
+$$
+
+
+
+
+
+
+
+[[
+
+
+]]
+
+
+
+
+[h] referencing
+[p]
+
+
+here are some citations ((chomsky99)) ((stroustrup83))

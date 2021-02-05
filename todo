@@ -1,0 +1,19 @@
+Features:
+	- Raw & paragraph strings
+	- String interpolaton
+	- Binary and hex literals
+	- Language level variadic functions
+	- Implement intrinsic functions
+	- Commandline argument parsing
+
+Code Cleanup:
+	- Better documentation and comments
+	- Use utils/char.hpp consume function in lexer
+
+Fix:
+	- Allow trailing comma in argument/parameter lists
+
+Misc:
+	- `eval` intrinsic should return an empty string
+	- Fix kakoune syntax file
+

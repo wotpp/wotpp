@@ -1,0 +1,63 @@
+[A simple HTML template for a blog]
+let blog
+	"<html>"
+		"<head>"
+			take
+		"</head>"
+		"<body>"
+			take
+		"</body>"
+	"</html>"
+	reduce
+end
+
+
+[Wraps a string in title tags]
+let title
+	reduce
+		"<title>" take "</title>"
+end
+
+
+[Creates an article with a title and body]
+let post
+	"<article>"
+		"<h3>"
+			take
+		"</h3>"
+		"<p>"
+			take
+		"</p>"
+	"</article>"
+	reduce
+end
+
+
+[A constant value representing the author's name]
+let author "Jack Clarke" end
+
+
+[Here is our blog]
+author "'s Blog" title   [Append "'s Blog" to author's name for our blog title]
+
+
+"wot++"  [Title of our post]
+
+[Concatenate the 4 strings below to become our post body]
+"wot++ is a concatenative and stack-based "
+"string manipulation language designed to be "
+"simple both in terms of implementation and "
+"ease of use."
+cat cat cat
+post
+
+
+
+"First Post"
+"Hello and welcome to my blog."
+post
+
+
+reduce
+blog
+

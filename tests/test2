@@ -1,0 +1,6 @@
+let \n "\n"
+
+let title(x)
+	"# " .. x .. \n
+
+title("test") .. "hey"

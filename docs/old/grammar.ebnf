@@ -1,0 +1,37 @@
+/// Lexical Grammar
+
+identifier ::= [^\s]+
+hex_chars ::= [A-Fa-f0-9]+
+bin_chars ::= [0-1]+
+any_char ::= .
+
+// Syntactic Grammar
+hex ::= '\x' <hex_chars>
+bin ::= '\b' <bin_chars>
+
+escaped ::= '\"' | '\'' | '\n' | '\t' | '\r' | hex | bin
+string ::= ("'" | '"') (<escaped> | <any_char>)* ("'" | '"')
+
+arg ::= <identifer> [<string>]
+function ::= 'let' <identifier> <arg>* '=' <expression>* ';'
+
+comment ::= '[' (<any_char> | <comment>)* ']'
+concat ::= '(' <expression>* ')'
+namespace ::= 'namespace' <identifier>+ '=' <expression>* ';'
+
+ignored ::= '{' | '}' | '<' | '>'
+intrinsic ::= 'exec' | 'file' | 'source' | 'replace' | 'compare' | 'assert'
+
+expression ::= (
+		<namespace> |
+		<function> |
+		<concat> |
+		<string> |
+		<identifer> |
+		<intrinsic> |
+		<ignored> |
+		<comment> |
+		'..' | '_'
+	)*
+
+document ::= <expression>*

@@ -1,0 +1,79 @@
+/// Strings
+//
+// `"hello there"`
+// `'hey'`
+// `"\x68\x65\x6c\x6c\x6f\x20\x77\x6f\x72\x6c\x64"`
+// `"\b1101000\b1100101\b1101100\b1101100\b1101111\b100000\b1110111\b1101111\b1110010\b1101100\b1100100"`
+// `"\n\r\t\"\'\\"`
+//
+identifier ::= ? [^\s]+ ?
+hex_chars ::= ? [A-Fa-f0-9]+ ?
+bin_chars ::= ? [0-1]+ ?
+any_char ::= ? . ?
+
+
+hex ::= '\x' <hex_chars> {2}
+bin ::= '\b' <bin_chars> {8}
+
+escaped ::= '\"' | '\'' | '\n' | '\t' | '\r' | hex | bin
+basic_string ::= ("'" | '"') ( <escaped> | <any_char> )* ("'" | '"')
+
+paragraph_string ::= 'p' ('"' | "'") <identifer> '(' ( <escaped> | <any_char> )* ')' <identifer> ('"' | "'")
+raw_string ::= 'r' ('"' | "'") <identifer> '(' ( <escaped> | <any_char> )* ')' <identifer> ('"' | "'")
+
+hex_literal ::= '0x' ( <hex_chars> | '_' )*
+bin_literal ::= '0b' ( <bin_chars> | '_' )*
+
+string ::= <basic_string> | <paragraph_string> | <raw_string> | <hex_literal> | <bin_literal>
+
+
+
+/// Functions
+//
+// `foo("bar", baz())`
+// `let greeting(name) "hello " .. name`
+// `let name "jack"`
+// `name`
+//
+fn_args ::= '(' <identifer> ( ',' <identifer> )* ')' [ ',' ]
+fn ::= 'let' <identifier> [ <fn_args> ] <expression>
+
+fn_intrinsic ::= 'run' | 'file' | 'eval' | 'assert'
+fn_invoke ::= ( <identifer> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
+
+
+/// Namespaces
+//
+// `namespace foo/bar { let name "jack" }`
+//
+ns_path ::= ( <identifier> ( '/' <identifer> ) )
+ns ::= 'namespace' <ns_path> '{' <statement>* '}'
+
+
+/// Misc.
+//
+// `#[ comment #[ nested comment ] ]`
+//
+comment ::= '#[' ( <any_char> | <comment> )* ']'
+
+
+/// Operators
+//
+// `"hello" .. " " .. "there"`
+// `{ let name "jack", "a" .. "b" }`
+//
+block ::= '{' [ <statement>* ] expression '}'
+concat ::= <expression> '..' <expression>
+
+
+/// Document
+expression ::= (
+		<fn_invoke> |
+		<block> |
+		<concat> |
+		<string>
+	)
+
+
+statement ::= <fn> | <ns> | <comment>
+document ::= ( <expression> | <statement> )*

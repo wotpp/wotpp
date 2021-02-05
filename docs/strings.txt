@@ -1,0 +1,20 @@
+# Multiline Strings
+
+## Raw Strings
+	> preserve everything in between the quotes.
+	r#"
+		hey
+		there
+	"#
+
+	=> "\n\they\n\tthere\n"
+
+## Paragraph Strings
+	> strip leading and trailing whitespace
+	p#"
+		hey there     how are you
+
+	woooo
+	#"
+
+	=> "\they there how are you\nwoo"

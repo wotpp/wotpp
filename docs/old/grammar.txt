@@ -1,0 +1,19 @@
+char ::= [A-Za-z0-9_]
+utf8 ::= [.]
+
+identifier ::= char+
+
+literal_string ::= ( '"' | "'" ) ( utf8 | '\"' | "\'" | '\n' | '\t' )* ( '"' | "'" )
+literal_hex ::= '0x' [A-Fa-f0-9]+
+literal_binary ::= '0b' ( '0' | '1' )+
+
+intrinsics ::= ( '.' | '..' | 'combine' | 'swap' | 'rotate' | 'drop' | 'dup' | 'invoke' | 'file' | 'escape' )
+
+operator ::= ( identifier | intrinsics )
+operand ::= ( literal_string | literal_binary | literal_hex )
+
+words ::= ( operator | operand )*
+function ::= ':' identifier words+ ';'
+comment ::= '[' utf8* ']'
+document ::= ( function | words | comment )*
+

@@ -1,0 +1,70 @@
+let html/html(body)
+	"<!DOCTYPE HTML><html>" .. body .. "</html>"
+
+let html/head(x) "<head>" .. x .. "</head>"
+let html/body(x) "<body>" .. x .. "</body>"
+
+let html/title(x) "<title>" .. x .. "</title>"
+let html/stylesheet(f) '<link rel="stylesheet" href="' .. f .. '">'
+
+let html/h1(x) "<h1>" .. x .. "</h1>"
+let html/h2(x) "<h2>" .. x .. "</h2>"
+let html/h3(x) "<h3>" .. x .. "</h3>"
+let html/h4(x) "<h4>" .. x .. "</h4>"
+let html/h5(x) "<h5>" .. x .. "</h5>"
+
+let html/p(x) "<p>" .. x .. "</p>"
+let html/article(x) "<article>" .. x .. "</article>"
+let html/header(x) "<header>" .. x .. "</header>"
+let html/main(x) "<main>" .. x .. "</main>"
+
+
+#[ creates a header with title and author titles ]
+let blog/header(title, author)
+	html/header(html/h1(title) .. html/h5(author))
+
+#[ blog template with header and posts section ]
+let blog/blog(header, posts)
+	html/html(
+		html/head(
+			html/stylesheet(user/stylesheet) ..
+			html/title(user/title)
+		) ..
+
+		html/body(
+			header ..
+			html/main(posts)
+		)
+	)
+
+#[ a post with title and body ]
+let blog/post(title, body)
+	html/article(
+		html/h1(title) ..
+		html/p(body)
+	)
+
+
+let user/stylesheet "style.css"
+let user/title "Wot++ Development Blog"
+let user/author "Jack Clarke"
+
+
+blog/blog(
+	blog/header(user/title, user/author),
+
+	blog/post("What is Wot++?",
+		"Wot++ is a macro language that can wrap other formats " ..
+		"like html or markdown with ease."
+	) ..
+
+	blog/post("Is Wot++ Turing Complete?",
+		"Wot++ is lazily evaluated and so functions can define " ..
+		"new functions when they are called. Wot++ also has meta-programming " ..
+		"support through the use of the `source` intrinsic which runs a given string " ..
+		"as Wot++ code within the current environment."
+	)
+)
+
+
+
