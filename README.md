@@ -13,8 +13,22 @@ A small macro language for producing and manipulating strings.
 - A C++17 compliant compiler. (GCC & Clang work)
 
 ### Build & Run
+
+#### With make:
 `make`
 `./build/wpp <file>`
+
+#### With meson:
+```
+$ meson builddir
+$ ninja -C builddir
+$ ninja -C builddir test # to run the tests
+```
+
+You can pass extra options to the meson command, or by running `meson configure -Doption1=value -Doption2=value ...` in the build directory.
+For example, to enable stripping debug symbols on install, and set the build type to release, pass `-Dbuildtype=release -Dstrip=true`.
+
+List of built-in options can be found [here](https://mesonbuild.com/Builtin-options.html).
 
 ### Installation
 > Todo...
