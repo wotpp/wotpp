@@ -9,6 +9,7 @@
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
 #include <structures/token.hpp>
+#include <structures/position.hpp>
 #include <lexer.hpp>
 
 // The meat of wot++, the parser.
@@ -20,11 +21,12 @@ namespace wpp {
 	struct FnInvoke {
 		std::string identifier;
 		std::vector<wpp::node_t> arguments;
+		wpp::Position pos;
 
-		FnInvoke(const std::string& identifier_, const std::vector<wpp::node_t>& arguments_):
-			identifier(identifier_), arguments(arguments_) {}
+		FnInvoke(const std::string& identifier_, const std::vector<wpp::node_t>& arguments_, wpp::Position pos_):
+			identifier(identifier_), arguments(arguments_), pos(pos_) {}
 
-		FnInvoke() {}
+		FnInvoke(wpp::Position pos_): pos(pos_) {}
 	};
 
 	// Function definition.
@@ -33,8 +35,8 @@ namespace wpp {
 		std::vector<std::string> parameters;
 		wpp::node_t body;
 
-		Fn(const std::string& identifier_, const std::vector<std::string>& parameters_, wpp::node_t body_):
-			identifier(identifier_), parameters(parameters_), body(body_) {}
+		Fn(const std::string& identifier_, const std::vector<std::string>& parameters_):
+			identifier(identifier_), parameters(parameters_) {}
 
 		Fn() {}
 	};
@@ -255,7 +257,7 @@ namespace wpp {
 
 	// Parse a function call.
 	inline wpp::node_t call(wpp::Lexer& lex, wpp::AST& tree) {
-		const wpp::node_t node = tree.add<FnInvoke>();
+		const wpp::node_t node = tree.add<FnInvoke>(lex.position());
 
 		tree.get<FnInvoke>(node).identifier = lex.advance().str();
 

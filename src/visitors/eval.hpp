@@ -35,43 +35,41 @@ namespace wpp {
 
 		wpp::visit(variant,
 			[&] (const FnInvoke& call) {
-				const auto& [caller_name, caller_args] = call;
+				const auto& [caller_name, caller_args, pos] = call;
 				std::string caller_mangled_name = mangle(caller_name, caller_args.size());
 
 				// Parameter.
 				if (args != nullptr) {
-					auto it = (*args).find(caller_name);
-					if (it == (*args).end()) {
-						// if its not an arg, maybe its a function?
-						goto func;
+					auto man_it = (*args).find(caller_name);
+					if (man_it != (*args).end()) {
+						str = man_it->second;
+						return;
 					}
 
-					str = it->second;
+					// if its not an arg, maybe its a function?
 				}
 
 				// Function.
-				else {
-					func:
-					auto it = functions.find(caller_mangled_name);
-					if (it == functions.end()) {
-						tinge::warnln("func not found: ", caller_mangled_name);
-						std::exit(1);
-					}
-
-					// Use function that was looked up.
-					const auto& [callee_name, params, body] = it->second;
-
-					// Set up arguments in environment.
-					Arguments env_args;
-
-					for (int i = 0; i < (int)caller_args.size(); i++) {
-						auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
-						env_args.emplace(params[i], retstr);
-					}
-
-					// Call function.
-					str = eval_ast(tree[body], tree, functions, &env_args);
+				auto it = functions.find(caller_mangled_name);
+				if (it == functions.end()) {
+					// tinge::errorln("func not found: ", caller_mangled_name);
+					wpp::error(pos, "func not found: ", caller_mangled_name);
+					std::exit(1);
 				}
+
+				// Use function that was looked up.
+				const auto& [callee_name, params, body] = it->second;
+
+				// Set up arguments in environment.
+				Arguments env_args;
+
+				for (int i = 0; i < (int)caller_args.size(); i++) {
+					auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
+					env_args.emplace(params[i], retstr);
+				}
+
+				// Call function.
+				str = eval_ast(tree[body], tree, functions, &env_args);
 			},
 
 			[&] (const Fn& func) {
