@@ -16,7 +16,7 @@ namespace wpp {
 	inline void print_ast(const T& variant, const wpp::AST& tree, std::string& str) {
 		wpp::visit(variant,
 			[&] (const FnInvoke& call) {
-				const auto& [name, args] = call;
+				const auto& [name, args, pos] = call;
 
 				str += "( '" + name + "(...)' ";
 
