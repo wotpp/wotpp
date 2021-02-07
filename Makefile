@@ -12,10 +12,10 @@ STD=c++17
 CXXWARN=-Wall -Wextra -Wcast-align -Wcast-qual -Wformat=2 -Wredundant-decls -Wshadow -Wundef -Wwrite-strings
 # CXXFLAGS+=-fno-exceptions -fno-rtti
 
-symbols?=yes
+symbols?=no
 sanitize?=no
-profile?=yes
-release?=no
+profile?=no
+release?=yes
 
 ifeq ($(release),no)
 	CXXFLAGS+=-O1
