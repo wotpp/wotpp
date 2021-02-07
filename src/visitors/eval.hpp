@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <stack>
+#include <type_traits>
 
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
@@ -14,23 +15,26 @@
 // AST visitor that evaluates the program.
 
 namespace wpp {
-	using Environment = std::unordered_map<std::string, wpp::Fn>;
+	using Environment = std::unordered_map<std::string, wpp::node_t>;
 	using Arguments = std::unordered_map<std::string, std::string>;
 
 
 	template <typename... Ts>
-	inline std::string mangle(const std::string& first, Ts&&... args) {
-		using namespace std;
-		const auto helper = [] (auto&& x) {
-			return std::to_string(x) + "__";
+	inline std::string mangle(Ts&&... args) {
+		const auto tostr = [] (const auto& x) {
+			if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
+				return x;
+
+			else
+				return std::to_string(x);
 		};
 
-		return first + "__" + (helper(args) + ...);
+		return (tostr(args) + ...);
 	}
 
 
-	template <typename T>
-	inline std::string eval_ast(const T& variant, const wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
+	inline std::string eval_ast(const wpp::node_t node_id, const wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
+		const auto& variant = tree[node_id];
 		std::string str;
 
 		wpp::visit(variant,
@@ -38,24 +42,21 @@ namespace wpp {
 				const auto& [caller_name, caller_args, caller_pos] = call;
 				std::string caller_mangled_name = mangle(caller_name, caller_args.size());
 
-				// Parameter.
+				// Check if parameter.
 				if (args != nullptr) {
-					auto man_it = (*args).find(caller_name);
-					if (man_it != (*args).end()) {
+					if (auto man_it = (*args).find(caller_name); man_it != (*args).end()) {
 						str = man_it->second;
 						return;
 					}
-
-					// if its not an arg, maybe its a function?
 				}
 
 				// Function.
-				if(caller_name == "shell") {
-                    // Set up arguments in environment.
-					std::string command = "";
+				if (caller_name == "run") {
+					// Set up arguments in environment.
+					std::string command;
 
 					for (int i = 0; i < (int)caller_args.size(); i++) {
-						auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
+						auto retstr = eval_ast(caller_args[i], tree, functions, args);
 						command += retstr + " ";
 					}
 
@@ -63,34 +64,31 @@ namespace wpp {
 					str = wpp::exec(command);
 				}
 
-				// If it is just a regular function
 				else {
+					// If it wasn't a parameter, we fall through to here and check if it's a function.
 					auto it = functions.find(caller_mangled_name);
 					if (it == functions.end()) {
-						// tinge::errorln("func not found: ", caller_mangled_name);
-						wpp::error(caller_pos, "func not found: ", caller_mangled_name);
-						std::exit(1);
+						wpp::error(caller_pos, "func not found: ", caller_name);
 					}
 
 					// Use function that was looked up.
-					const auto& [callee_name, params, body, callee_pos] = it->second;
+					const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
 
 					// Set up arguments in environment.
 					Arguments env_args;
 
 					for (int i = 0; i < (int)caller_args.size(); i++) {
-						auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
+						auto retstr = eval_ast(caller_args[i], tree, functions, args);
 						env_args.emplace(params[i], retstr);
 					}
-
 					// Call function.
-					str = eval_ast(tree[body], tree, functions, &env_args);
+					str = eval_ast(body, tree, functions, &env_args);
 				}
 			},
 
 			[&] (const Fn& func) {
 				const auto& [name, params, body, pos] = func;
-				functions.insert_or_assign(mangle(name, params.size()), func);
+				functions.insert_or_assign(mangle(name, params.size()), node_id);
 			},
 
 			[&] (const String& x) {
@@ -99,17 +97,17 @@ namespace wpp {
 
 			[&] (const Concat& cat) {
 				const auto& [lhs, rhs, pos] = cat;
-				str = eval_ast(tree[lhs], tree, functions, args) + eval_ast(tree[rhs], tree, functions, args);
+				str = eval_ast(lhs, tree, functions, args) + eval_ast(rhs, tree, functions, args);
 			},
 
 			[&] (const Block& block) {
 				const auto& [stmts, expr, pos] = block;
 
 				for (const wpp::node_t node: stmts) {
-					str += eval_ast(tree[node], tree, functions, args);
+					str += eval_ast(node, tree, functions, args);
 				}
 
-				str = eval_ast(tree[expr], tree, functions, args);
+				str = eval_ast(expr, tree, functions, args);
 			},
 
 			[&] (const Ns&) {
@@ -118,7 +116,7 @@ namespace wpp {
 
 			[&] (const Document& doc) {
 				for (const wpp::node_t node: doc.exprs_or_stmts) {
-					str += eval_ast(tree[node], tree, functions, args);
+					str += eval_ast(node, tree, functions, args);
 				}
 			}
 		);
