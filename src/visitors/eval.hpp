@@ -35,7 +35,7 @@ namespace wpp {
 
 		wpp::visit(variant,
 			[&] (const FnInvoke& call) {
-				const auto& [caller_name, caller_args, pos] = call;
+				const auto& [caller_name, caller_args, caller_pos] = call;
 				std::string caller_mangled_name = mangle(caller_name, caller_args.size());
 
 				// Parameter.
@@ -52,13 +52,11 @@ namespace wpp {
 				// Function.
 				auto it = functions.find(caller_mangled_name);
 				if (it == functions.end()) {
-					// tinge::errorln("func not found: ", caller_mangled_name);
-					wpp::error(pos, "func not found: ", caller_mangled_name);
-					std::exit(1);
+					wpp::error(caller_pos, "func not found: ", caller_name);
 				}
 
 				// Use function that was looked up.
-				const auto& [callee_name, params, body] = it->second;
+				const auto& [callee_name, params, body, callee_pos] = it->second;
 
 				// Set up arguments in environment.
 				Arguments env_args;
@@ -73,7 +71,7 @@ namespace wpp {
 			},
 
 			[&] (const Fn& func) {
-				const auto& [name, params, body] = func;
+				const auto& [name, params, body, pos] = func;
 				functions.insert_or_assign(mangle(name, params.size()), func);
 			},
 
@@ -82,12 +80,12 @@ namespace wpp {
 			},
 
 			[&] (const Concat& cat) {
-				const auto& [lhs, rhs] = cat;
+				const auto& [lhs, rhs, pos] = cat;
 				str = eval_ast(tree[lhs], tree, functions, args) + eval_ast(tree[rhs], tree, functions, args);
 			},
 
 			[&] (const Block& block) {
-				const auto& [stmts, expr] = block;
+				const auto& [stmts, expr, pos] = block;
 
 				for (const wpp::node_t node: stmts) {
 					str += eval_ast(tree[node], tree, functions, args);

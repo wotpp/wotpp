@@ -23,7 +23,7 @@ namespace wpp {
 		Position coord;
 		auto& [line, column] = coord;
 
-		while (ptr++ != end - 1) {
+		while (ptr++ != end) {
 			if (*ptr == '\n') {
 				column = 1;
 				line++;
@@ -33,6 +33,9 @@ namespace wpp {
 				column++;
 			}
 		}
+
+		if (column > 1)
+			column--;
 
 		return coord;
 	}

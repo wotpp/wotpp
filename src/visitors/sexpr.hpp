@@ -29,7 +29,7 @@ namespace wpp {
 			},
 
 			[&] (const Fn& func) {
-				const auto& [name, params, body] = func;
+				const auto& [name, params, body, pos] = func;
 
 				str += "( 'fn " + name + "(";
 
@@ -52,7 +52,7 @@ namespace wpp {
 			},
 
 			[&] (const Concat& cat) {
-				const auto& [lhs, rhs] = cat;
+				const auto& [lhs, rhs, pos] = cat;
 
 				str += "( .. ";
 					print_ast(tree[lhs], tree, str);
@@ -62,7 +62,7 @@ namespace wpp {
 			},
 
 			[&] (const Block& blck) {
-				const auto& [stmts, expr] = blck;
+				const auto& [stmts, expr, pos] = blck;
 
 				str += "( '{...}' ";
 
@@ -77,7 +77,7 @@ namespace wpp {
 			},
 
 			[&] (const Ns& ns) {
-				const auto& [name, stmts] = ns;
+				const auto& [name, stmts, pos] = ns;
 
 				str += "( 'namespace \\\"" + name + "\\\"' ";
 

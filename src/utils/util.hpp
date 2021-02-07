@@ -11,8 +11,6 @@
 #include <sstream>
 #include <variant>
 
-#include <structures/position.hpp>
-
 namespace wpp {
 	// Concatenate objects with operator<< overload and return string.
 	template <typename... Ts>
@@ -80,10 +78,10 @@ namespace wpp {
 
 namespace wpp {
 	// Print an error with position info and exit.
-	template <typename... Ts>
-	[[noreturn]] inline void error(const Position& pos, Ts&&... args) {
+	template <typename T, typename... Ts>
+	[[noreturn]] inline void error(T&& first, Ts&&... args) {
 		([&] () -> std::ostream& {
-			return (std::cerr << "error @ " << pos << " -> ");
+			return (std::cerr << "error @ " << first << " -> ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
 
 		std::exit(1);

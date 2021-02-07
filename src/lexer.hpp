@@ -4,7 +4,10 @@
 #define WOTPP_LEXER
 
 #include <structures/token.hpp>
+#include <structures/position.hpp>
 #include <utils/char.hpp>
+
+#include <tinge.hpp>
 
 namespace wpp {
 	namespace modes {
