@@ -50,24 +50,42 @@ namespace wpp {
 				}
 
 				// Function.
-				auto it = functions.find(caller_mangled_name);
-				if (it == functions.end()) {
-					wpp::error(caller_pos, "func not found: ", caller_name);
+				if(caller_name == "shell") {
+                    // Set up arguments in environment.
+					std::string command = "";
+
+					for (int i = 0; i < (int)caller_args.size(); i++) {
+						auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
+						command += retstr + " ";
+					}
+
+					// Run the command
+					str = wpp::exec(command);
 				}
 
-				// Use function that was looked up.
-				const auto& [callee_name, params, body, callee_pos] = it->second;
+				// If it is just a regular function
+				else {
+					auto it = functions.find(caller_mangled_name);
+					if (it == functions.end()) {
+						// tinge::errorln("func not found: ", caller_mangled_name);
+						wpp::error(caller_pos, "func not found: ", caller_mangled_name);
+						std::exit(1);
+					}
 
-				// Set up arguments in environment.
-				Arguments env_args;
+					// Use function that was looked up.
+					const auto& [callee_name, params, body, callee_pos] = it->second;
 
-				for (int i = 0; i < (int)caller_args.size(); i++) {
-					auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
-					env_args.emplace(params[i], retstr);
+					// Set up arguments in environment.
+					Arguments env_args;
+
+					for (int i = 0; i < (int)caller_args.size(); i++) {
+						auto retstr = eval_ast(tree[caller_args[i]], tree, functions, args);
+						env_args.emplace(params[i], retstr);
+					}
+
+					// Call function.
+					str = eval_ast(tree[body], tree, functions, &env_args);
 				}
-
-				// Call function.
-				str = eval_ast(tree[body], tree, functions, &env_args);
 			},
 
 			[&] (const Fn& func) {

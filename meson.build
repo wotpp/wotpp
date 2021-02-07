@@ -31,3 +31,4 @@ exe = executable('wotpp', sources,
 
 test('html test', exe, args: [files('examples/test')])
 test('md test', exe, args: [files('examples/test2')])
+test('shell test', exe, args: [files('examples/shell')])
