@@ -5,6 +5,8 @@ Features:
 	- Language level variadic functions
 	- Implement intrinsic functions
 	- Commandline argument parsing
+	- Embedded lang for programmatic generation of strings
+	- Regex based pattern matching
 
 Code Cleanup:
 	- Better documentation and comments
@@ -12,8 +14,8 @@ Code Cleanup:
 
 Fix:
 	- Allow trailing comma in argument/parameter lists
+	- Recursion limit
 
 Misc:
 	- `eval` intrinsic should return an empty string
-	- Fix kakoune syntax file
 

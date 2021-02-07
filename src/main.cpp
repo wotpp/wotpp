@@ -37,7 +37,7 @@ int main(int argc, const char* argv[]) {
 
 	// Evaluate.
 	wpp::Environment env;
-	std::cout << wpp::eval_ast(tree[root], tree, env) << '\n';
+	std::cout << wpp::eval_ast(tree[root], tree, env);
 
 	return 0;
 }
