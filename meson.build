@@ -29,5 +29,5 @@ exe = executable('wotpp', sources,
 	dependencies: [libstdcppfs_dep],
 	install: true)
 
-test('html test', exe, args: [files('tests/test')])
-test('md test', exe, args: [files('tests/test2')])
+test('html test', exe, args: [files('examples/test')])
+test('md test', exe, args: [files('examples/test2')])
