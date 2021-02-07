@@ -1,0 +1,34 @@
+Wot++ Syntax
+------------------------------
+{}   :    Defines a function.
+()   :    Code inside parenthesis is executed if current cell is not zero.
+/\\  :    Code inside slashes is executed if current cell is zero.
+[]   :    Code inside is looped while current cell is > zero.
+*`   :    Skip to next backtick
+
+!    :    Bitwise not the current cell
+~    :    Set current cell to zero
+
+>    :    Move right
+<    :    Move left
+^    :    Move up
+v    :    Move down
+
++    :    Add one to current cell
+-    :    Subtract one from current cell
+*    :    Multiply current cell by two
+/    :    Divide current cell by two
+%    :    Divide current cell by two and store remainder
+
+@    :    Output raw value
+.    :    Ouput ASCII equivalent value
+,    :    Input a single char as ASCII value to current cell
+
+?    :    Get temporary variable and copy to current cell
+&    :    Set temporary variable to current cells value
+
+:    :    Move function pointer to the right
+;    :    Move function pointer to the left
+#    :    Execute currently pointed to function
+
+%    :    Goto cell zero on current row
