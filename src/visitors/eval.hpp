@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <stack>
+#include <type_traits>
 
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
@@ -14,24 +15,27 @@
 // AST visitor that evaluates the program.
 
 namespace wpp {
-	using Environment = std::unordered_map<std::string, wpp::Fn>;
+	using Environment = std::unordered_map<std::string, wpp::node_t>;
 	using Arguments = std::unordered_map<std::string, std::string>;
 
 
 	template <typename... Ts>
-	inline std::string mangle(const std::string& first, Ts&&... args) {
-		using namespace std;
-		const auto helper = [] (auto&& x) {
-			return std::to_string(x) + "__";
+	inline std::string mangle(Ts&&... args) {
+		const auto tostr = [] (const auto& x) {
+			if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
+				return x;
+
+			else
+				return std::to_string(x);
 		};
 
-		return first + "__" + (helper(args) + ...);
+		return (tostr(args) + ...);
 	}
 
 	inline std::string eval(const std::string& code);
 
-	template <typename T>
-	inline std::string eval_ast(const T& variant, const wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
+	inline std::string eval_ast(const wpp::node_t node_id, const wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
+		const auto& variant = tree[node_id];
 		std::string str;
 
 		wpp::visit(variant,
@@ -67,7 +71,7 @@ namespace wpp {
 						   #else
 						   wpp::error(caller_pos, "executing shell commands has been disabled during compilation");
 						   std::exit(1);
-                           #endif //WPP_DISABLE_RUN
+               #endif //WPP_DISABLE_RUN
 					   }
 
 					   // If it is a call to the eval built-in

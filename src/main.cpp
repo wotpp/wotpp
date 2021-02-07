@@ -23,6 +23,6 @@ int main(int argc, const char* argv[]) {
 
 	auto file = wpp::read_file(argv[1]);
 	std::cout << wpp::eval(file) << std::endl;
-
+  
 	return 0;
 }
