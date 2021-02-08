@@ -1,0 +1,8 @@
+let foo {
+    eval("let foo {eval(\"let foo \\\"c\\\"\") \"b\"}")
+    "a"
+}
+
+foo
+foo
+foo
