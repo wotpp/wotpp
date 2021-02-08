@@ -1,6 +1,6 @@
 let foo {
-    eval("let foo {eval(\"let foo \\\"c\\\"\") \"b\n\"}")
-    "a\n"
+	eval("let foo {eval(\"let foo \\\"c\\\"\") \"b\n\"}")
+	"a\n"
 }
 
 #[ expect: a ]
