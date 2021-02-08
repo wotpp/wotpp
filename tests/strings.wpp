@@ -1,0 +1,5 @@
+#[expect(hey)]
+"hey"
+
+#[ expect(\n\tsdfhdsf) ]
+"\n\tsdfhdsf"
