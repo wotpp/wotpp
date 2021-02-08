@@ -3,4 +3,7 @@ let \n "\n"
 let title(x)
 	"# " .. x .. \n
 
+#[ this is so darn ugly ]
+#[ expect: # test
+hey ]
 title("test") .. "hey"
