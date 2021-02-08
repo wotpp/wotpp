@@ -42,7 +42,7 @@ libstdcppfs_dep = meson.get_compiler('cpp').find_library('stdc++fs', required: f
 
 
 exe = executable(
-	'wotpp',
+	'w++',
 	sources,
 	include_directories: [sources_inc, modules_inc],
 	dependencies: [libstdcppfs_dep],

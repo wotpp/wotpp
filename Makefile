@@ -1,7 +1,7 @@
 # wot++
 
 BUILD_DIR=build
-TARGET=wpp
+TARGET=w++
 LIBS=$(LDLIBS)
 INC=-Imodules/ -Isrc/
 
