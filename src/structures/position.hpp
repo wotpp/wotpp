@@ -30,7 +30,7 @@ namespace wpp {
 		Position coord;
 		auto& [msg, line, column] = coord;
 
-		while (ptr++ != end) {
+		while (ptr != end) {
 			if (*ptr == '\n') {
 				column = 1;
 				line++;
@@ -39,14 +39,13 @@ namespace wpp {
 			else {
 				column++;
 			}
+
+			++ptr;
 		}
 
 		if (*ptr == '\0') {
 			msg = "EOF";
 		}
-
-		if (column > 1)
-			column--;
 
 		return coord;
 	}

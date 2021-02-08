@@ -169,7 +169,7 @@ namespace wpp {
 							}
 
 							if (*str == '\0' and depth != 0) {
-								throw wpp::Exception{position(), "unterminated comment."};
+								throw wpp::Exception{wpp::position(start, str), "unterminated comment."};
 							}
 
 							// return next_token(mode);
@@ -250,7 +250,7 @@ namespace wpp {
 						}
 
 						// else {
-						// 	wpp::error(position(), "unexpected character `", *str, "`(", (int)*str, ").");
+						// 	wpp::error(position(start, str), "unexpected character `", *str, "`(", (int)*str, ").");
 						// }
 					}
 
