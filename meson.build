@@ -33,9 +33,9 @@ exe = executable('wotpp', sources,
 	dependencies: [libstdcppfs_dep],
 	install: true)
 
-test('html test', exe, args: [files('examples/test')])
-test('md test', exe, args: [files('examples/test2')])
+test_runner = find_program('tests/run_test.py')
+test('md test', test_runner, args: [files('tests/md.wpp'), exe])
 if not get_option('disable_run')
-    test('run test', exe, args: [files('examples/run')])
+   test('run test', test_runner, args: [files('tests/run.wpp'), exe])
 endif
-test('eval test', exe, args: [files('examples/eval')])
+test('eval test', test_runner, args: [files('tests/eval.wpp'), exe])

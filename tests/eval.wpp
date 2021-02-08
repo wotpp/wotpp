@@ -1,0 +1,11 @@
+let foo {
+    eval("let foo {eval(\"let foo \\\"c\\\"\") \"b\n\"}")
+    "a\n"
+}
+
+#[ expect: a ]
+foo
+#[ expect: b ]
+foo
+#[ expect: c ]
+foo
