@@ -1,2 +1,2 @@
-#[ expect: hello world ]
+#[ expect(hello world) ]
 run("echo hello world")

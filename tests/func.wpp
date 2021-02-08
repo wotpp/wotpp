@@ -1,5 +1,5 @@
 let foo(x)
 	"foo: " .. x
 
-#[ expect: foo: bar ]
+#[ expect(foo: bar) ]
 foo("bar")
