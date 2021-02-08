@@ -15,7 +15,7 @@ namespace wpp {
 	constexpr node_t NODE_EMPTY = -1;
 
 	template <typename... Ts>
-	class HomogenousVector: public std::vector<std::variant<Ts...>> {
+	class HeterogenousVector: public std::vector<std::variant<Ts...>> {
 		using std::vector<std::variant<Ts...>>::vector;
 
 		public:

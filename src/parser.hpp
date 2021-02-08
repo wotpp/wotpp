@@ -208,7 +208,7 @@ namespace wpp {
 	};
 
 	// An alias for our AST.
-	using AST = wpp::HomogenousVector<FnInvoke, FnRun, FnEval, FnAssert, FnFile, Fn, String, Concat, Block, Ns, Document>;
+	using AST = wpp::HeterogenousVector<FnInvoke, FnRun, FnEval, FnAssert, FnFile, Fn, String, Concat, Block, Ns, Document>;
 }
 
 
