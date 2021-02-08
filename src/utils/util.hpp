@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <array>
 #include <utility>
-#include <filesystem>
+// #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -59,12 +59,26 @@ namespace wpp {
 
 // Read a file into a string relatively quickly.
 namespace wpp {
-	inline std::string read_file(const std::string& fname) {
-		auto filesize = std::filesystem::file_size(fname);
-		std::ifstream is(fname, std::ios::binary);
+	// inline std::string read_file(const std::string& fname) {
+	// 	auto filesize = std::filesystem::file_size(fname);
+	// 	std::ifstream is(fname, std::ios::binary);
 
-		auto str = std::string(filesize + 1, '\0');
-		is.read(str.data(), static_cast<std::streamsize>(filesize));
+	// 	auto str = std::string(filesize + 1, '\0');
+	// 	is.read(str.data(), static_cast<std::streamsize>(filesize));
+
+	// 	return str;
+	// }
+
+	inline std::string read_file(const std::string& fname) {
+		std::ifstream is(fname, std::ios::in | std::ios::binary);
+		std::string str;
+
+		is.seekg(0, std::ios::end);
+		str.resize(is.tellg());
+		is.seekg(0, std::ios::beg);
+
+		is.read(&str[0], str.size());
+		is.close();
 
 		return str;
 	}
