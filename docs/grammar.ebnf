@@ -75,5 +75,5 @@ expression ::= (
 	)
 
 
-statement ::= <fn> | <ns> | <comment>
-document ::= ( <expression> | <statement> )*
+statement ::= <fn> | <ns> | <comment> | <expression>
+document ::= <statement>*

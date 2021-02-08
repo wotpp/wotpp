@@ -43,9 +43,9 @@ namespace wpp {
 				std::string caller_mangled_name = mangle(caller_name, caller_args.size());
 
 				// Check if parameter.
-				if (args != nullptr) {
-					if (auto man_it = (*args).find(caller_name); man_it != (*args).end()) {
-						str = man_it->second;
+				if (args) {
+					if (auto it = (*args).find(caller_name); it != (*args).end()) {
+						str = it->second;
 						return;
 					}
 				}
@@ -67,20 +67,19 @@ namespace wpp {
 				else {
 					// If it wasn't a parameter, we fall through to here and check if it's a function.
 					auto it = functions.find(caller_mangled_name);
-					if (it == functions.end()) {
+					if (it == functions.end())
 						wpp::error(caller_pos, "func not found: ", caller_name);
-					}
 
-					// Use function that was looked up.
+					// Retrieve function.
 					const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
 
-					// Set up arguments in environment.
+					// Set up Arguments to pass down to function body.
 					Arguments env_args;
 
-					for (int i = 0; i < (int)caller_args.size(); i++) {
-						auto retstr = eval_ast(caller_args[i], tree, functions, args);
-						env_args.emplace(params[i], retstr);
-					}
+					// Evaluate arguments and store their result.
+					for (int i = 0; i < (int)caller_args.size(); i++)
+						env_args.emplace(params[i], eval_ast(caller_args[i], tree, functions, args));
+
 					// Call function.
 					str = eval_ast(body, tree, functions, &env_args);
 				}
