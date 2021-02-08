@@ -13,7 +13,6 @@ Code Cleanup:
 	- Use utils/char.hpp consume function in lexer
 
 Fix:
-	- Allow trailing comma in argument/parameter lists
 	- Recursion limit
 
 Misc:
