@@ -22,6 +22,10 @@ if get_option('profile')
 	endif
 endif
 
+if get_option('disable_run')
+    add_project_arguments('-DWPP_DISABLE_RUN', language: 'cpp')
+endif
+
 libstdcppfs_dep = meson.get_compiler('cpp').find_library('stdc++fs', required: false)
 
 exe = executable('wotpp', sources,
@@ -31,4 +35,7 @@ exe = executable('wotpp', sources,
 
 test('html test', exe, args: [files('examples/test')])
 test('md test', exe, args: [files('examples/test2')])
-test('shell test', exe, args: [files('examples/shell')])
+if not get_option('disable_run')
+    test('run test', exe, args: [files('examples/run')])
+endif
+test('eval test', exe, args: [files('examples/eval')])

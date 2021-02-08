@@ -32,21 +32,28 @@ namespace wpp {
 		return (tostr(args) + ...);
 	}
 
+	// TODO: Separate this into a header/implementation file so we don't have to forward declare this
+	inline std::string eval(const std::string& code, wpp::Environment& env);
 
 	inline std::string eval_ast(const wpp::node_t node_id, const wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
 		const auto& variant = tree[node_id];
 		std::string str;
 
 		wpp::visit(variant,
+#ifndef WPP_DISABLE_RUN
 			[&] (const FnRun& run) {
 				const auto& [arg, pos] = run;
 
 				auto cmd = eval_ast(arg, tree, functions, args);
 				str = wpp::exec(cmd);
 			},
+#endif //WPP_DISABLE_RUN
 
 			[&] (const FnEval& eval) {
 				const auto& [arg, pos] = eval;
+
+				auto code = eval_ast(arg, tree, functions, args);
+				str = wpp::eval(code, functions);
 			},
 
 			[&] (const FnAssert& ass) {
@@ -125,6 +132,22 @@ namespace wpp {
 
 		return str;
 	}
+
+	inline std::string eval(const std::string& code, wpp::Environment& env) {
+		// Create a new lexer and syntax tree
+		wpp::Lexer lex{code.c_str()};
+		wpp::AST tree;
+
+		// Reserve 10MiB
+		tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+
+		// Parse.
+		auto root = document(lex, tree);
+
+		// Evaluate.
+		return wpp::eval_ast(root, tree, env);
+	}
+
 }
 
 #endif
