@@ -37,7 +37,7 @@ if __name__ == "__main__":
 	with open(test_file, 'r') as f:
 		test_file = f.read()
 
-	match_iter = re.finditer(r"(?:#\[\s*expect\()(.+)(?:\)\s*\])", test_file)
+	match_iter = re.finditer(r"(?:#\[\s*expect\()((.+)?)(?:\)\s*\])", test_file)
 
 	if match_iter is not None:
 		for m in match_iter:
