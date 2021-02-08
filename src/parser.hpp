@@ -395,28 +395,33 @@ namespace wpp {
 		if (lex.peek() == TOKEN_LPAREN) {
 			lex.advance(); // skip lparen.
 
-			if (lex.peek() == TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "empty arguments, drop the parens."};
+			if (lex.peek() != TOKEN_RPAREN) {
+				// throw wpp::Exception{lex.position(), "empty arguments, drop the parens."};
 
-			// Collect arguments.
-			wpp::node_t expr;
-
-			expr = expression(lex, tree);
-			tree.get<FnInvoke>(node).arguments.emplace_back(expr);
-
-			while (lex.peek() == TOKEN_COMMA) {
-				lex.advance(); // skip comma.
-
-				// Allow trailing comma.
-				if (lex.peek() == TOKEN_RPAREN)
-					break;
+				// Collect arguments.
+				wpp::node_t expr;
 
 				expr = expression(lex, tree);
 				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
+
+				while (lex.peek() == TOKEN_COMMA) {
+					lex.advance(); // skip comma.
+
+					// Allow trailing comma.
+					if (lex.peek() == TOKEN_RPAREN)
+						break;
+
+					expr = expression(lex, tree);
+					tree.get<FnInvoke>(node).arguments.emplace_back(expr);
+				}
+
+				if (lex.advance() != TOKEN_RPAREN)
+					throw wpp::Exception{lex.position(), "expecting closing parenthesis after argument list."};
 			}
 
-			if (lex.advance() != TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "expecting closing parenthesis after argument list."};
+			else {
+				lex.advance(); // skip `)`
+			}
 		}
 
 		const auto& [name, args, pos] = tree.get<FnInvoke>(node);
