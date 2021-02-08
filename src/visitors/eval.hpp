@@ -117,7 +117,7 @@ namespace wpp {
 			},
 
 			[&] (const Document& doc) {
-				for (const wpp::node_t node: doc.exprs_or_stmts) {
+				for (const wpp::node_t node: doc.stmts) {
 					str += eval_ast(node, tree, functions, args);
 				}
 			}

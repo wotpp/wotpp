@@ -192,14 +192,14 @@ namespace wpp {
 
 	// The root node of a wot++ program.
 	struct Document {
-		std::vector<wpp::node_t> exprs_or_stmts;
+		std::vector<wpp::node_t> stmts;
 		wpp::Position pos;
 
 		Document(
-			const std::vector<wpp::node_t>& exprs_or_stmts_,
+			const std::vector<wpp::node_t>& stmts_,
 			const wpp::Position& pos_
 		):
-			exprs_or_stmts(exprs_or_stmts_),
+			stmts(stmts_),
 			pos(pos_) {}
 
 		Document(const wpp::Position& pos_): pos(pos_) {}
@@ -213,14 +213,6 @@ namespace wpp {
 
 
 namespace wpp {
-	// Check if the token is a statement.
-	inline bool peek_is_stmt(const wpp::Token& tok) {
-		return
-			tok == TOKEN_LET or
-			tok == TOKEN_NAMESPACE
-		;
-	}
-
 	// Check if the token is an expression.
 	inline bool peek_is_call(const wpp::Token& tok) {
 		return
@@ -239,6 +231,15 @@ namespace wpp {
 			tok == TOKEN_QUOTE or
 			tok == TOKEN_LBRACE or
 			peek_is_call(tok)
+		;
+	}
+
+	// Check if the token is a statement.
+	inline bool peek_is_stmt(const wpp::Token& tok) {
+		return
+			tok == TOKEN_LET or
+			tok == TOKEN_NAMESPACE or
+			peek_is_expr(tok)
 		;
 	}
 
@@ -303,6 +304,10 @@ namespace wpp {
 			// While there is a comma, loop until we run out of parameters.
 			while (lex.peek() == TOKEN_COMMA) {
 				lex.advance(); // Skip `,`.
+
+				// Allow trailing comma.
+				if (lex.peek() == TOKEN_RPAREN)
+					break;
 
 
 				// Check if there is a parameter.
@@ -400,6 +405,10 @@ namespace wpp {
 
 			while (lex.peek() == TOKEN_COMMA) {
 				lex.advance(); // skip comma.
+
+				// Allow trailing comma.
+				if (lex.peek() == TOKEN_RPAREN)
+					break;
 
 				expr = expression(lex, tree);
 				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
@@ -502,18 +511,33 @@ namespace wpp {
 		lex.advance(); // skip lbrace
 
 		// check if theres a statement, otherwise its just a single expression
+		bool last_is_expr = false;
 		if (peek_is_stmt(lex.peek())) {
 			do {
+				if (peek_is_expr(lex.peek()))
+					last_is_expr = true;
+
+				else
+					last_is_expr = false;
+
 				const wpp::node_t stmt = statement(lex, tree);
 				tree.get<Block>(node).statements.emplace_back(stmt);
 			} while (peek_is_stmt(lex.peek()));
 		}
 
-		const wpp::node_t expr = expression(lex, tree);
-		tree.get<Block>(node).expr = expr;
+		if (not peek_is_expr(lex.peek()) and last_is_expr) {
+			tree.get<Block>(node).expr = tree.get<Block>(node).statements.back();
+			tree.get<Block>(node).statements.pop_back();
+		}
 
-		if (peek_is_expr(lex.peek()))
-			wpp::error(lex.position(), "block can only have one trailing expression.");
+		else if (peek_is_expr(lex.peek()) and not last_is_expr) {
+			const wpp::node_t expr = expression(lex, tree);
+			tree.get<Block>(node).expr = expr;
+		}
+
+		else {
+			wpp::error(lex.position(), "expecting a trailing expression at the end of a block");
+		}
 
 		if (lex.advance() != TOKEN_RBRACE)
 			wpp::error(lex.position(), "block is unterminated.");
@@ -569,6 +593,10 @@ namespace wpp {
 		else if (lookahead == TOKEN_NAMESPACE)
 			return wpp::nspace(lex, tree);
 
+		else if (peek_is_expr(lookahead)) {
+			return wpp::expression(lex, tree);
+		};
+
 		wpp::error(lex.position(), "expecting a statement.");
 	}
 
@@ -580,21 +608,14 @@ namespace wpp {
 
 		// Consume expressions until we encounter eof or an error.
 		while (lex.peek() != TOKEN_EOF) {
-			wpp::node_t stmt_or_expr;
-			const auto lookahead = lex.peek();
+			if (peek_is_stmt(lex.peek())) {
+				const wpp::node_t stmt = statement(lex, tree);
+				tree.get<Document>(node).stmts.emplace_back(stmt);
+			}
 
-			// statement
-			if (peek_is_stmt(lookahead))
-				stmt_or_expr = statement(lex, tree);
-
-			// expression
-			else if (peek_is_expr(lookahead))
-				stmt_or_expr = expression(lex, tree);
-
-			else
-				wpp::error(lex.position(), "expecting either a statement or an expression.");
-
-			tree.get<Document>(node).exprs_or_stmts.emplace_back(stmt_or_expr);
+			else {
+				wpp::error(lex.position(), "expecting a statement.");
+			}
 		}
 
 		return node;

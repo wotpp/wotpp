@@ -120,7 +120,7 @@ namespace wpp {
 			},
 
 			[&] (const Document& x) {
-				for (const wpp::node_t s: x.exprs_or_stmts) {
+				for (const wpp::node_t s: x.stmts) {
 					print_ast(tree[s], tree, str);
 					str += " ";
 				}
