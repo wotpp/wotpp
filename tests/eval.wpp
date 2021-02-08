@@ -1,11 +1,3 @@
-let foo {
-	eval("let foo {eval(\"let foo \\\"c\\\"\") \"b\n\"}")
-	"a\n"
-}
-
-#[ expect: a ]
-foo
-#[ expect: b ]
-foo
-#[ expect: c ]
+eval("let foo 'hello'")
+#[ expect: hello ]
 foo

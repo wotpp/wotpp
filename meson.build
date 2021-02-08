@@ -54,9 +54,10 @@ exe = executable(
 test_runner = find_program('tests/run_test.py')
 
 test_cases = [
-	'tests/md.wpp',
+	'tests/func.wpp',
 	'tests/eval.wpp',
 	'tests/run.wpp',
+	'tests/nested_func.wpp',
 ]
 
 foreach case: test_cases
