@@ -63,7 +63,7 @@ namespace wpp {
 
 			[&] (const FnInvoke& call) {
 				const auto& [caller_name, caller_args, caller_pos] = call;
-				std::string caller_catd_name = cat(caller_name, caller_args.size());
+				std::string caller_mangled_name = cat(caller_name, caller_args.size());
 
 				// Check if parameter.
 				if (args) {
@@ -74,7 +74,7 @@ namespace wpp {
 				}
 
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
-				auto it = functions.find(caller_catd_name);
+				auto it = functions.find(caller_mangled_name);
 				if (it == functions.end())
 					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
 
