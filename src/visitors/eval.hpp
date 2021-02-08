@@ -35,7 +35,7 @@ namespace wpp {
 	// TODO: Separate this into a header/implementation file so we don't have to forward declare this
 	inline std::string eval(const std::string& code, wpp::Environment& env);
 
-	inline std::string eval_ast(const wpp::node_t node_id, const wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
+	inline std::string eval_ast(const wpp::node_t node_id, wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
 		const auto& variant = tree[node_id];
 		std::string str;
 
@@ -53,7 +53,11 @@ namespace wpp {
 				const auto& [arg, pos] = eval;
 
 				auto code = eval_ast(arg, tree, functions, args);
-				str = wpp::eval(code, functions);
+
+				wpp::Lexer lex{code.c_str()};
+				auto root = document(lex, tree);
+
+				str = wpp::eval_ast(root, tree, functions, args);
 			},
 
 			[&] (const FnAssert& ass) {
