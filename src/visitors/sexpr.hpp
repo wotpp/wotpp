@@ -28,6 +28,36 @@ namespace wpp {
 				str += ")";
 			},
 
+			[&] (const FnRun& run) {
+				const auto& [arg, pos] = run;
+				str += "( 'run(...)' ";
+					print_ast(tree[arg], tree, str);
+				str += " )";
+			},
+
+			[&] (const FnAssert& run) {
+				const auto& [args, pos] = run;
+				str += "( 'assert(...)' ";
+					print_ast(tree[args.first], tree, str);
+				str += " ";
+					print_ast(tree[args.second], tree, str);
+				str += " )";
+			},
+
+			[&] (const FnFile& run) {
+				const auto& [arg, pos] = run;
+				str += "( 'file(...)' ";
+					print_ast(tree[arg], tree, str);
+				str += " )";
+			},
+
+			[&] (const FnEval& run) {
+				const auto& [arg, pos] = run;
+				str += "( 'eval(...)' ";
+					print_ast(tree[arg], tree, str);
+				str += " )";
+			},
+
 			[&] (const Fn& func) {
 				const auto& [name, params, body, pos] = func;
 

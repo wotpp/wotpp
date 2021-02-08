@@ -38,6 +38,25 @@ namespace wpp {
 		std::string str;
 
 		wpp::visit(variant,
+			[&] (const FnRun& run) {
+				const auto& [arg, pos] = run;
+
+				auto cmd = eval_ast(arg, tree, functions, args);
+				str = wpp::exec(cmd);
+			},
+
+			[&] (const FnEval& eval) {
+				const auto& [arg, pos] = eval;
+			},
+
+			[&] (const FnAssert& ass) {
+				const auto& [arg, pos] = ass;
+			},
+
+			[&] (const FnFile& file) {
+				const auto& [arg, pos] = file;
+			},
+
 			[&] (const FnInvoke& call) {
 				const auto& [caller_name, caller_args, caller_pos] = call;
 				std::string caller_mangled_name = mangle(caller_name, caller_args.size());
@@ -50,39 +69,23 @@ namespace wpp {
 					}
 				}
 
-				// Function.
-				if (caller_name == "run") {
-					// Set up arguments in environment.
-					std::string command;
+				// If it wasn't a parameter, we fall through to here and check if it's a function.
+				auto it = functions.find(caller_mangled_name);
+				if (it == functions.end())
+					wpp::error(caller_pos, "func not found: ", caller_name);
 
-					for (int i = 0; i < (int)caller_args.size(); i++) {
-						auto retstr = eval_ast(caller_args[i], tree, functions, args);
-						command += retstr + " ";
-					}
+				// Retrieve function.
+				const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
 
-					// Run the command
-					str = wpp::exec(command);
-				}
+				// Set up Arguments to pass down to function body.
+				Arguments env_args;
 
-				else {
-					// If it wasn't a parameter, we fall through to here and check if it's a function.
-					auto it = functions.find(caller_mangled_name);
-					if (it == functions.end())
-						wpp::error(caller_pos, "func not found: ", caller_name);
+				// Evaluate arguments and store their result.
+				for (int i = 0; i < (int)caller_args.size(); i++)
+					env_args.emplace(params[i], eval_ast(caller_args[i], tree, functions, args));
 
-					// Retrieve function.
-					const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
-
-					// Set up Arguments to pass down to function body.
-					Arguments env_args;
-
-					// Evaluate arguments and store their result.
-					for (int i = 0; i < (int)caller_args.size(); i++)
-						env_args.emplace(params[i], eval_ast(caller_args[i], tree, functions, args));
-
-					// Call function.
-					str = eval_ast(body, tree, functions, &env_args);
-				}
+				// Call function.
+				str = eval_ast(body, tree, functions, &env_args);
 			},
 
 			[&] (const Fn& func) {

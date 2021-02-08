@@ -26,16 +26,21 @@ namespace wpp {
 				return static_cast<int64_t>(this->size() - 1);
 			}
 
+			template <typename T, typename... Xs>
+			auto& replace(node_t i, Xs&&... args) {
+				return (*this)[i].template emplace<T>(std::forward<Xs>(args)...);
+			}
+
 			// Retrieve element by index and pull the underlying type out of
 			// the variant.
 			template <typename T>
-			T& get(node_t n) {
-				return std::get<T>((*this)[n]);
+			T& get(node_t i) {
+				return std::get<T>((*this)[i]);
 			}
 
 			template <typename T>
-			const T& get(node_t n) const {
-				return std::get<T>((*this)[n]);
+			const T& get(node_t i) const {
+				return std::get<T>((*this)[i]);
 			}
 	};
 }

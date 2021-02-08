@@ -37,6 +37,70 @@ namespace wpp {
 		FnInvoke() {}
 	};
 
+	struct FnRun {
+		wpp::node_t argument;
+		wpp::Position pos;
+
+		FnRun(
+			const wpp::node_t argument_,
+			const wpp::Position& pos_
+		):
+			argument(argument_),
+			pos(pos_) {}
+
+		FnRun(const wpp::Position& pos_): pos(pos_) {}
+
+		FnRun() {}
+	};
+
+	struct FnEval {
+		wpp::node_t argument;
+		wpp::Position pos;
+
+		FnEval(
+			const wpp::node_t argument_,
+			const wpp::Position& pos_
+		):
+			argument(argument_),
+			pos(pos_) {}
+
+		FnEval(const wpp::Position& pos_): pos(pos_) {}
+
+		FnEval() {}
+	};
+
+	struct FnFile {
+		wpp::node_t argument;
+		wpp::Position pos;
+
+		FnFile(
+			const wpp::node_t argument_,
+			const wpp::Position& pos_
+		):
+			argument(argument_),
+			pos(pos_) {}
+
+		FnFile(const wpp::Position& pos_): pos(pos_) {}
+
+		FnFile() {}
+	};
+
+	struct FnAssert {
+		std::pair<wpp::node_t, wpp::node_t> arguments;
+		wpp::Position pos;
+
+		FnAssert(
+			const std::pair<wpp::node_t, wpp::node_t>& arguments_,
+			const wpp::Position& pos_
+		):
+			arguments(arguments_),
+			pos(pos_) {}
+
+		FnAssert(const wpp::Position& pos_): pos(pos_) {}
+
+		FnAssert() {}
+	};
+
 	// Function definition.
 	struct Fn {
 		std::string identifier;
@@ -144,7 +208,7 @@ namespace wpp {
 	};
 
 	// An alias for our AST.
-	using AST = wpp::HomogenousVector<FnInvoke, Fn, String, Concat, Block, Ns, Document>;
+	using AST = wpp::HomogenousVector<FnInvoke, FnRun, FnEval, FnAssert, FnFile, Fn, String, Concat, Block, Ns, Document>;
 }
 
 
@@ -158,12 +222,23 @@ namespace wpp {
 	}
 
 	// Check if the token is an expression.
+	inline bool peek_is_call(const wpp::Token& tok) {
+		return
+			tok == TOKEN_IDENTIFIER or
+			tok == TOKEN_RUN or
+			tok == TOKEN_EVAL or
+			tok == TOKEN_FILE or
+			tok == TOKEN_ASSERT
+		;
+	}
+
+	// Check if the token is an expression.
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
 			tok == TOKEN_DOUBLEQUOTE or
 			tok == TOKEN_QUOTE or
 			tok == TOKEN_LBRACE or
-			tok == TOKEN_IDENTIFIER
+			peek_is_call(tok)
 		;
 	}
 
@@ -307,9 +382,8 @@ namespace wpp {
 
 	// Parse a function call.
 	inline wpp::node_t call(wpp::Lexer& lex, wpp::AST& tree) {
-		const wpp::node_t node = tree.add<FnInvoke>(lex.position());
-
-		tree.get<FnInvoke>(node).identifier = lex.advance().str();
+		wpp::node_t node = tree.add<FnInvoke>(lex.position());
+		const auto fn_token = lex.advance();
 
 		// Optional arguments.
 		if (lex.peek() == TOKEN_LPAREN) {
@@ -325,13 +399,48 @@ namespace wpp {
 			tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 
 			while (lex.peek() == TOKEN_COMMA) {
-				lex.advance();
+				lex.advance(); // skip comma.
+
 				expr = expression(lex, tree);
 				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 			}
 
 			if (lex.advance() != TOKEN_RPAREN)
-				wpp::error(lex.position(), "no closing parenthesis at end of argument list.");
+				wpp::error(lex.position(), "expecting closing parenthesis after argument list.");
+		}
+
+		const auto& [name, args, pos] = tree.get<FnInvoke>(node);
+
+		if (fn_token == TOKEN_RUN) {
+			if (args.size() != 1)
+				wpp::error(lex.position(), "run takes exactly one argument.");
+
+			tree.replace<FnRun>(node, args[0], pos);
+		}
+
+		else if (fn_token == TOKEN_EVAL) {
+			if (args.size() != 1)
+				wpp::error(lex.position(), "eval takes exactly one argument.");
+
+			tree.replace<FnEval>(node, args[0], pos);
+		}
+
+		else if (fn_token == TOKEN_ASSERT) {
+			if (args.size() != 2)
+				wpp::error(lex.position(), "assert takes exactly two arguments.");
+
+			tree.replace<FnAssert>(node, std::pair{args[0], args[1]}, pos);
+		}
+
+		else if (fn_token == TOKEN_FILE) {
+			if (args.size() != 1)
+				wpp::error(lex.position(), "file takes exactly one argument.");
+
+			tree.replace<FnFile>(node, args[0], pos);
+		}
+
+		else {
+			tree.get<FnInvoke>(node).identifier = fn_token.str();
 		}
 
 		return node;
@@ -419,7 +528,7 @@ namespace wpp {
 
 		const auto lookahead = lex.peek();
 
-		if (lookahead == TOKEN_IDENTIFIER)
+		if (peek_is_call(lookahead))
 			lhs = wpp::call(lex, tree);
 
 		else if (peek_is_string(lookahead))

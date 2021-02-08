@@ -43,11 +43,9 @@ namespace wpp {
 		TOKEN(TOKEN_IDENTIFIER) \
 		TOKEN(TOKEN_NAMESPACE) \
 		TOKEN(TOKEN_LET) \
-		TOKEN(TOKEN_EXEC) \
+		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \
-		TOKEN(TOKEN_SOURCE) \
-		TOKEN(TOKEN_REPLACE) \
-		TOKEN(TOKEN_COMPARE) \
+		TOKEN(TOKEN_EVAL) \
 		TOKEN(TOKEN_ASSERT) \
 		\
 		TOKEN(TOKEN_LPAREN) \
@@ -248,11 +246,9 @@ namespace wpp {
 
 							if      (view == "let")       type = TOKEN_LET;
 							else if (view == "namespace") type = TOKEN_NAMESPACE;
-							else if (view == "exec")      type = TOKEN_EXEC;
+							else if (view == "run")       type = TOKEN_RUN;
+							else if (view == "eval")      type = TOKEN_EVAL;
 							else if (view == "file")      type = TOKEN_FILE;
-							else if (view == "source")    type = TOKEN_SOURCE;
-							else if (view == "replace")   type = TOKEN_REPLACE;
-							else if (view == "compare")   type = TOKEN_COMPARE;
 							else if (view == "assert")    type = TOKEN_ASSERT;
 						}
 
