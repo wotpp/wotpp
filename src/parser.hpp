@@ -45,7 +45,7 @@ namespace wpp {
 		FnRun(
 			const wpp::node_t argument_,
 			const wpp::Position& pos_
-			):
+		):
 			argument(argument_),
 			pos(pos_) {}
 
