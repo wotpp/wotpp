@@ -6,6 +6,7 @@
 #include <structures/token.hpp>
 #include <structures/position.hpp>
 #include <utils/char.hpp>
+#include <exception.hpp>
 
 #include <tinge.hpp>
 
@@ -168,7 +169,7 @@ namespace wpp {
 							}
 
 							if (*str == '\0' and depth != 0) {
-								wpp::error(position(), "unterminated comment.");
+								throw wpp::Exception{position(), "unterminated comment."};
 							}
 
 							// return next_token(mode);

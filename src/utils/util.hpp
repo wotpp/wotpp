@@ -29,6 +29,30 @@ namespace wpp {
 }
 
 namespace wpp {
+	template <typename T, typename... Ts>
+	inline std::string cat(const T& first, Ts&&... args) {
+		const auto tostr = [] (const auto& x) {
+			if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
+				return x;
+
+			else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
+				return x;
+
+			else
+				return std::to_string(x);
+		};
+
+		if constexpr(sizeof...(Ts) > 0) {
+			return std::string{first} + (tostr(args) + ...);
+		}
+
+		else {
+			return std::string{first};
+		}
+	}
+}
+
+namespace wpp {
 	// FNV-1a hash.
 	// Calculate a hash of a range of bytes.
 	template <typename hash_t = uint64_t>
@@ -97,12 +121,10 @@ namespace wpp {
 namespace wpp {
 	// Print an error with position info and exit.
 	template <typename T, typename... Ts>
-	[[noreturn]] inline void error(T&& first, Ts&&... args) {
+	inline void error(T&& first, Ts&&... args) {
 		([&] () -> std::ostream& {
 			return (std::cerr << "error @ " << first << " -> ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
-
-		std::exit(1);
 	}
 }
 

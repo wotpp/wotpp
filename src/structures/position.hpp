@@ -10,18 +10,25 @@
 
 namespace wpp {
 	struct Position {
+		const char* msg = nullptr;
 		int line = 1, column = 1;
 	};
 
 
 	std::ostream& operator<<(std::ostream& os, const Position& pos) {
-		return (os << pos.line << ':' << pos.column);
+		const auto& [msg, line, column] = pos;
+
+		if (msg)
+			return (os << msg);
+
+		else
+			return (os << line << ':' << column);
 	}
 
 
 	Position position(const char* ptr, const char* const end) {
 		Position coord;
-		auto& [line, column] = coord;
+		auto& [msg, line, column] = coord;
 
 		while (ptr++ != end) {
 			if (*ptr == '\n') {
@@ -32,6 +39,10 @@ namespace wpp {
 			else {
 				column++;
 			}
+		}
+
+		if (*ptr == '\0') {
+			msg = "EOF";
 		}
 
 		if (column > 1)

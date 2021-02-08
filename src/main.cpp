@@ -10,6 +10,7 @@
 #include <lexer.hpp>
 #include <parser.hpp>
 #include <genprog.hpp>
+#include <exception.hpp>
 #include <visitors/sexpr.hpp>
 #include <visitors/eval.hpp>
 
@@ -24,7 +25,15 @@ int main(int argc, const char* argv[]) {
 	auto file = wpp::read_file(argv[1]);
 
 	wpp::Environment env;
-	std::cout << wpp::eval(file, env) << std::endl;
+
+	try {
+		std::cout << wpp::eval(file, env) << std::endl;
+	}
+
+	catch (const wpp::Exception& e) {
+		wpp::error(e.pos, e.what());
+		return 1;
+	}
 
 	return 0;
 }

@@ -10,6 +10,7 @@
 
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
+#include <exception.hpp>
 #include <parser.hpp>
 
 // AST visitor that evaluates the program.
@@ -18,19 +19,6 @@ namespace wpp {
 	using Environment = std::unordered_map<std::string, wpp::node_t>;
 	using Arguments = std::unordered_map<std::string, std::string>;
 
-
-	template <typename... Ts>
-	inline std::string mangle(Ts&&... args) {
-		const auto tostr = [] (const auto& x) {
-			if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
-				return x;
-
-			else
-				return std::to_string(x);
-		};
-
-		return (tostr(args) + ...);
-	}
 
 	// TODO: Separate this into a header/implementation file so we don't have to forward declare this
 	inline std::string eval(const std::string& code, wpp::Environment& env);
@@ -53,9 +41,16 @@ namespace wpp {
 				auto code = eval_ast(arg, tree, functions, args);
 
 				wpp::Lexer lex{code.c_str()};
-				auto root = document(lex, tree);
+				wpp::node_t root;
 
-				str = wpp::eval_ast(root, tree, functions, args);
+				try {
+					root = document(lex, tree);
+					str = wpp::eval_ast(root, tree, functions, args);
+				}
+
+				catch (const wpp::Exception& e) {
+					throw wpp::Exception{ pos, "inside eval: ", e.what() };
+				}
 			},
 
 			[&] (const FnAssert& ass) {
@@ -68,7 +63,7 @@ namespace wpp {
 
 			[&] (const FnInvoke& call) {
 				const auto& [caller_name, caller_args, caller_pos] = call;
-				std::string caller_mangled_name = mangle(caller_name, caller_args.size());
+				std::string caller_catd_name = cat(caller_name, caller_args.size());
 
 				// Check if parameter.
 				if (args) {
@@ -79,9 +74,9 @@ namespace wpp {
 				}
 
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
-				auto it = functions.find(caller_mangled_name);
+				auto it = functions.find(caller_catd_name);
 				if (it == functions.end())
-					wpp::error(caller_pos, "func not found: ", caller_name);
+					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
 
 				// Retrieve function.
 				const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
@@ -99,7 +94,7 @@ namespace wpp {
 
 			[&] (const Fn& func) {
 				const auto& [name, params, body, pos] = func;
-				functions.insert_or_assign(mangle(name, params.size()), node_id);
+				functions.insert_or_assign(cat(name, params.size()), node_id);
 			},
 
 			[&] (const String& x) {

@@ -10,6 +10,7 @@
 #include <structures/ast.hpp>
 #include <structures/token.hpp>
 #include <structures/position.hpp>
+#include <exception.hpp>
 #include <lexer.hpp>
 
 // The meat of wot++, the parser.
@@ -286,7 +287,7 @@ namespace wpp {
 		// Make sure the next token is an identifier, if it is, set the name
 		// of our `Fn` node to match.
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			wpp::error(lex.position(), "function declaration does not have a name.");
+			throw wpp::Exception{lex.position(), "function declaration does not have a name."};
 
 		tree.get<Fn>(node).identifier = lex.advance().str();
 
@@ -312,7 +313,7 @@ namespace wpp {
 
 				// Check if there is a parameter.
 				if (lex.peek() != TOKEN_IDENTIFIER)
-					wpp::error(lex.position(), "expecting parameter name to follow comma.");
+					throw wpp::Exception{lex.position(), "expecting parameter name to follow comma."};
 
 
 				// Emplace the parameter name into our `Fn` node's list of params.
@@ -322,7 +323,7 @@ namespace wpp {
 
 			// Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
-				wpp::error(lex.position(), "parameter list is unterminated.");
+				throw wpp::Exception{lex.position(), "parameter list is unterminated."};
 		}
 
 		// Parse the function body.
@@ -349,7 +350,7 @@ namespace wpp {
 		// Consume tokens until we reach `delim` or EOF.
 		while (lex.peek(wpp::modes::string) != delim) {
 			if (lex.peek(wpp::modes::string) == TOKEN_EOF)
-				wpp::error(lex.position(), "reached EOF while parsing string.");
+				throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
 
 			const auto part = lex.advance(wpp::modes::string);
 
@@ -395,7 +396,7 @@ namespace wpp {
 			lex.advance(); // skip lparen.
 
 			if (lex.peek() == TOKEN_RPAREN)
-				wpp::error(lex.position(), "empty arguments, drop the parens.");
+				throw wpp::Exception{lex.position(), "empty arguments, drop the parens."};
 
 			// Collect arguments.
 			wpp::node_t expr;
@@ -415,7 +416,7 @@ namespace wpp {
 			}
 
 			if (lex.advance() != TOKEN_RPAREN)
-				wpp::error(lex.position(), "expecting closing parenthesis after argument list.");
+				throw wpp::Exception{lex.position(), "expecting closing parenthesis after argument list."};
 		}
 
 		const auto& [name, args, pos] = tree.get<FnInvoke>(node);
@@ -423,32 +424,32 @@ namespace wpp {
 		if (fn_token == TOKEN_RUN) {
 			#if !defined(WPP_DISABLE_RUN)
 				if (args.size() != 1)
-					wpp::error(lex.position(), "run takes exactly one argument.");
+					throw wpp::Exception{lex.position(), "run takes exactly one argument."};
 
 				tree.replace<FnRun>(node, args[0], pos);
 			#else
 
-				wpp::error(lex.position(), "run has been disabled.");
+				throw wpp::Exception{lex.position(), "run has been disabled."};
 			#endif
 		}
 
 		else if (fn_token == TOKEN_EVAL) {
 			if (args.size() != 1)
-				wpp::error(lex.position(), "eval takes exactly one argument.");
+				throw wpp::Exception{lex.position(), "eval takes exactly one argument."};
 
 			tree.replace<FnEval>(node, args[0], pos);
 		}
 
 		else if (fn_token == TOKEN_ASSERT) {
 			if (args.size() != 2)
-				wpp::error(lex.position(), "assert takes exactly two arguments.");
+				throw wpp::Exception{lex.position(), "assert takes exactly two arguments."};
 
 			tree.replace<FnAssert>(node, std::pair{args[0], args[1]}, pos);
 		}
 
 		else if (fn_token == TOKEN_FILE) {
 			if (args.size() != 1)
-				wpp::error(lex.position(), "file takes exactly one argument.");
+				throw wpp::Exception{lex.position(), "file takes exactly one argument."};
 
 			tree.replace<FnFile>(node, args[0], pos);
 		}
@@ -473,7 +474,7 @@ namespace wpp {
 
 		// Expect identifier.
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			wpp::error(lex.position(), "namespace does not have a name.");
+			throw wpp::Exception{lex.position(), "namespace does not have a name."};
 
 		// Set name of `Ns`.
 		tree.get<Ns>(node).identifier = lex.advance().str();
@@ -481,7 +482,7 @@ namespace wpp {
 
 		// Expect opening brace.
 		if (lex.advance() != TOKEN_LBRACE)
-			wpp::error(lex.position(), "expecting '{' to follow name.");
+			throw wpp::Exception{lex.position(), "expecting '{' to follow name."};
 
 
 		// Loop through body of namespace and collect statements.
@@ -501,7 +502,7 @@ namespace wpp {
 
 		// Expect closing brace.
 		if (lex.advance() != TOKEN_RBRACE)
-			wpp::error(lex.position(), "namespace is unterminated.");
+			throw wpp::Exception{lex.position(), "namespace is unterminated."};
 
 
 		// Return index to `Ns` node we created at the top of this function.
@@ -541,11 +542,11 @@ namespace wpp {
 		}
 
 		else {
-			wpp::error(lex.position(), "expecting a trailing expression at the end of a block");
+			throw wpp::Exception{lex.position(), "expecting a trailing expression at the end of a block"};
 		}
 
 		if (lex.advance() != TOKEN_RBRACE)
-			wpp::error(lex.position(), "block is unterminated.");
+			throw wpp::Exception{lex.position(), "block is unterminated."};
 
 		return node;
 	}
@@ -567,7 +568,7 @@ namespace wpp {
 			lhs = wpp::block(lex, tree);
 
 		else
-			wpp::error(lex.position(), "expecting an expression.");
+			throw wpp::Exception{lex.position(), "expecting an expression."};
 
 		if (lex.peek() == TOKEN_CAT) {
 			const wpp::node_t node = tree.add<Concat>(lex.position());
@@ -602,7 +603,7 @@ namespace wpp {
 			return wpp::expression(lex, tree);
 		};
 
-		wpp::error(lex.position(), "expecting a statement.");
+		throw wpp::Exception{lex.position(), "expecting a statement."};
 	}
 
 
@@ -619,7 +620,7 @@ namespace wpp {
 			}
 
 			else {
-				wpp::error(lex.position(), "expecting a statement.");
+				throw wpp::Exception{lex.position(), "expecting a statement."};
 			}
 		}
 
