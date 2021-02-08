@@ -28,14 +28,12 @@ namespace wpp {
 				str += ")";
 			},
 
-#ifndef WPP_DISABLE_RUN
 			[&] (const FnRun& run) {
 				const auto& [arg, pos] = run;
 				str += "( 'run(...)' ";
 					print_ast(tree[arg], tree, str);
 				str += " )";
 			},
-#endif //WPP_DISABLE_RUN
 
 			[&] (const FnAssert& run) {
 				const auto& [args, pos] = run;

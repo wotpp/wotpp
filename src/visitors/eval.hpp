@@ -40,14 +40,12 @@ namespace wpp {
 		std::string str;
 
 		wpp::visit(variant,
-#ifndef WPP_DISABLE_RUN
 			[&] (const FnRun& run) {
 				const auto& [arg, pos] = run;
 
 				auto cmd = eval_ast(arg, tree, functions, args);
 				str = wpp::exec(cmd);
 			},
-#endif //WPP_DISABLE_RUN
 
 			[&] (const FnEval& eval) {
 				const auto& [arg, pos] = eval;

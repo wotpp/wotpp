@@ -37,7 +37,6 @@ namespace wpp {
 		FnInvoke() {}
 	};
 
-#ifndef WPP_DISABLE_RUN
 	struct FnRun {
 		wpp::node_t argument;
 		wpp::Position pos;
@@ -53,7 +52,6 @@ namespace wpp {
 
 		FnRun() {}
 	};
-#endif //WPP_DISABLE_RUN
 
 	struct FnEval {
 		wpp::node_t argument;
@@ -62,7 +60,9 @@ namespace wpp {
 		FnEval(
 			const wpp::node_t argument_,
 			const wpp::Position& pos_
-		): argument(argument_), pos(pos_) {}
+		):
+			argument(argument_),
+			pos(pos_) {}
 
 		FnEval(const wpp::Position& pos_): pos(pos_) {}
 
@@ -208,11 +208,7 @@ namespace wpp {
 	};
 
 	// An alias for our AST.
-#ifndef WPP_DISABLE_RUN
 	using AST = wpp::HeterogenousVector<FnInvoke, FnRun, FnEval, FnAssert, FnFile, Fn, String, Concat, Block, Ns, Document>;
-#else
-	using AST = wpp::HeterogenousVector<FnInvoke, FnEval, FnAssert, FnFile, Fn, String, Concat, Block, Ns, Document>;
-#endif //WPP_DISABLE_RUN
 }
 
 
@@ -424,16 +420,17 @@ namespace wpp {
 
 		const auto& [name, args, pos] = tree.get<FnInvoke>(node);
 
-#ifndef WPP_DISABLE_RUN
 		if (fn_token == TOKEN_RUN) {
-			if (args.size() != 1)
-				wpp::error(lex.position(), "run takes exactly one argument.");
+			#if !defined(WPP_DISABLE_RUN)
+				if (args.size() != 1)
+					wpp::error(lex.position(), "run takes exactly one argument.");
 
-			tree.replace<FnRun>(node, args[0], pos);
+				tree.replace<FnRun>(node, args[0], pos);
+			#else
+
+				wpp::error(lex.position(), "run has been disabled.");
+			#endif
 		}
-#else
-		if (false) {} // I am very lazy
-#endif //WPP_DISABLE_RUN
 
 		else if (fn_token == TOKEN_EVAL) {
 			if (args.size() != 1)
