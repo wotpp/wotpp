@@ -51,12 +51,12 @@ namespace wpp {
 
 	// Increment pointer as long as predicate is satisfied.
 	template <typename Pred, typename... Ts>
-	constexpr const char* consume(const char*& ptr, const Pred pred, Ts&&... args) {
+	constexpr auto consume(const char*& ptr, const char* const begin, const Pred pred, Ts&&... args) {
 		do {
 			++ptr;
 		} while (pred(*ptr, std::forward<Ts>(args)...));
 
-		return ptr;
+		return ptr - begin;
 	}
 }
 

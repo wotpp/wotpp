@@ -223,11 +223,7 @@ namespace wpp {
 
 						// Skip whitespace.
 						else if (wpp::is_whitespace(*str)) {
-							do {
-								++str;
-							} while (wpp::is_whitespace(*str));
-
-							// return next_token(mode);
+							vlen = wpp::consume(str, vptr, wpp::is_whitespace);
 							continue;
 						}
 
@@ -278,11 +274,9 @@ namespace wpp {
 						else {
 							type = TOKEN_STRING;
 
-							do {
-								++str;
-							} while (not wpp::in_group(*str, '\\', '"', '\'', '\0'));
-
-							vlen = str - vptr;
+							vlen = wpp::consume(str, vptr, [] (char c) {
+								return not wpp::in_group(c, '\\', '"', '\'', '\0');
+							});
 						}
 					}
 
