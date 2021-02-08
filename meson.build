@@ -58,6 +58,9 @@ test_cases = [
 	'tests/eval.wpp',
 	'tests/run.wpp',
 	'tests/nested_func.wpp',
+	'tests/comments.wpp',
+	'tests/blocks.wpp',
+	'tests/strings.wpp',
 ]
 
 foreach case: test_cases

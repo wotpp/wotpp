@@ -6,6 +6,7 @@
 # we exit with non-zero status.
 
 import sys
+import ast
 import re
 import os
 import subprocess
@@ -28,7 +29,9 @@ if __name__ == "__main__":
 
 
 	# Run wot++ and get output.
-	wpp_output = run([binary, test_file]).decode("UTF-8").strip()
+	wpp_output = run([binary, test_file]).decode("UTF-8")
+	if wpp_output[-1] == '\n':
+		wpp_output = wpp_output[:-1]
 
 
 	# Find all test cases of the form `#[expect(foo)]`
@@ -37,7 +40,7 @@ if __name__ == "__main__":
 	with open(test_file, 'r') as f:
 		test_file = f.read()
 
-	match_iter = re.finditer(r"(?:#\[\s*expect\()((.+)?)(?:\)\s*\])", test_file)
+	match_iter = re.finditer(r"(?:#\[\s*expect\()(((.+)|\n|\t)?)(?:\)\s*\])", test_file)
 
 	if match_iter is not None:
 		for m in match_iter:
@@ -52,7 +55,7 @@ if __name__ == "__main__":
 	# Compare the expected output to the actual output.
 	ptr = 0
 	for m in matches:
-		test = m.group(1)
+		test = m.group(1).encode('latin-1', 'backslashreplace').decode('unicode-escape')
 		length = len(test)
 
 		actual = wpp_output[ptr : ptr + length]
