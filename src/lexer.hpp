@@ -236,7 +236,7 @@ namespace wpp {
 							} while (
 								// make sure we don't run into a character that belongs to a token above.
 								not wpp::is_whitespace(*str) and
-								not wpp::in_group(*str, '(', ')', '{', '}', '#', ',', '\0', '\'', '"', '.')
+								not wpp::in_group(*str, '(', ')', '{', '}', ',', '\0', '\'', '"', '.')
 							);
 
 							vlen = str - vptr;
