@@ -142,22 +142,26 @@ namespace wpp {
 }
 
 namespace wpp {
-	// Execute a shell command, capture it's standard output and return it
+	// Execute a shell command, capture its standard output and return it
 	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
 	std::string exec(const std::string& cmd) {
-		std::array<char, 128> buffer;
-		std::string result;
-		std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+		#if !defined(WPP_DISABLE_RUN)
+			std::array<char, 128> buffer;
+			std::string result;
+			std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
 
-		if (!pipe) {
-			throw std::runtime_error("popen() failed!");
-		}
+			if (!pipe) {
+				throw std::runtime_error("popen() failed!");
+			}
 
-		while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-			result += buffer.data();
-		}
+			while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+				result += buffer.data();
+			}
 
-		return result;
+			return result;
+		#else
+			return "";
+		#endif
 	}
 }
 
