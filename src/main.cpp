@@ -25,9 +25,17 @@ int main(int argc, const char* argv[]) {
 	auto file = wpp::read_file(argv[1]);
 
 	wpp::Environment env;
+	wpp::Backtrace bt;
 
 	try {
-		std::cout << wpp::eval(file, env) << std::endl;
+		std::cout << wpp::eval(file, env, bt) << std::endl;
+	}
+
+	catch (const wpp::BacktraceException& e) {
+		std::cout << "Document backtrace:" << std::endl;
+		wpp::print_backtrace(e.backtrace);
+		wpp::error(e.pos, e.what());
+		return 1;
 	}
 
 	catch (const wpp::Exception& e) {

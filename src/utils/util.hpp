@@ -7,6 +7,7 @@
 #include <memory>
 #include <stdexcept>
 #include <array>
+#include <vector>
 #include <utility>
 // #include <filesystem>
 #include <iostream>
@@ -125,6 +126,13 @@ namespace wpp {
 		([&] () -> std::ostream& {
 			return (std::cerr << "error @ " << first << " -> ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
+	}
+
+	template <typename T>
+	constexpr void print_backtrace(const T& backtrace) {
+		int i = 1;
+		for(auto& call: backtrace)
+			std::cerr << "#" << i++ << ": " << call.identifier << " @ " << call.pos << std::endl;
 	}
 }
 
