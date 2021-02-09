@@ -84,21 +84,22 @@ exe = executable(
 # Test cases
 test_runner = find_program('tests/run_test.py')
 
-test_cases = [
-	'tests/func.wpp',
-	'tests/eval.wpp',
-	'tests/nested_func.wpp',
-	'tests/comments.wpp',
-	'tests/blocks.wpp',
-	'tests/strings.wpp',
-]
+test_cases = {
+	'tests/func.wpp': true,
+	'tests/eval.wpp': true,
+	'tests/nested_func.wpp': true,
+	'tests/comments.wpp': true,
+	'tests/blocks.wpp': true,
+	'tests/strings.wpp': true,
+	'tests/error_no_func.wpp': false,
+}
 
 if not get_option('disable_run')
-    test_cases += ['tests/run.wpp']
+    test_cases += {'tests/run.wpp': true}
 endif
 
-foreach case: test_cases
-	test(case, test_runner, args: [files(case), exe])
+foreach case, should_pass: test_cases
+	test(case, test_runner, args: [files(case), exe], should_fail: not should_pass)
 endforeach
 
 
