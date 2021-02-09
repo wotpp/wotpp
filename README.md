@@ -15,6 +15,46 @@ Variadic functions and regex find & replace are planned for the future.
 [![issues](https://img.shields.io/github/issues/Jackojc/wotpp.svg?style=flat)](https://github.com/Jackojc/wotpp/issues)
 [![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/RmgjcES)
 
+### Example
+```
+#[ Setup some macros. ]
+let \n "\n"
+let \n2 "\n\n"
+
+let #(x) "# " .. x .. \n2
+let ##(x) "## " .. x .. \n2
+let ###(x) "### " .. x .. \n2
+let ####(x) "#### " .. x .. \n2
+let #####(x) "##### " .. x .. \n2
+
+let >(x) "> " .. x .. \n2
+
+let *(x) " *" .. x .. "* "
+let **(x) " **" .. x .. "** "
+
+let link(name, url) " [" .. name .. "](" .. url .. ") "
+
+
+#[ Our actual document... ]
+
+#("Hello, World!")
+###("A short example of wot++ code.")
+
+>("Here's a link: " .. link("Discord", "https://discord.gg/hQ7yS9dxcp"))
+
+"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis dictum volutpat lacus,
+sollicitudin pellentesque tellus viverra non. Phasellus est lorem, porta ut metus vitae,
+ultricies semper lacus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices
+posuere cubilia curae; Suspendisse sollicitudin egestas tristique. Nullam condimentum
+vehicula mi, eu hendrerit libero condimentum posuere. Suspendisse fringilla lacus nulla,
+ut finibus nisi vulputate consequat. Vestibulum efficitur ultricies dolor, a iaculis diam
+interdum ut. Nunc rhoncus, lorem mattis porttitor luctus, ligula tellus vulputate arcu,
+vitae blandit nisl ipsum ac augue. Nulla a ex eget risus tristique consequat nec ac lacus.
+Phasellus blandit massa non iaculis finibus. Quisque suscipit pharetra iaculis. Maecenas
+ac turpis est. Aenean id est vitae mi facilisis luctus ut a nulla. Mauris facilisis, sem
+eu rhoncus iaculis, justo erat efficitur purus, et dictum mi lorem sit amet neque."
+```
+
 ### Prerequisites
 - A C++17 compliant compiler. (GCC & Clang work)
 - Meson & Ninja
