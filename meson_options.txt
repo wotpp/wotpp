@@ -2,3 +2,4 @@ option('profile', type: 'boolean', value: false, description: 'enable profiling 
 option('native', type: 'boolean', value: false, description: 'use host specific optimisations')
 option('sanitizers', type: 'boolean', value: false, description: 'enable sanitizers')
 option('disable_run', type: 'boolean', value: false, description: 'disable the run intrinsic')
+option('disable_repl', type: 'boolean', value: false, description: 'disable the repl')
