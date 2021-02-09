@@ -51,16 +51,20 @@ if get_option('disable_run')
 	add_project_arguments('-DWPP_DISABLE_RUN', language: 'cpp')
 endif
 
-
 libasan_dep = meson.get_compiler('cpp').find_library('asan', required: get_option('sanitizers'))
 libstdcppfs_dep = meson.get_compiler('cpp').find_library('stdc++fs', required: false)
+libreadline_dep = dependency('readline', required: false)
+
+if get_option('disable_repl') or not libreadline_dep.found()
+	add_project_arguments('-DWPP_DISABLE_REPL', language: 'cpp')
+endif
 
 
 exe = executable(
 	'w++',
 	sources,
 	include_directories: [sources_inc, modules_inc],
-	dependencies: [libstdcppfs_dep, libasan_dep],
+	dependencies: [libstdcppfs_dep, libasan_dep, libreadline_dep],
 	install: true,
 	native: get_option('native'),
 	override_options: extra_opts

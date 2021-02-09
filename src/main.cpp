@@ -16,22 +16,69 @@
 
 #include <tinge.hpp>
 
+#ifndef WPP_DISABLE_REPL
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <cstdlib>
+#endif
+
 int main(int argc, const char* argv[]) {
-	if (argc != 2) {
-		tinge::errorln("usage: wpp <file>");
-		return 1;
-	}
-
-	auto file = wpp::read_file(argv[1]);
-
 	wpp::Environment env;
 
-	try {
-		std::cout << wpp::eval(file, env) << std::endl;
-	}
+	if (argc == 1) {
+#ifdef WPP_DISABLE_REPL
+		tinge::errorln("REPL support is disabled");
+		return 2;
+#else
+		wpp::AST tree;
+		// Reserve 10MiB
+		tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
-	catch (const wpp::Exception& e) {
-		wpp::error(e.pos, e.what());
+		tinge::println("wot++ repl");
+
+		using_history();
+
+		while (true) {
+			auto input = readline(">>> ");
+			if (!input) // EOF
+				break;
+
+			add_history(input);
+
+			// Create a new lexer and syntax tree
+			wpp::Lexer lex{input};
+
+			try {
+				// Parse.
+				auto root = document(lex, tree);
+
+				// Evaluate.
+				auto out = wpp::eval_ast(root, tree, env);
+				std::cout << out << std::flush;
+
+				if (out.size() && out[out.size() - 1] != '\n')
+					std::cout << std::endl;
+			}
+
+			catch (const wpp::Exception& e) {
+				wpp::error(e.pos, e.what());
+			}
+
+			std::free(input);
+		}
+#endif
+	} else if (argc == 2) {
+		auto file = wpp::read_file(argv[1]);
+		try {
+			std::cout << wpp::eval(file, env) << std::endl;
+		}
+
+		catch (const wpp::Exception& e) {
+			wpp::error(e.pos, e.what());
+			return 1;
+		}
+	} else {
+		tinge::errorln("usage: wpp [file]");
 		return 1;
 	}
 
