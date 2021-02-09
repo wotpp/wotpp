@@ -100,7 +100,8 @@ $ meson install  # requires root perms (sudo/su/doas)
 If you want to specify a custom install directory:
 ```
 $ cd build/
-$ DESTDIR=/usr/local/bin/ meson install
+$ meson configure --prefix=/usr/local/
+$ DESTDIR=/ meson install
 ```
 
 ### Acknowledgements
@@ -114,6 +115,7 @@ Thanks, in no particular order:
 - [Eremiell](https://github.com/Eremiell)
 - [Violetas](https://github.com/violetastcs)
 - [Moonsheep](https://github.com/jlagarespo)
+- [Samuel](https://github.com/swr06/)
 
 And everyone else who I may have failed to mention over the years.
 

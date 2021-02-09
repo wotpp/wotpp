@@ -36,6 +36,17 @@ if get_option('profile')
 endif
 
 
+# Native build `-march=native`.
+if get_option('profile')
+	if meson.get_compiler('cpp').has_argument('-march=native')
+		add_project_arguments('-march=native', language: 'cpp')
+
+	else
+		error('-march=native is unsupported')
+	endif
+endif
+
+
 # Sanitizer support.
 if get_option('sanitizers')
 	if meson.get_compiler('cpp').has_argument('-fsanitize=address,undefined')
@@ -66,7 +77,6 @@ exe = executable(
 	include_directories: [sources_inc, modules_inc],
 	dependencies: [libstdcppfs_dep, libasan_dep, libreadline_dep],
 	install: true,
-	native: get_option('native'),
 	override_options: extra_opts
 )
 
