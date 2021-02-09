@@ -21,25 +21,47 @@ Wot++ is far more flexible through its ability to use meta-programming, recursio
 - A C++17 compliant compiler. (GCC & Clang work)
 
 ### Build & Run
-
-#### With make:
-`make`
-`./build/wpp <file>`
-
-#### With meson:
 ```
-$ meson builddir
-$ ninja -C builddir
-$ ninja -C builddir test # to run the tests
+$ meson build
+$ ninja -C build
 ```
 
-You can pass extra options to the meson command, or by running `meson configure -Doption1=value -Doption2=value ...` in the build directory.
-For example, to enable stripping debug symbols on install, and set the build type to release, pass `-Dbuildtype=release -Dstrip=true`.
+Supported flags:
+```
+-Dnative=true               # enable host machine specific optimisations
+-Dsanitizers=true           # enable sanitizers (undefined,address)
+-Dprofile=true              # enable profiling support (uftrace etc.)
+-Ddisable_run=false         # disable the `run` intrinsic for security purposes
+-Dbuildtype=debugoptimised  # enable symbols
+```
+> List of built-in Meson options can be found [here](https://mesonbuild.com/Builtin-options.html).
 
-List of built-in options can be found [here](https://mesonbuild.com/Builtin-options.html).
+An example:
+```
+$ meson -Dsanitizers=true -Dprofile=true build
+```
+
+If you already have configured a build directory, you'll need to add `--reconfigure`:
+```
+$ meson --reconfigure -Dsanitizers=true -Dprofile=true build
+```
+
+To run the tests:
+```
+$ ninja -C build test
+```
 
 ### Installation
-> Todo...
+```
+$ cd build/
+$ meson install  # requires root perms (sudo/su/doas)
+```
+
+If you want to specify a custom install directory:
+```
+$ cd build/
+$ DESTDIR=/usr/local/bin/ meson install
+```
 
 ### Acknowledgements
 Thanks, in no particular order:
