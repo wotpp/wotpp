@@ -97,12 +97,18 @@ namespace wpp {
 		std::ifstream is(fname, std::ios::in | std::ios::binary);
 		std::string str;
 
-		is.seekg(0, std::ios::end);
-		str.resize(is.tellg());
-		is.seekg(0, std::ios::beg);
+		if (is) {
+			is.seekg(0, std::ios::end);
+			str.resize(is.tellg());
+			is.seekg(0, std::ios::beg);
 
-		is.read(&str[0], str.size());
-		is.close();
+			is.read(&str[0], str.size());
+			is.close();
+		}
+
+		else {
+			throw std::runtime_error{"file does not exist."};
+		}
 
 		return str;
 	}
@@ -144,19 +150,23 @@ namespace wpp {
 namespace wpp {
 	// Execute a shell command, capture its standard output and return it
 	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
-	std::string exec(const std::string& cmd) {
+	std::string exec(const std::string& cmd, int& rc) {
 		#if !defined(WPP_DISABLE_RUN)
 			std::array<char, 128> buffer;
 			std::string result;
-			std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
 
-			if (!pipe) {
+			FILE* pipe = popen(cmd.c_str(), "r");
+
+			if (not pipe) {
 				throw std::runtime_error("popen() failed!");
 			}
 
-			while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-				result += buffer.data();
+			while (not feof(pipe)) {
+				if (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+					result += buffer.data();
 			}
+
+			rc = pclose(pipe);
 
 			return result;
 		#else

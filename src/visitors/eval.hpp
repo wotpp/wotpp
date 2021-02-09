@@ -32,7 +32,16 @@ namespace wpp {
 				const auto& [arg, pos] = run;
 
 				auto cmd = eval_ast(arg, tree, functions, args);
-				str = wpp::exec(cmd);
+
+				int rc = 0;
+				str = wpp::exec(cmd, rc);
+
+				// trim trailing newline.
+				if (str.back() == '\n')
+					str.erase(str.end() - 1);
+
+				if (rc)
+					throw wpp::Exception{ pos, "subprocess exited with non-zero status." };
 			},
 
 			[&] (const FnEval& eval) {
@@ -54,7 +63,17 @@ namespace wpp {
 			},
 
 			[&] (const FnAssert& ass) {
-				const auto& [arg, pos] = ass;
+				const auto& [nodes, pos] = ass;
+
+				// Check if strings are equal.
+				auto a = eval_ast(nodes.first, tree, functions, args);
+				auto b = eval_ast(nodes.second, tree, functions, args);
+
+				// todo: print reconstruction of AST nodes for arguments.
+				// `assert(fun(x), "d")`
+				// `assertion failure fun("a") != "d"`
+				if (a != b)
+					throw wpp::Exception{ pos, "assertion failed." };
 			},
 
 			[&] (const FnFile& file) {
