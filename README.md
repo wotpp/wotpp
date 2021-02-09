@@ -1,8 +1,13 @@
 <p align=center><img alt="logo" src="docs/img/logo.png" width=20%></p>
 
-# wot++
-Wot++ is a macro language which allows you to abstract away the boilerplate when writing things like HTML by hand or even
-more low level tasks which require bit-level manipulation.
+# Wot++
+Wot++ is a language for writing documents that allows you to build up your own library of abstractions
+or use those made by others.
+
+Wot++ has some interesting features like meta-programming, the ability to invoke a shell,
+bit-level manipulation, recursion and conditionals.
+
+Variadic functions and regex find & replace are planned for the future.
 
 ![c++](https://img.shields.io/badge/c%2B%2B-%3E%3D17-blue.svg?style=flat)
 [![license](https://img.shields.io/github/license/Jackojc/wotpp.svg?style=flat)](./LICENSE)
@@ -10,15 +15,10 @@ more low level tasks which require bit-level manipulation.
 [![issues](https://img.shields.io/github/issues/Jackojc/wotpp.svg?style=flat)](https://github.com/Jackojc/wotpp/issues)
 [![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/RmgjcES)
 
-### What does Wot++ do differently to things like LaTeX and Groff?
-In contrast to LaTeX and Groff, Wot++ is a macro-first, text-second language. What do I mean by this?
-In LaTeX or Groff, the text is the primary focus with macros being an "opt-in" thing you can use inbetween the words.
-It's the exact opposite in Wot++, you have to "opt-in" to using text by quoting it.
-
-Wot++ is far more flexible through its ability to use meta-programming, recursion, conditionals, external shell programs etc.
-
 ### Prerequisites
 - A C++17 compliant compiler. (GCC & Clang work)
+- Meson & Ninja
+- libasan (optional, required for sanitizer support)
 
 ### Build & Run
 ```
@@ -81,5 +81,5 @@ And everyone else who I may have failed to mention over the years.
 This project uses the MPL-2.0 license. (check [LICENSE.md](LICENSE.md))
 
 ### Progress & Discussion
-You can join the discord server in order to follow progress and/or contribute to discussion of the project. (https://discord.gg/RmgjcES)
+You can join the discord server in order to follow progress and/or contribute to discussion of the project. (https://discord.gg/hQ7yS9dxcp)
 
