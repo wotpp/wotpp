@@ -1,2 +1,4 @@
-option('profile', type: 'boolean', value: false, description: 'Enable profiling instrumentation')
-option('disable_run', type: 'boolean', value: false, description: 'Disable the run built-in')
+option('profile', type: 'boolean', value: false, description: 'enable profiling instrumentation')
+option('native', type: 'boolean', value: false, description: 'use host specific optimisations')
+option('sanitizers', type: 'boolean', value: false, description: 'enable sanitizers')
+option('disable_run', type: 'boolean', value: false, description: 'disable the run intrinsic')
