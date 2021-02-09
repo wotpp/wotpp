@@ -135,8 +135,19 @@ namespace wpp {
 				str = eval_ast(expr, tree, functions, args);
 			},
 
-			[&] (const Ns&) {
-				// const auto& [name, stmts] = ns;
+			[&] (const Pre& pre) {
+				const auto& [name, stmts, pos] = pre;
+
+				for (const wpp::node_t stmt: stmts) {
+					if (wpp::Fn* func = std::get_if<wpp::Fn>(&tree[stmt])) {
+						func->identifier = name + func->identifier;
+						str += eval_ast(stmt, tree, functions, args);
+					}
+
+					else {
+						str += eval_ast(stmt, tree, functions, args);
+					}
+				}
 			},
 
 			[&] (const Document& doc) {

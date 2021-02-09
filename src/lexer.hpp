@@ -42,7 +42,7 @@ namespace wpp {
 		TOKEN(TOKEN_COMMA) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
-		TOKEN(TOKEN_NAMESPACE) \
+		TOKEN(TOKEN_PREFIX) \
 		TOKEN(TOKEN_LET) \
 		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \
@@ -242,7 +242,7 @@ namespace wpp {
 							vlen = str - vptr;
 
 							if      (view == "let")       type = TOKEN_LET;
-							else if (view == "namespace") type = TOKEN_NAMESPACE;
+							else if (view == "prefix")    type = TOKEN_PREFIX;
 							else if (view == "run")       type = TOKEN_RUN;
 							else if (view == "eval")      type = TOKEN_EVAL;
 							else if (view == "file")      type = TOKEN_FILE;

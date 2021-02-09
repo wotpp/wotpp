@@ -172,12 +172,12 @@ namespace wpp {
 	};
 
 	// Namespace that embodies zero or more statements.
-	struct Ns {
+	struct Pre {
 		std::string identifier;
 		std::vector<wpp::node_t> statements;
 		wpp::Position pos;
 
-		Ns(
+		Pre(
 			const std::string& identifier_,
 			const std::vector<wpp::node_t>& statements_,
 			const wpp::Position& pos_
@@ -186,9 +186,9 @@ namespace wpp {
 			statements(statements_),
 			pos(pos_) {}
 
-		Ns(const wpp::Position& pos_): pos(pos_) {}
+		Pre(const wpp::Position& pos_): pos(pos_) {}
 
-		Ns() {}
+		Pre() {}
 	};
 
 	// The root node of a wot++ program.
@@ -209,7 +209,19 @@ namespace wpp {
 	};
 
 	// An alias for our AST.
-	using AST = wpp::HeterogenousVector<FnInvoke, FnRun, FnEval, FnAssert, FnFile, Fn, String, Concat, Block, Ns, Document>;
+	using AST = wpp::HeterogenousVector<
+		FnInvoke,
+		FnRun,
+		FnEval,
+		FnAssert,
+		FnFile,
+		Fn,
+		String,
+		Concat,
+		Block,
+		Pre,
+		Document
+	>;
 }
 
 
@@ -239,7 +251,7 @@ namespace wpp {
 	inline bool peek_is_stmt(const wpp::Token& tok) {
 		return
 			tok == TOKEN_LET or
-			tok == TOKEN_NAMESPACE or
+			tok == TOKEN_PREFIX or
 			peek_is_expr(tok)
 		;
 	}
@@ -468,21 +480,21 @@ namespace wpp {
 
 
 	inline wpp::node_t nspace(wpp::Lexer& lex, wpp::AST& tree) {
-		// Create `Ns` node.
-		const wpp::node_t node = tree.add<Ns>(lex.position());
+		// Create `Pre` node.
+		const wpp::node_t node = tree.add<Pre>(lex.position());
 
 
-		// Skip `namespace` token, we already known it's there because
+		// Skip `prefix` token, we already known it's there because
 		// of it being seen by our caller, the statement parser.
 		lex.advance();
 
 
 		// Expect identifier.
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			throw wpp::Exception{lex.position(), "namespace does not have a name."};
+			throw wpp::Exception{lex.position(), "prefix does not have a name."};
 
-		// Set name of `Ns`.
-		tree.get<Ns>(node).identifier = lex.advance().str();
+		// Set name of `Pre`.
+		tree.get<Pre>(node).identifier = lex.advance().str();
 
 
 		// Expect opening brace.
@@ -490,27 +502,27 @@ namespace wpp {
 			throw wpp::Exception{lex.position(), "expecting '{' to follow name."};
 
 
-		// Loop through body of namespace and collect statements.
+		// Loop through body of prefix and collect statements.
 		if (lex.peek() != TOKEN_RBRACE) {
-			// Parse statement and then append it to statements vector in `Ns`.
+			// Parse statement and then append it to statements vector in `Pre`.
 			// The reason we seperate parsing and emplacing the node ID is
 			// to prevent dereferencing an invalidated iterator.
 			// If `tree` resizes while parsing the statement, by the time it returns
-			// and is emplaced, the reference to the `Ns` node in `tree` might
+			// and is emplaced, the reference to the `Pre` node in `tree` might
 			// be invalidated.
 			do {
 				const wpp::node_t stmt = statement(lex, tree);
-				tree.get<Ns>(node).statements.emplace_back(stmt);
+				tree.get<Pre>(node).statements.emplace_back(stmt);
 			} while (peek_is_stmt(lex.peek()));
 		}
 
 
 		// Expect closing brace.
 		if (lex.advance() != TOKEN_RBRACE)
-			throw wpp::Exception{lex.position(), "namespace is unterminated."};
+			throw wpp::Exception{lex.position(), "prefix is unterminated."};
 
 
-		// Return index to `Ns` node we created at the top of this function.
+		// Return index to `Pre` node we created at the top of this function.
 		return node;
 	}
 
@@ -600,8 +612,8 @@ namespace wpp {
 		if (lookahead == TOKEN_LET)
 			return wpp::function(lex, tree);
 
-		// namespace
-		else if (lookahead == TOKEN_NAMESPACE)
+		// prefix
+		else if (lookahead == TOKEN_PREFIX)
 			return wpp::nspace(lex, tree);
 
 		else if (peek_is_expr(lookahead)) {

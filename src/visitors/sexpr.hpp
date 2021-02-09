@@ -106,8 +106,8 @@ namespace wpp {
 				str += " )";
 			},
 
-			[&] (const Ns& ns) {
-				const auto& [name, stmts, pos] = ns;
+			[&] (const Pre& pre) {
+				const auto& [name, stmts, pos] = pre;
 
 				str += "( 'namespace \\\"" + name + "\\\"' ";
 
