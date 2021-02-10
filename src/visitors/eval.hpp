@@ -78,6 +78,16 @@ namespace wpp {
 
 			[&] (const FnFile& file) {
 				const auto& [arg, pos] = file;
+
+				auto fname = eval_ast(arg, tree, functions, args);
+
+				try {
+					str = wpp::read_file(fname);
+				}
+
+				catch (...) {
+					throw wpp::Exception{ pos, "failed reading file '", fname, "'" };
+				}
 			},
 
 			[&] (const FnInvoke& call) {
