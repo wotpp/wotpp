@@ -428,7 +428,7 @@ namespace wpp {
 				literal.append(part.str());
 		}
 
-		lex.advance(wpp::modes::string);
+		lex.advance();
 
 		return node;
 	}

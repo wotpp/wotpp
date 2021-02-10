@@ -140,7 +140,6 @@ namespace wpp {
 
 					if (*str == '\0') {
 						type = TOKEN_EOF;
-
 					}
 
 					else if (*str == '\'') { ++str; type = TOKEN_QUOTE; }
@@ -224,7 +223,7 @@ namespace wpp {
 
 						// Skip whitespace.
 						else if (wpp::is_whitespace(*str)) {
-							vlen = wpp::consume(str, vptr, wpp::is_whitespace);
+							wpp::consume(str, vptr, wpp::is_whitespace);
 							continue;
 						}
 
@@ -287,6 +286,8 @@ namespace wpp {
 
 					break;
 				}
+
+				// tinge::warnln(wpp::to_str[tok.type], " ", tok);
 
 				return tok;
 			}
