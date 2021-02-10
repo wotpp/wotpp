@@ -21,12 +21,10 @@
 
 
 // Exceptions.
-#define NEW_EXCEPTION_TYPE(name, default_msg)                                  \
-	struct name: public std::runtime_error {                                   \
-		template <typename... Ts>                                              \
-		name(Ts&&... args): std::runtime_error(((std::string{args}) + ...)) {} \
-		name(): std::runtime_error(default_msg) {}                             \
-	};                                                                         \
+#define NEW_EXCEPTION_TYPE(name, default_msg) \
+	struct name: public std::runtime_error { \
+		name(): std::runtime_error(default_msg) {} \
+	};
 
 namespace tinge::except {
 	NEW_EXCEPTION_TYPE(SetConsoleModeError, "could not set console mode!")
