@@ -1,0 +1,2 @@
+#[expect()]
+assert("a", "a")

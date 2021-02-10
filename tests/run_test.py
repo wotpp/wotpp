@@ -20,7 +20,7 @@ def run(args):
 	output = res.stdout.decode("UTF-8")
 
 	if res.returncode != 0:
-		raise RuntimeError(f"Subprocess failed with error code {res.returncode} and output {output}")
+		raise RuntimeError(f"status({res.returncode}) `{output[:-1]}`")
 
 	return output
 
@@ -36,12 +36,14 @@ if __name__ == "__main__":
 
 	# Run wot++ and get output.
 	wpp_output = ""
+
 	try:
 		wpp_output = run([binary, test_file])
 		if wpp_output[-1] == '\n':
 			wpp_output = wpp_output[:-1]
+
 	except RuntimeError as err:
-		print(f"Running w++ failed: {err.args[0]}")
+		print(f"w++ failed: {err.args[0]}")
 		sys.exit(1)
 
 	# Find all test cases of the form `#[expect(foo)]`

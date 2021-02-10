@@ -1,0 +1,6 @@
+prefix foo. {
+	let bar "baz"
+}
+
+#[expect(baz)]
+foo.bar

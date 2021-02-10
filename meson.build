@@ -84,6 +84,9 @@ exe = executable(
 # Test cases
 test_runner = find_program('tests/run_test.py')
 
+# Flag indicates whether test is expected to fail or not.
+# true = test should pass
+# false = test should fail
 test_cases = {
 	'tests/func.wpp': true,
 	'tests/eval.wpp': true,
@@ -91,7 +94,14 @@ test_cases = {
 	'tests/comments.wpp': true,
 	'tests/blocks.wpp': true,
 	'tests/strings.wpp': true,
+	'tests/assert.wpp': true,
+	'tests/file.wpp': true,
+	'tests/meta.wpp': true,
+	'tests/prefix.wpp': true,
 	'tests/error_no_func.wpp': false,
+	'tests/assert_fail.wpp': false,
+	'tests/run_fail.wpp': false,
+	'tests/error.wpp': false,
 }
 
 if not get_option('disable_run')
