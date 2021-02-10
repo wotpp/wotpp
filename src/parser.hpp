@@ -86,6 +86,38 @@ namespace wpp {
 		FnFile() {}
 	};
 
+	struct FnError {
+		wpp::node_t argument;
+		wpp::Position pos;
+
+		FnError(
+			const wpp::node_t argument_,
+			const wpp::Position& pos_
+		):
+			argument(argument_),
+			pos(pos_) {}
+
+		FnError(const wpp::Position& pos_): pos(pos_) {}
+
+		FnError() {}
+	};
+
+	struct FnPipe {
+		wpp::node_t argument;
+		wpp::Position pos;
+
+		FnPipe(
+			const wpp::node_t argument_,
+			const wpp::Position& pos_
+		):
+			argument(argument_),
+			pos(pos_) {}
+
+		FnPipe(const wpp::Position& pos_): pos(pos_) {}
+
+		FnPipe() {}
+	};
+
 	struct FnAssert {
 		std::pair<wpp::node_t, wpp::node_t> arguments;
 		wpp::Position pos;
@@ -215,6 +247,8 @@ namespace wpp {
 		FnEval,
 		FnAssert,
 		FnFile,
+		FnPipe,
+		FnError,
 		Fn,
 		String,
 		Concat,
@@ -233,7 +267,9 @@ namespace wpp {
 			tok == TOKEN_RUN or
 			tok == TOKEN_EVAL or
 			tok == TOKEN_FILE or
-			tok == TOKEN_ASSERT
+			tok == TOKEN_ASSERT or
+			tok == TOKEN_PIPE or
+			tok == TOKEN_ERROR
 		;
 	}
 
@@ -469,6 +505,20 @@ namespace wpp {
 				throw wpp::Exception{lex.position(), "file takes exactly one argument."};
 
 			tree.replace<FnFile>(node, args[0], pos);
+		}
+
+		else if (fn_token == TOKEN_ERROR) {
+			if (args.size() != 1)
+				throw wpp::Exception{lex.position(), "error takes exactly one argument."};
+
+			tree.replace<FnError>(node, args[0], pos);
+		}
+
+		else if (fn_token == TOKEN_PIPE) {
+			if (args.size() != 1)
+				throw wpp::Exception{lex.position(), "pipe takes exactly one argument."};
+
+			tree.replace<FnPipe>(node, args[0], pos);
 		}
 
 		else {

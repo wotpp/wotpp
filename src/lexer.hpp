@@ -32,7 +32,6 @@ namespace wpp {
 
 	#define TOKEN_TYPES \
 		TOKEN(TOKEN_NONE) \
-		TOKEN(TOKEN_ERROR) \
 		TOKEN(TOKEN_EOF) \
 		\
 		TOKEN(TOKEN_WHITESPACE) \
@@ -48,6 +47,8 @@ namespace wpp {
 		TOKEN(TOKEN_FILE) \
 		TOKEN(TOKEN_EVAL) \
 		TOKEN(TOKEN_ASSERT) \
+		TOKEN(TOKEN_ERROR) \
+		TOKEN(TOKEN_PIPE) \
 		\
 		TOKEN(TOKEN_LPAREN) \
 		TOKEN(TOKEN_RPAREN) \
@@ -236,7 +237,9 @@ namespace wpp {
 							} while (
 								// make sure we don't run into a character that belongs to a token above.
 								not wpp::is_whitespace(*str) and
-								not wpp::in_group(*str, '(', ')', '{', '}', ',', '\0', '\'', '"', '.')
+								not wpp::in_group(*str, '(', ')', '{', '}', ',', '\0', '\'', '"') and
+								not (*str == '.' and *(str + 1) == '.') and
+								not (*str == '#' and *(str + 1) == '[')
 							);
 
 							vlen = str - vptr;
@@ -247,6 +250,8 @@ namespace wpp {
 							else if (view == "eval")      type = TOKEN_EVAL;
 							else if (view == "file")      type = TOKEN_FILE;
 							else if (view == "assert")    type = TOKEN_ASSERT;
+							else if (view == "pipe")      type = TOKEN_PIPE;
+							else if (view == "error")     type = TOKEN_ERROR;
 						}
 
 						// else {

@@ -35,8 +35,8 @@ namespace wpp {
 				str += " )";
 			},
 
-			[&] (const FnAssert& run) {
-				const auto& [args, pos] = run;
+			[&] (const FnAssert& ass) {
+				const auto& [args, pos] = ass;
 				str += "( 'assert(...)' ";
 					print_ast(tree[args.first], tree, str);
 				str += " ";
@@ -44,16 +44,30 @@ namespace wpp {
 				str += " )";
 			},
 
-			[&] (const FnFile& run) {
-				const auto& [arg, pos] = run;
+			[&] (const FnFile& file) {
+				const auto& [arg, pos] = file;
 				str += "( 'file(...)' ";
 					print_ast(tree[arg], tree, str);
 				str += " )";
 			},
 
-			[&] (const FnEval& run) {
-				const auto& [arg, pos] = run;
+			[&] (const FnEval& eval) {
+				const auto& [arg, pos] = eval;
 				str += "( 'eval(...)' ";
+					print_ast(tree[arg], tree, str);
+				str += " )";
+			},
+
+			[&] (const FnPipe& pipe) {
+				const auto& [arg, pos] = pipe;
+				str += "( 'pipe(...)' ";
+					print_ast(tree[arg], tree, str);
+				str += " )";
+			},
+
+			[&] (const FnError& err) {
+				const auto& [arg, pos] = err;
+				str += "( 'error(...)' ";
 					print_ast(tree[arg], tree, str);
 				str += " )";
 			},

@@ -90,6 +90,17 @@ namespace wpp {
 				}
 			},
 
+			[&] (const FnError& err) {
+				const auto& [arg, pos] = err;
+
+				auto msg = eval_ast(arg, tree, functions, args);
+				throw wpp::Exception{ pos, msg };
+			},
+
+			[&] (const FnPipe& pipe) {
+				const auto& [arg, pos] = pipe;
+			},
+
 			[&] (const FnInvoke& call) {
 				const auto& [caller_name, caller_args, caller_pos] = call;
 				std::string caller_mangled_name = cat(caller_name, caller_args.size());
