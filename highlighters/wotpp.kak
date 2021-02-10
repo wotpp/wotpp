@@ -12,7 +12,7 @@ provide-module -override wpp %{
 	add-highlighter shared/wpp/other/ regex "0b(0|1|_)+" 0:value
 	add-highlighter shared/wpp/other/ regex "0x(A-Fa-f0-9|_)+" 0:value
 
-	add-highlighter shared/wpp/other/ regex "let|\.\.|run|file|eval|assert|namespace" 0:keyword
+	add-highlighter shared/wpp/other/ regex "let|\.\.|run|file|eval|assert|prefix|pipe|escape|error" 0:keyword
 	add-highlighter shared/wpp/other/ regex "\(|\)|\{|\}" 0:operator
 
 
