@@ -42,7 +42,11 @@ namespace wpp {
 	}
 
 	constexpr bool is_hex(char c) {
-		return in_range(c, 'A', 'F') or in_range(c, 'a', 'f') or is_digit(c);
+		return in_range(c, 'A', 'F') or in_range(c, 'a', 'f') or is_digit(c) or c == '_';
+	}
+
+	constexpr bool is_bin(char c) {
+		return in_group(c, '0', '1', '_');
 	}
 
 	constexpr bool is_identifier(char c) {

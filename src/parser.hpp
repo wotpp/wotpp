@@ -364,11 +364,28 @@ namespace wpp {
 			else if (part == TOKEN_ESCAPE_TAB)
 				literal.append("\t");
 
-			else if (part == TOKEN_ESCAPE_HEX)
-				literal.append("hex");
+			else if (part == TOKEN_ESCAPE_HEX) {
+				uint8_t first_nibble = *part.view.ptr;
+				uint8_t second_nibble = *(part.view.ptr + 1);
 
-			else if (part == TOKEN_ESCAPE_BIN)
-				literal.append("bin");
+				first_nibble = (first_nibble >= 'A') ? (first_nibble - 'A' + 10) : (first_nibble - '0');
+				second_nibble = (second_nibble >= 'A') ? (second_nibble - 'A' + 10) : (second_nibble - '0');
+
+				literal += static_cast<uint8_t>(first_nibble << 4 | second_nibble);
+			}
+
+			else if (part == TOKEN_ESCAPE_BIN) {
+				const auto& [ptr, len] = part.view;
+				uint8_t value = 0;
+
+				for (int i = 0; i < len; ++i) {
+					value <<= 1;
+					value |= ptr[i] - '0';
+				}
+
+				tinge::warnln((int)value);
+				literal += value;
+			}
 
 			else
 				literal.append(part.str());

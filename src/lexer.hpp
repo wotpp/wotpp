@@ -269,8 +269,30 @@ namespace wpp {
 							else if (*str == '"')  { ++str; type = TOKEN_ESCAPE_DOUBLEQUOTE; }
 							else if (*str == 't')  { ++str; type = TOKEN_ESCAPE_TAB; }
 							else if (*str == 'n')  { ++str; type = TOKEN_ESCAPE_NEWLINE; }
-							else if (*str == 'x')  { ++str; type = TOKEN_ESCAPE_HEX; }
-							else if (*str == 'b')  { ++str; type = TOKEN_ESCAPE_BIN; }
+
+							else if (*str == 'x') {
+								++str;
+								type = TOKEN_ESCAPE_HEX;
+
+								vptr = str;
+								uint8_t first_nibble = *str++;
+								uint8_t second_nibble = *str++;
+
+								if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
+									throw wpp::Exception{wpp::position(start, vptr), "invalid character in hex escape."};
+							}
+
+							else if (*str == 'b') {
+								++str;
+								type = TOKEN_ESCAPE_BIN;
+
+								vptr = str;
+
+								for (; str != vptr + 8; ++str) {
+									if (not wpp::is_bin(*str))
+										throw wpp::Exception{wpp::position(start, vptr), "invalid character in bin escape."};
+								}
+							}
 
 							vlen = str - vptr;
 						}
