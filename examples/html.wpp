@@ -1,53 +1,57 @@
-let html/html(body)
-	"<!DOCTYPE HTML><html>" .. body .. "</html>"
+prefix html/ {
+	let html(body)
+		"<!DOCTYPE HTML><html>" .. body .. "</html>"
 
-let html/head(x) "<head>" .. x .. "</head>"
-let html/body(x) "<body>" .. x .. "</body>"
+	let head(x) "<head>" .. x .. "</head>"
+	let body(x) "<body>" .. x .. "</body>"
 
-let html/title(x) "<title>" .. x .. "</title>"
-let html/stylesheet(f) '<link rel="stylesheet" href="' .. f .. '">'
+	let title(x) "<title>" .. x .. "</title>"
+	let stylesheet(f) '<link rel="stylesheet" href="' .. f .. '">'
 
-let html/h1(x) "<h1>" .. x .. "</h1>"
-let html/h2(x) "<h2>" .. x .. "</h2>"
-let html/h3(x) "<h3>" .. x .. "</h3>"
-let html/h4(x) "<h4>" .. x .. "</h4>"
-let html/h5(x) "<h5>" .. x .. "</h5>"
+	let h1(x) "<h1>" .. x .. "</h1>"
+	let h2(x) "<h2>" .. x .. "</h2>"
+	let h3(x) "<h3>" .. x .. "</h3>"
+	let h4(x) "<h4>" .. x .. "</h4>"
+	let h5(x) "<h5>" .. x .. "</h5>"
 
-let html/p(x) "<p>" .. x .. "</p>"
-let html/article(x) "<article>" .. x .. "</article>"
-let html/header(x) "<header>" .. x .. "</header>"
-let html/main(x) "<main>" .. x .. "</main>"
+	let p(x) "<p>" .. x .. "</p>"
+	let article(x) "<article>" .. x .. "</article>"
+	let header(x) "<header>" .. x .. "</header>"
+	let main(x) "<main>" .. x .. "</main>"
+}
 
+prefix blog/ {
+	#[ creates a header with title and author titles ]
+	let header(title, author)
+		html/header(html/h1(title) .. html/h5(author))
 
-#[ creates a header with title and author titles ]
-let blog/header(title, author)
-	html/header(html/h1(title) .. html/h5(author))
+	#[ blog template with header and posts section ]
+	let blog(header, posts)
+		html/html(
+			html/head(
+				html/stylesheet(user/stylesheet) ..
+				html/title(user/title)
+			) ..
 
-#[ blog template with header and posts section ]
-let blog/blog(header, posts)
-	html/html(
-		html/head(
-			html/stylesheet(user/stylesheet) ..
-			html/title(user/title)
-		) ..
-
-		html/body(
-			header ..
-			html/main(posts)
+			html/body(
+				header ..
+				html/main(posts)
+			)
 		)
-	)
 
-#[ a post with title and body ]
-let blog/post(title, body)
-	html/article(
-		html/h1(title) ..
-		html/p(body)
-	)
+	#[ a post with title and body ]
+	let post(title, body)
+		html/article(
+			html/h1(title) ..
+			html/p(body)
+		)
+}
 
-
-let user/stylesheet "style.css"
-let user/title "Wot++ Development Blog"
-let user/author "Jack Clarke"
+prefix user/ {
+	let stylesheet "style.css"
+	let title "Wot++ Development Blog"
+	let author "Jack Clarke"
+}
 
 
 blog/blog(
