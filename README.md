@@ -66,6 +66,11 @@ $ meson build
 $ ninja -C build
 ```
 
+You can specify the compiler and linker to use through environment variables:
+```
+$ CXX=clang++ CXX_LD=lld meson build
+```
+
 Supported flags:
 ```
 -Dnative=true               # enable host machine specific optimisations
