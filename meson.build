@@ -102,6 +102,7 @@ test_cases = {
 	'tests/assert_fail.wpp': false,
 	'tests/run_fail.wpp': false,
 	'tests/error.wpp': false,
+	'tests/conflict_keyword.wpp': false,
 }
 
 if not get_option('disable_run')

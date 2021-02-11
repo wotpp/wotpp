@@ -260,16 +260,36 @@ namespace wpp {
 
 
 namespace wpp {
-	// Check if the token is an expression.
-	inline bool peek_is_call(const wpp::Token& tok) {
+	inline bool peek_is_intrinsic(const wpp::Token& tok) {
 		return
-			tok == TOKEN_IDENTIFIER or
 			tok == TOKEN_RUN or
 			tok == TOKEN_EVAL or
 			tok == TOKEN_FILE or
 			tok == TOKEN_ASSERT or
 			tok == TOKEN_PIPE or
 			tok == TOKEN_ERROR
+		;
+	}
+
+	inline bool peek_is_keyword(const wpp::Token& tok) {
+		return
+			tok == TOKEN_LET or
+			tok == TOKEN_PREFIX
+		;
+	}
+
+	inline bool peek_is_reserved_name(const wpp::Token& tok) {
+		return
+			peek_is_intrinsic(tok) or
+			peek_is_keyword(tok)
+		;
+	}
+
+	// Check if the token is an expression.
+	inline bool peek_is_call(const wpp::Token& tok) {
+		return
+			tok == TOKEN_IDENTIFIER or
+			peek_is_intrinsic(tok)
 		;
 	}
 
@@ -286,8 +306,7 @@ namespace wpp {
 	// Check if the token is a statement.
 	inline bool peek_is_stmt(const wpp::Token& tok) {
 		return
-			tok == TOKEN_LET or
-			tok == TOKEN_PREFIX or
+			peek_is_keyword(tok) or
 			peek_is_expr(tok)
 		;
 	}
@@ -350,6 +369,10 @@ namespace wpp {
 			if (lex.peek() == TOKEN_IDENTIFIER)
 				tree.get<Fn>(node).parameters.emplace_back(lex.advance().str());
 
+			else if (peek_is_reserved_name(lex.peek()))
+				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
+
+
 			// While there is a comma, loop until we run out of parameters.
 			while (lex.peek() == TOKEN_COMMA) {
 				lex.advance(); // Skip `,`.
@@ -357,6 +380,11 @@ namespace wpp {
 				// Allow trailing comma.
 				if (lex.peek() == TOKEN_RPAREN)
 					break;
+
+
+				// Check if there's an keyword conflict.
+				if (peek_is_reserved_name(lex.peek()))
+					throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
 
 
 				// Check if there is a parameter.
