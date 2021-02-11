@@ -38,100 +38,23 @@ namespace wpp {
 		FnInvoke() {}
 	};
 
-	struct FnRun {
-		wpp::node_t argument;
+	struct Intrinsic {
+		uint8_t type;
+		std::vector<wpp::node_t> arguments;
 		wpp::Position pos;
 
-		FnRun(
-			const wpp::node_t argument_,
+		Intrinsic(
+			const uint8_t type_,
+			const std::vector<wpp::node_t>& arguments_,
 			const wpp::Position& pos_
 		):
-			argument(argument_),
-			pos(pos_) {}
-
-		FnRun(const wpp::Position& pos_): pos(pos_) {}
-
-		FnRun() {}
-	};
-
-	struct FnEval {
-		wpp::node_t argument;
-		wpp::Position pos;
-
-		FnEval(
-			const wpp::node_t argument_,
-			const wpp::Position& pos_
-		):
-			argument(argument_),
-			pos(pos_) {}
-
-		FnEval(const wpp::Position& pos_): pos(pos_) {}
-
-		FnEval() {}
-	};
-
-	struct FnFile {
-		wpp::node_t argument;
-		wpp::Position pos;
-
-		FnFile(
-			const wpp::node_t argument_,
-			const wpp::Position& pos_
-		):
-			argument(argument_),
-			pos(pos_) {}
-
-		FnFile(const wpp::Position& pos_): pos(pos_) {}
-
-		FnFile() {}
-	};
-
-	struct FnError {
-		wpp::node_t argument;
-		wpp::Position pos;
-
-		FnError(
-			const wpp::node_t argument_,
-			const wpp::Position& pos_
-		):
-			argument(argument_),
-			pos(pos_) {}
-
-		FnError(const wpp::Position& pos_): pos(pos_) {}
-
-		FnError() {}
-	};
-
-	struct FnPipe {
-		wpp::node_t argument;
-		wpp::Position pos;
-
-		FnPipe(
-			const wpp::node_t argument_,
-			const wpp::Position& pos_
-		):
-			argument(argument_),
-			pos(pos_) {}
-
-		FnPipe(const wpp::Position& pos_): pos(pos_) {}
-
-		FnPipe() {}
-	};
-
-	struct FnAssert {
-		std::pair<wpp::node_t, wpp::node_t> arguments;
-		wpp::Position pos;
-
-		FnAssert(
-			const std::pair<wpp::node_t, wpp::node_t>& arguments_,
-			const wpp::Position& pos_
-		):
+			type(type_),
 			arguments(arguments_),
 			pos(pos_) {}
 
-		FnAssert(const wpp::Position& pos_): pos(pos_) {}
+		Intrinsic(const wpp::Position& pos_): pos(pos_) {}
 
-		FnAssert() {}
+		Intrinsic() {}
 	};
 
 	// Function definition.
@@ -243,12 +166,7 @@ namespace wpp {
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
 		FnInvoke,
-		FnRun,
-		FnEval,
-		FnAssert,
-		FnFile,
-		FnPipe,
-		FnError,
+		Intrinsic,
 		Fn,
 		String,
 		Concat,
@@ -500,53 +418,10 @@ namespace wpp {
 			}
 		}
 
-		const auto& [name, args, pos] = tree.get<FnInvoke>(node);
+		const auto [_, args, pos] = tree.get<FnInvoke>(node);
 
-		if (fn_token == TOKEN_RUN) {
-			#if !defined(WPP_DISABLE_RUN)
-				if (args.size() != 1)
-					throw wpp::Exception{lex.position(), "run takes exactly one argument."};
-
-				tree.replace<FnRun>(node, args[0], pos);
-			#else
-
-				throw wpp::Exception{lex.position(), "run has been disabled."};
-			#endif
-		}
-
-		else if (fn_token == TOKEN_EVAL) {
-			if (args.size() != 1)
-				throw wpp::Exception{lex.position(), "eval takes exactly one argument."};
-
-			tree.replace<FnEval>(node, args[0], pos);
-		}
-
-		else if (fn_token == TOKEN_ASSERT) {
-			if (args.size() != 2)
-				throw wpp::Exception{lex.position(), "assert takes exactly two arguments."};
-
-			tree.replace<FnAssert>(node, std::pair{args[0], args[1]}, pos);
-		}
-
-		else if (fn_token == TOKEN_FILE) {
-			if (args.size() != 1)
-				throw wpp::Exception{lex.position(), "file takes exactly one argument."};
-
-			tree.replace<FnFile>(node, args[0], pos);
-		}
-
-		else if (fn_token == TOKEN_ERROR) {
-			if (args.size() != 1)
-				throw wpp::Exception{lex.position(), "error takes exactly one argument."};
-
-			tree.replace<FnError>(node, args[0], pos);
-		}
-
-		else if (fn_token == TOKEN_PIPE) {
-			if (args.size() != 1)
-				throw wpp::Exception{lex.position(), "pipe takes exactly one argument."};
-
-			tree.replace<FnPipe>(node, args[0], pos);
+		if (peek_is_intrinsic(fn_token)) {
+			tree.replace<Intrinsic>(node, fn_token.type, args, pos);
 		}
 
 		else {

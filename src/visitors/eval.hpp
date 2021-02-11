@@ -20,85 +20,87 @@ namespace wpp {
 	using Arguments = std::unordered_map<std::string, std::string>;
 
 
-	// TODO: Separate this into a header/implementation file so we don't have to forward declare this
-	inline std::string eval(const std::string& code, wpp::Environment& env);
-
 	inline std::string eval_ast(const wpp::node_t node_id, wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
 		const auto& variant = tree[node_id];
 		std::string str;
 
 		wpp::visit(variant,
-			[&] (const FnRun& run) {
-				const auto& [arg, pos] = run;
+			[&] (const Intrinsic& fn) {
+				const auto& [type, exprs, pos] = fn;
 
-				auto cmd = eval_ast(arg, tree, functions, args);
+				if (type == TOKEN_ASSERT) {
+					if (exprs.size() != 2)
+						throw wpp::Exception{pos, "assert takes exactly 2 arguments."};
 
-				int rc = 0;
-				str = wpp::exec(cmd, rc);
+					// Check if strings are equal.
+					auto a = eval_ast(exprs[0], tree, functions, args);
+					auto b = eval_ast(exprs[1], tree, functions, args);
 
-				// trim trailing newline.
-				if (str.back() == '\n')
-					str.erase(str.end() - 1);
-
-				if (rc)
-					throw wpp::Exception{ pos, "subprocess exited with non-zero status." };
-			},
-
-			[&] (const FnEval& eval) {
-				const auto& [arg, pos] = eval;
-
-				auto code = eval_ast(arg, tree, functions, args);
-
-				wpp::Lexer lex{code.c_str()};
-				wpp::node_t root;
-
-				try {
-					root = document(lex, tree);
-					str = wpp::eval_ast(root, tree, functions, args);
+					// todo: print reconstruction of AST nodes for arguments.
+					// `assert(fun(x), "d")`
+					// `assertion failure fun("a") != "d"`
+					if (a != b)
+						throw wpp::Exception{ pos, "assertion failed." };
 				}
 
-				catch (const wpp::Exception& e) {
-					throw wpp::Exception{ pos, "inside eval: ", e.what() };
-				}
-			},
+				else if (type == TOKEN_ERROR) {
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "error takes exactly 1 argument."};
 
-			[&] (const FnAssert& ass) {
-				const auto& [nodes, pos] = ass;
-
-				// Check if strings are equal.
-				auto a = eval_ast(nodes.first, tree, functions, args);
-				auto b = eval_ast(nodes.second, tree, functions, args);
-
-				// todo: print reconstruction of AST nodes for arguments.
-				// `assert(fun(x), "d")`
-				// `assertion failure fun("a") != "d"`
-				if (a != b)
-					throw wpp::Exception{ pos, "assertion failed." };
-			},
-
-			[&] (const FnFile& file) {
-				const auto& [arg, pos] = file;
-
-				auto fname = eval_ast(arg, tree, functions, args);
-
-				try {
-					str = wpp::read_file(fname);
+					auto msg = eval_ast(exprs[0], tree, functions, args);
+					throw wpp::Exception{ pos, msg };
 				}
 
-				catch (...) {
-					throw wpp::Exception{ pos, "failed reading file '", fname, "'" };
+				else if (type == TOKEN_FILE) {
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "file takes exactly 1 argument."};
+
+					auto fname = eval_ast(exprs[0], tree, functions, args);
+
+					try {
+						str = wpp::read_file(fname);
+					}
+
+					catch (...) {
+						throw wpp::Exception{ pos, "failed reading file '", fname, "'" };
+					}
 				}
-			},
 
-			[&] (const FnError& err) {
-				const auto& [arg, pos] = err;
+				else if (type == TOKEN_EVAL) {
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "eval takes exactly 1 argument."};
 
-				auto msg = eval_ast(arg, tree, functions, args);
-				throw wpp::Exception{ pos, msg };
-			},
+					auto code = eval_ast(exprs[0], tree, functions, args);
 
-			[&] (const FnPipe& pipe) {
-				const auto& [arg, pos] = pipe;
+					wpp::Lexer lex{code.c_str()};
+					wpp::node_t root;
+
+					try {
+						root = document(lex, tree);
+						str = wpp::eval_ast(root, tree, functions, args);
+					}
+
+					catch (const wpp::Exception& e) {
+						throw wpp::Exception{ pos, "inside eval: ", e.what() };
+					}
+				}
+
+				else if (type == TOKEN_RUN) {
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "run takes exactly 1 argument."};
+
+					auto cmd = eval_ast(exprs[0], tree, functions, args);
+
+					int rc = 0;
+					str = wpp::exec(cmd, rc);
+
+					// trim trailing newline.
+					if (str.back() == '\n')
+						str.erase(str.end() - 1);
+
+					if (rc)
+						throw wpp::Exception{ pos, "subprocess exited with non-zero status." };
+				}
 			},
 
 			[&] (const FnInvoke& call) {
