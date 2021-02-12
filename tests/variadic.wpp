@@ -1,0 +1,18 @@
+let cat(a) a
+let cat(a, b) a .. b
+let cat(a, b, c) cat(a, b) .. c
+let cat(a, b, c, d) cat(a, b, c) .. d
+
+let callcat(*) cat(*) .. "\n"
+
+#[ expect(x\n) ]
+callcat("x")
+
+#[ expect(xy\n) ]
+callcat("x", "y")
+
+#[ expect(xyz\n) ]
+callcat("x", "y", "z")
+
+#[ expect(xyzw\n) ]
+callcat("x", "y", "z", "w")

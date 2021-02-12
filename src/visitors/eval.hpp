@@ -144,7 +144,10 @@ namespace wpp {
 
 				int total_arg_count = caller_args.size();
 				if(caller_variadic) {
-					total_arg_count += varargs->size();
+					if(varargs)
+						total_arg_count += varargs->size();
+					else
+						throw wpp::Exception{caller_pos, "attempt to pass unpack variadic argument but no variadic argument present."};
 				}
 
 				std::string caller_mangled_name = wpp::mangle(caller_name, total_arg_count, false);
@@ -157,8 +160,12 @@ namespace wpp {
 					it = functions.find(caller_mangled_name);
 
 					// It wasn't.
-					if (it == functions.end())
+					if (it == functions.end()) {
+						// if (caller_variadic)
+						// 	tinge::noticeln("Psst! It looks like this function is taking in variadic arguments! Perhaps check where this function is being called from?");
+
 						throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+					}
 
 					// Otherwise, it is.
 				}

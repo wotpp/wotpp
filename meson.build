@@ -104,6 +104,7 @@ test_cases = {
 	'tests/run_fail.wpp': false,
 	'tests/error.wpp': false,
 	'tests/conflict_keyword.wpp': false,
+	'tests/variadic.wpp': true,
 }
 
 if not get_option('disable_run')
