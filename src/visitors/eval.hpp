@@ -19,9 +19,10 @@
 namespace wpp {
 	using Environment = std::unordered_map<std::string, wpp::node_t>;
 	using Arguments = std::unordered_map<std::string, std::string>;
+	using Types = std::variant<std::string, std::vector<std::string>>;
+	using VariadicArguments = std::vector<std::string>;
 
-
-	inline std::string eval_ast(const wpp::node_t node_id, wpp::AST& tree, Environment& functions, Arguments* args = nullptr) {
+	inline std::string eval_ast(const wpp::node_t node_id, wpp::AST& tree, Environment& functions, Arguments* args = nullptr, VariadicArguments* varargs = nullptr) {
 		const auto& variant = tree[node_id];
 		std::string str;
 
@@ -131,8 +132,7 @@ namespace wpp {
 			},
 
 			[&] (const FnInvoke& call) {
-				const auto& [caller_name, caller_args, caller_pos] = call;
-				std::string caller_mangled_name = cat(caller_name, caller_args.size());
+				const auto& [caller_name, caller_args, caller_variadic, caller_pos] = call;
 
 				// Check if parameter.
 				if (args) {
@@ -142,28 +142,67 @@ namespace wpp {
 					}
 				}
 
+				int total_arg_count = caller_args.size();
+				if(caller_variadic) {
+					total_arg_count += varargs->size();
+				}
+
+				std::string caller_mangled_name = wpp::mangle(caller_name, total_arg_count, false);
+
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
 				auto it = functions.find(caller_mangled_name);
-				if (it == functions.end())
-					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+				if (it == functions.end()) {
+					// Perhaps it is variadic?
+					caller_mangled_name = wpp::mangle(caller_name, total_arg_count, true);
+					it = functions.find(caller_mangled_name);
 
-				// Retrieve function.
-				const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
+					// It wasn't.
+					if (it == functions.end())
+						throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+
+					// Otherwise, it is.
+				}
 
 				// Set up Arguments to pass down to function body.
 				Arguments env_args;
+				VariadicArguments env_varargs;
+
+				// Retrieve function.
+				const auto& [callee_name, params, callee_variadic, body, callee_pos] = tree.get<wpp::Fn>(it->second);
 
 				// Evaluate arguments and store their result.
-				for (int i = 0; i < (int)caller_args.size(); i++)
-					env_args.emplace(params[i], eval_ast(caller_args[i], tree, functions, args));
+				for (int i = 0; i < total_arg_count; i++) {
+					// This is an ordinary param of the function we're calling.
+					if (i < (int)params.size()) {
+						std::string s;
+
+						// This is an ordinary param of this invocation.
+						if (i < (int)caller_args.size())
+							s = eval_ast(caller_args[i], tree, functions, args, varargs);
+
+						// This is a variadic param of this invocation.
+						// (here is the heart of the unpack.)
+						else
+							s = varargs->at(i - caller_args.size() /* i - argsize is the position of the arg relative to '*' */);
+
+						env_args.emplace(params[i], s);
+					}
+
+					// This is a variadic param of the function we're calling (at or after *).
+					else {
+						std::string s = eval_ast(caller_args[i], tree, functions, args, varargs);
+						env_varargs.emplace_back(s);
+					}
+				}
 
 				// Call function.
-				str = eval_ast(body, tree, functions, &env_args);
+				str = eval_ast(body, tree, functions, &env_args, &env_varargs);
 			},
 
 			[&] (const Fn& func) {
-				const auto& [name, params, body, pos] = func;
-				functions.insert_or_assign(cat(name, params.size()), node_id);
+				const auto& [name, params, variadic, body, pos] = func;
+				auto mangled_name = wpp::mangle(name, params.size(), variadic);
+				functions.insert_or_assign(mangled_name, node_id);
 			},
 
 			[&] (const String& x) {
@@ -172,17 +211,17 @@ namespace wpp {
 
 			[&] (const Concat& cat) {
 				const auto& [lhs, rhs, pos] = cat;
-				str = eval_ast(lhs, tree, functions, args) + eval_ast(rhs, tree, functions, args);
+				str = eval_ast(lhs, tree, functions, args, varargs) + eval_ast(rhs, tree, functions, args, varargs);
 			},
 
 			[&] (const Block& block) {
 				const auto& [stmts, expr, pos] = block;
 
 				for (const wpp::node_t node: stmts) {
-					str += eval_ast(node, tree, functions, args);
+					str += eval_ast(node, tree, functions, args, varargs);
 				}
 
-				str = eval_ast(expr, tree, functions, args);
+				str = eval_ast(expr, tree, functions, args, varargs);
 			},
 
 			[&] (const Pre& pre) {
@@ -191,18 +230,18 @@ namespace wpp {
 				for (const wpp::node_t stmt: stmts) {
 					if (wpp::Fn* func = std::get_if<wpp::Fn>(&tree[stmt])) {
 						func->identifier = name + func->identifier;
-						str += eval_ast(stmt, tree, functions, args);
+						str += eval_ast(stmt, tree, functions, args, varargs);
 					}
 
 					else {
-						str += eval_ast(stmt, tree, functions, args);
+						str += eval_ast(stmt, tree, functions, args, varargs);
 					}
 				}
 			},
 
 			[&] (const Document& doc) {
 				for (const wpp::node_t node: doc.stmts) {
-					str += eval_ast(node, tree, functions, args);
+					str += eval_ast(node, tree, functions, args, varargs);
 				}
 			}
 		);

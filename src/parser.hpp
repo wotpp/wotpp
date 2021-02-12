@@ -23,15 +23,18 @@ namespace wpp {
 	struct FnInvoke {
 		std::string identifier;
 		std::vector<wpp::node_t> arguments;
+		bool variadic = false;
 		wpp::Position pos;
 
 		FnInvoke(
 			const std::string& identifier_,
 			const std::vector<wpp::node_t>& arguments_,
+			bool variadic_,
 			const wpp::Position& pos_
 		):
 			identifier(identifier_),
 			arguments(arguments_),
+			variadic(variadic_),
 			pos(pos_) {}
 
 		FnInvoke(const wpp::Position& pos_): pos(pos_) {}
@@ -62,17 +65,20 @@ namespace wpp {
 	struct Fn {
 		std::string identifier;
 		std::vector<std::string> parameters;
+		bool variadic = false;
 		wpp::node_t body;
 		wpp::Position pos;
 
 		Fn(
 			const std::string& identifier_,
 			const std::vector<std::string>& parameters_,
+			bool variadic_,
 			const wpp::node_t body_,
 			const wpp::Position& pos_
 		):
 			identifier(identifier_),
 			parameters(parameters_),
+			variadic(variadic_),
 			body(body_),
 			pos(pos_) {}
 
@@ -285,38 +291,34 @@ namespace wpp {
 		if (lex.peek() == TOKEN_LPAREN) {
 			lex.advance();  // Skip `(`.
 
+			// While there is an identifier there is another parameter
+			while (lex.peek() == TOKEN_IDENTIFIER || lex.peek() == TOKEN_VARIADIC) {
+				// Check if this is an identifier.
+				if (lex.peek() == TOKEN_IDENTIFIER) {
+					// Advance the lexer and get the identifier
+					auto id = lex.advance().str();
 
-			// Check for the first parameter.
-			if (lex.peek() == TOKEN_IDENTIFIER)
-				tree.get<Fn>(node).parameters.emplace_back(lex.advance().str());
+					// Add the argument
+					tree.get<Fn>(node).parameters.emplace_back(id);
 
-			else if (peek_is_reserved_name(lex.peek()))
-				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
+					if (lex.peek() == TOKEN_COMMA)
+						lex.advance(); // skip the comma
+				}
 
+				// Check if this is a variadic unpack.
+				else if (lex.peek() == TOKEN_VARIADIC) {
+					// Get the varargs flag
+					tree.get<Fn>(node).variadic = true;
+					lex.advance();
 
-			// While there is a comma, loop until we run out of parameters.
-			while (lex.peek() == TOKEN_COMMA) {
-				lex.advance(); // Skip `,`.
+					// Make sure to handle trailing comma
+					if(lex.peek() == TOKEN_COMMA)
+						lex.advance();
 
-				// Allow trailing comma.
-				if (lex.peek() == TOKEN_RPAREN)
+					// For now varargs must always be the last arg of a function.
 					break;
-
-
-				// Check if there's an keyword conflict.
-				if (peek_is_reserved_name(lex.peek()))
-					throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
-
-
-				// Check if there is a parameter.
-				if (lex.peek() != TOKEN_IDENTIFIER)
-					throw wpp::Exception{lex.position(), "expecting parameter name to follow comma."};
-
-
-				// Emplace the parameter name into our `Fn` node's list of params.
-				tree.get<Fn>(node).parameters.emplace_back(lex.advance().str());
+				}
 			}
-
 
 			// Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
@@ -467,21 +469,30 @@ namespace wpp {
 			if (lex.peek() != TOKEN_RPAREN) {
 				// throw wpp::Exception{lex.position(), "empty arguments, drop the parens."};
 
-				// Collect arguments.
-				wpp::node_t expr;
+				// Collect arguments
+				while (lex.peek() != TOKEN_RPAREN) {
+					// Variadic unpack.
+					if(lex.peek() == TOKEN_VARIADIC) {
+						lex.advance();
 
-				expr = expression(lex, tree);
-				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
+						tree.get<FnInvoke>(node).variadic = true;
 
-				while (lex.peek() == TOKEN_COMMA) {
-					lex.advance(); // skip comma.
+						// Skip comma.
+						if(lex.peek() == TOKEN_COMMA)
+							lex.advance();
 
-					// Allow trailing comma.
-					if (lex.peek() == TOKEN_RPAREN)
+						// For now varargs must always be the last arg of a function.
 						break;
+					}
 
-					expr = expression(lex, tree);
-					tree.get<FnInvoke>(node).arguments.emplace_back(expr);
+					// Regular argument.
+					else {
+						wpp::node_t expr = expression(lex, tree);
+						tree.get<FnInvoke>(node).arguments.emplace_back(expr);
+					}
+
+					if(lex.peek() == TOKEN_COMMA)
+						lex.advance(); // skip comma
 				}
 
 				if (lex.advance() != TOKEN_RPAREN)
@@ -493,7 +504,7 @@ namespace wpp {
 			}
 		}
 
-		const auto [_, args, pos] = tree.get<FnInvoke>(node);
+		const auto [_, args, variadic, pos] = tree.get<FnInvoke>(node);
 
 		if (peek_is_intrinsic(fn_token)) {
 			tree.replace<Intrinsic>(node, fn_token.type, args, pos);

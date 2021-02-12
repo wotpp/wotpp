@@ -26,9 +26,7 @@ namespace wpp {
 
 		return ss.str();
 	}
-}
 
-namespace wpp {
 	template <typename T, typename... Ts>
 	inline std::string cat(const T& first, Ts&&... args) {
 		const auto tostr = [] (const auto& x) {
@@ -49,6 +47,15 @@ namespace wpp {
 		else {
 			return std::string{first};
 		}
+	}
+}
+
+namespace wpp {
+	inline std::string mangle(const std::string& name, int argcount, bool varargs) {
+		if (varargs)
+			return name + "*";
+		else
+			return cat(name, argcount);
 	}
 }
 
@@ -112,6 +119,32 @@ namespace wpp {
 
 		return str;
 	}
+
+	// Execute a shell command, capture its standard output and return it
+	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
+	std::string exec(const std::string& cmd, int& rc) {
+		#if !defined(WPP_DISABLE_RUN)
+			std::array<char, 128> buffer;
+			std::string result;
+
+			FILE* pipe = popen(cmd.c_str(), "r");
+
+			if (not pipe) {
+				throw std::runtime_error("popen() failed!");
+			}
+
+			while (not feof(pipe)) {
+				if (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
+					result += buffer.data();
+			}
+
+			rc = pclose(pipe);
+
+			return result;
+		#else
+			return "";
+		#endif
+	}
 }
 
 namespace wpp {
@@ -144,34 +177,6 @@ namespace wpp {
 		return std::visit(wpp::overloaded{
 			std::forward<Ts>(args)...
 		}, variant);
-	}
-}
-
-namespace wpp {
-	// Execute a shell command, capture its standard output and return it
-	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
-	std::string exec(const std::string& cmd, int& rc) {
-		#if !defined(WPP_DISABLE_RUN)
-			std::array<char, 128> buffer;
-			std::string result;
-
-			FILE* pipe = popen(cmd.c_str(), "r");
-
-			if (not pipe) {
-				throw std::runtime_error("popen() failed!");
-			}
-
-			while (not feof(pipe)) {
-				if (fgets(buffer.data(), buffer.size(), pipe) != nullptr)
-					result += buffer.data();
-			}
-
-			rc = pclose(pipe);
-
-			return result;
-		#else
-			return "";
-		#endif
 	}
 }
 

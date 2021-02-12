@@ -39,6 +39,7 @@ namespace wpp {
 		TOKEN(TOKEN_BACKSLASH) \
 		TOKEN(TOKEN_CAT) \
 		TOKEN(TOKEN_COMMA) \
+		TOKEN(TOKEN_VARIADIC) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
 		TOKEN(TOKEN_PREFIX) \
@@ -230,6 +231,7 @@ namespace wpp {
 
 						// other
 						else if (*str == ',')  { ++str; type = TOKEN_COMMA; }
+						else if (*str == '*')  { ++str; type = TOKEN_VARIADIC; }
 
 						else if (*str == '(')  { ++str; type = TOKEN_LPAREN; }
 						else if (*str == ')')  { ++str; type = TOKEN_RPAREN; }
@@ -250,7 +252,7 @@ namespace wpp {
 							while (
 								// make sure we don't run into a character that belongs to a token above.
 								not wpp::is_whitespace(*str) and
-								not wpp::in_group(*str, '(', ')', '{', '}', ',', '\0', '\'', '"') and
+								not wpp::in_group(*str, '(', ')', '{', '}', ',', '\0', '\'', '"', '*') and
 								not (*str == '.' and *(str + 1) == '.') and
 								not (*str == '#' and *(str + 1) == '[')
 							) {
