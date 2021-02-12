@@ -5,6 +5,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <filesystem>
 #include <stack>
 #include <type_traits>
 
@@ -64,6 +65,23 @@ namespace wpp {
 					catch (...) {
 						throw wpp::Exception{ pos, "failed reading file '", fname, "'" };
 					}
+				}
+
+				else if (type == TOKEN_SOURCE) {
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "source takes exactly 1 argument."};
+
+					auto fname = eval_ast(exprs[0], tree, functions, args);
+
+					throw wpp::Exception{ pos, "source not implemented." };
+
+					// try {
+					// 	str = wpp::read_file(fname);
+					// }
+
+					// catch (...) {
+					// 	throw wpp::Exception{ pos, "failed sourcing '", fname, "'" };
+					// }
 				}
 
 				else if (type == TOKEN_EVAL) {

@@ -4,6 +4,7 @@
 #define WOTPP_PARSER
 
 #include <vector>
+#include <algorithm>
 #include <string>
 
 #include <utils/util.hpp>
@@ -185,7 +186,8 @@ namespace wpp {
 			tok == TOKEN_FILE or
 			tok == TOKEN_ASSERT or
 			tok == TOKEN_PIPE or
-			tok == TOKEN_ERROR
+			tok == TOKEN_ERROR or
+			tok == TOKEN_SOURCE
 		;
 	}
 
@@ -193,6 +195,20 @@ namespace wpp {
 		return
 			tok == TOKEN_LET or
 			tok == TOKEN_PREFIX
+		;
+	}
+
+	// Check if the token is a string.
+	inline bool peek_is_string(const wpp::Token& tok) {
+		return
+			tok == TOKEN_DOUBLEQUOTE or
+			tok == TOKEN_QUOTE or
+
+			tok == TOKEN_HEX or
+			tok == TOKEN_BIN or
+
+			tok == TOKEN_RAW or
+			tok == TOKEN_PARA
 		;
 	}
 
@@ -214,8 +230,7 @@ namespace wpp {
 	// Check if the token is an expression.
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
-			tok == TOKEN_DOUBLEQUOTE or
-			tok == TOKEN_QUOTE or
+			peek_is_string(tok) or
 			tok == TOKEN_LBRACE or
 			peek_is_call(tok)
 		;
@@ -229,19 +244,6 @@ namespace wpp {
 		;
 	}
 
-	// Check if the token is a string.
-	inline bool peek_is_string(const wpp::Token& tok) {
-		return
-			tok == TOKEN_DOUBLEQUOTE or
-			tok == TOKEN_QUOTE or
-
-			tok == TOKEN_HEX or
-			tok == TOKEN_BIN or
-
-			tok == TOKEN_RAW or
-			tok == TOKEN_PARA
-		;
-	}
 
 
 
@@ -335,63 +337,118 @@ namespace wpp {
 		const wpp::node_t node = tree.add<String>(lex.position());
 		auto& [literal, pos] = tree.get<String>(node);
 
-		const auto delim = lex.advance(wpp::modes::string); // Store delimeter.
+		const auto hex_digit = [] (char c) -> int {
+			if (c >= '0' && c <= '9')
+				return c - '0';
 
+			if (c >= 'a' && c <= 'f')
+				return c - 'a' + 10;
 
-		// Reserve some space, this is kind of arbitrary.
-		literal.reserve(1024);
+			if (c >= 'A' && c <= 'F')
+				return c - 'A' + 10;
 
-		// Consume tokens until we reach `delim` or EOF.
-		while (lex.peek(wpp::modes::string) != delim) {
-			if (lex.peek(wpp::modes::string) == TOKEN_EOF)
-				throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
+			return '\0';
+		};
 
-			const auto part = lex.advance(wpp::modes::string);
+		// 0010101010101010___10101010101__10100
+		if (lex.peek() == TOKEN_HEX) {
+			const auto& [ptr, len] = lex.advance().view;
 
-			// handle escape sequences.
-			if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
-				literal.append("\"");
+			size_t j = 0;
+			for (size_t i = len; i > 0; i--) {
+				const char c = ptr[i - 1];
 
-			else if (part == TOKEN_ESCAPE_QUOTE)
-				literal.append("'");
+				if (c == '_')
+					continue;
 
-			else if (part == TOKEN_ESCAPE_BACKSLASH)
-				literal.append("\\");
+				if (j & 1)
+					literal.back() |= hex_digit(c) << 4;
 
-			else if (part == TOKEN_ESCAPE_NEWLINE)
-				literal.append("\n");
+				else
+					literal.push_back(hex_digit(c));
 
-			else if (part == TOKEN_ESCAPE_TAB)
-				literal.append("\t");
-
-			else if (part == TOKEN_ESCAPE_HEX) {
-				uint8_t first_nibble = *part.view.ptr;
-				uint8_t second_nibble = *(part.view.ptr + 1);
-
-				first_nibble = (first_nibble >= 'A') ? (first_nibble - 'A' + 10) : (first_nibble - '0');
-				second_nibble = (second_nibble >= 'A') ? (second_nibble - 'A' + 10) : (second_nibble - '0');
-
-				literal += static_cast<uint8_t>(first_nibble << 4 | second_nibble);
+				j++;
 			}
 
-			else if (part == TOKEN_ESCAPE_BIN) {
-				const auto& [ptr, len] = part.view;
-				uint8_t value = 0;
-
-				for (int i = 0; i < len; ++i) {
-					value <<= 1;
-					value |= ptr[i] - '0';
-				}
-
-				tinge::warnln((int)value);
-				literal += value;
-			}
-
-			else
-				literal.append(part.str());
+			std::reverse(literal.begin(), literal.end());
 		}
 
-		lex.advance();
+		else if (lex.peek() == TOKEN_BIN) {
+			const auto& [ptr, len] = lex.advance().view;
+
+			size_t j = 0;
+			for (size_t i = len; i > 0; i--) {
+				const char c = ptr[i - 1];
+
+				if (c == '_')
+					continue;
+
+				if (j & 7)
+					literal.back() |= (c - '0') << (j & 7);
+
+				else
+					literal.push_back(c - '0');
+
+				j++;
+			}
+
+			std::reverse(literal.begin(), literal.end());
+		}
+
+		else {
+			const auto delim = lex.advance(wpp::modes::string); // Store delimeter.
+
+			// Reserve some space, this is kind of arbitrary.
+			literal.reserve(1024);
+
+			// Consume tokens until we reach `delim` or EOF.
+			while (lex.peek(wpp::modes::string) != delim) {
+				if (lex.peek(wpp::modes::string) == TOKEN_EOF)
+					throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
+
+				const auto part = lex.advance(wpp::modes::string);
+
+				// handle escape sequences.
+				if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
+					literal.append("\"");
+
+				else if (part == TOKEN_ESCAPE_QUOTE)
+					literal.append("'");
+
+				else if (part == TOKEN_ESCAPE_BACKSLASH)
+					literal.append("\\");
+
+				else if (part == TOKEN_ESCAPE_NEWLINE)
+					literal.append("\n");
+
+				else if (part == TOKEN_ESCAPE_TAB)
+					literal.append("\t");
+
+				else if (part == TOKEN_ESCAPE_HEX) {
+					uint8_t first_nibble = *part.view.ptr;
+					uint8_t second_nibble = *(part.view.ptr + 1);
+
+					literal += static_cast<uint8_t>(hex_digit(first_nibble) << 4 | hex_digit(second_nibble));
+				}
+
+				else if (part == TOKEN_ESCAPE_BIN) {
+					const auto& [ptr, len] = part.view;
+					uint8_t value = 0;
+
+					for (size_t i = 0; i < len; ++i) {
+						value <<= 1;
+						value |= ptr[i] - '0';
+					}
+
+					literal += value;
+				}
+
+				else
+					literal.append(part.str());
+			}
+
+			lex.advance(); // consume end quote
+		}
 
 		return node;
 	}
@@ -601,14 +658,14 @@ namespace wpp {
 
 		// Consume expressions until we encounter eof or an error.
 		while (lex.peek() != TOKEN_EOF) {
-			if (peek_is_stmt(lex.peek())) {
+			// if (peek_is_stmt(lex.peek())) {
 				const wpp::node_t stmt = statement(lex, tree);
 				tree.get<Document>(node).stmts.emplace_back(stmt);
-			}
+			// }
 
-			else {
-				throw wpp::Exception{lex.position(), "expecting a statement."};
-			}
+			// else {
+			// 	throw wpp::Exception{lex.position(), "expecting a statement."};
+			// }
 		}
 
 		return node;

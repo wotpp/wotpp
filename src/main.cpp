@@ -69,6 +69,8 @@ int main(int argc, const char* argv[]) {
 #endif
 	} else if (argc == 2) {
 		auto file = wpp::read_file(argv[1]);
+		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
+
 		try {
 			std::cout << wpp::eval(file, env) << std::endl;
 		}

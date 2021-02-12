@@ -49,6 +49,7 @@ namespace wpp {
 		TOKEN(TOKEN_ASSERT) \
 		TOKEN(TOKEN_ERROR) \
 		TOKEN(TOKEN_PIPE) \
+		TOKEN(TOKEN_SOURCE) \
 		\
 		TOKEN(TOKEN_LPAREN) \
 		TOKEN(TOKEN_RPAREN) \
@@ -194,6 +195,13 @@ namespace wpp {
 						else if (*str == '0' and *(str + 1) == 'b') {
 							str += 2;
 							type = TOKEN_BIN;
+
+							vptr = str;
+
+							while (wpp::is_bin(*str) or *str == '_') {
+								++str;
+							}
+
 							vlen = str - vptr;
 						}
 
@@ -201,6 +209,13 @@ namespace wpp {
 						else if (*str == '0' and *(str + 1) == 'x') {
 							str += 2;
 							type = TOKEN_HEX;
+
+							vptr = str;
+
+							while (wpp::is_hex(*str) or *str == '_') {
+								++str;
+							}
+
 							vlen = str - vptr;
 						}
 
@@ -231,15 +246,15 @@ namespace wpp {
 						else {
 							type = TOKEN_IDENTIFIER;
 
-							do {
-								++str;
-							} while (
+							while (
 								// make sure we don't run into a character that belongs to a token above.
 								not wpp::is_whitespace(*str) and
 								not wpp::in_group(*str, '(', ')', '{', '}', ',', '\0', '\'', '"') and
 								not (*str == '.' and *(str + 1) == '.') and
 								not (*str == '#' and *(str + 1) == '[')
-							);
+							) {
+								++str;
+							}
 
 							vlen = str - vptr;
 
@@ -251,6 +266,7 @@ namespace wpp {
 							else if (view == "assert")    type = TOKEN_ASSERT;
 							else if (view == "pipe")      type = TOKEN_PIPE;
 							else if (view == "error")     type = TOKEN_ERROR;
+							else if (view == "source")    type = TOKEN_SOURCE;
 						}
 
 						// else {
@@ -300,9 +316,11 @@ namespace wpp {
 						else {
 							type = TOKEN_STRING;
 
-							vlen = wpp::consume(str, vptr, [] (char c) {
-								return not wpp::in_group(c, '\\', '"', '\'', '\0');
-							});
+							while (not wpp::in_group(*str, '\\', '"', '\'', '\0')) {
+								++str;
+							}
+
+							vlen = str - vptr;
 						}
 					}
 
