@@ -4,6 +4,7 @@
 #define WOTPP_CHAR
 
 #include <utility>
+#include <cstdint>
 
 // Common character related utilities.
 
@@ -61,6 +62,22 @@ namespace wpp {
 		} while (pred(*ptr, std::forward<Ts>(args)...));
 
 		return ptr - begin;
+	}
+
+	uint8_t utf_size(const char* ptr) {
+		uint8_t out = 0;
+
+		const bool vals[] = {
+			(*ptr & 0b10000000) == 0b00000000,
+			(*ptr & 0b11100000) == 0b11000000,
+			(*ptr & 0b11110000) == 0b11100000,
+			(*ptr & 0b11111000) == 0b11110000,
+		};
+
+		for (uint8_t i = 0; i < 4; ++i)
+			vals[i] && (out = i);
+
+		return out + 1;
 	}
 }
 
