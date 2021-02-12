@@ -84,6 +84,15 @@ namespace wpp {
 					// }
 				}
 
+				else if (type == TOKEN_ESCAPE) {
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "escape takes exactly 1 argument."};
+
+					auto input = eval_ast(exprs[0], tree, functions, args);
+
+					throw wpp::Exception{ pos, "escape not implemented." };
+				}
+
 				else if (type == TOKEN_EVAL) {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "eval takes exactly 1 argument."};

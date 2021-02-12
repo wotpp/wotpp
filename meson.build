@@ -98,6 +98,7 @@ test_cases = {
 	'tests/file.wpp': true,
 	'tests/meta.wpp': true,
 	'tests/prefix.wpp': true,
+	'tests/literals.wpp': true,
 	'tests/error_no_func.wpp': false,
 	'tests/assert_fail.wpp': false,
 	'tests/run_fail.wpp': false,

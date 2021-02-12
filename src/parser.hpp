@@ -187,7 +187,8 @@ namespace wpp {
 			tok == TOKEN_ASSERT or
 			tok == TOKEN_PIPE or
 			tok == TOKEN_ERROR or
-			tok == TOKEN_SOURCE
+			tok == TOKEN_SOURCE or
+			tok == TOKEN_ESCAPE
 		;
 	}
 
