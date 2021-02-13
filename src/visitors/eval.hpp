@@ -153,6 +153,12 @@ namespace wpp {
 				// Set up Arguments to pass down to function body.
 				Arguments env_args;
 
+				if (args) {
+					for (const auto& [key, val]: *args) {
+						env_args.emplace(key, val);
+					}
+				}
+
 				// Evaluate arguments and store their result.
 				for (int i = 0; i < (int)caller_args.size(); i++)
 					env_args.emplace(params[i], eval_ast(caller_args[i], tree, functions, args));
