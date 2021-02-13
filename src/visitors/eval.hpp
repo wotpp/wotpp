@@ -126,7 +126,7 @@ namespace wpp {
 					}
 
 					catch (...) {
-						throw wpp::Exception{ pos, "failed importing file '", fname, "'" };
+						throw wpp::Exception{ pos, "failed to include file '", fname, "'" };
 					}
 					
 					// Eval file
@@ -139,7 +139,7 @@ namespace wpp {
 					}
 
 					catch (const wpp::Exception& e) {
-						throw wpp::Exception{ pos, "inside import: ", e.what() };
+						throw wpp::Exception{ pos, "inside include: ", e.what() };
 					}
 				}
 
