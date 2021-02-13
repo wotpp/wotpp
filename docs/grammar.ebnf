@@ -6,7 +6,7 @@
 // `"\b1101000\b1100101\b1101100\b1101100\b1101111\b100000\b1110111\b1101111\b1110010\b1101100\b1100100"`
 // `"\n\r\t\"\'\\"`
 //
-identifier ::= ? [^\s]+ ?
+identifier ::= ? [^\s][^\s\(\)\{\}\.(0x)(0b)(p")(r")(#[)'"]+ ?
 hex_chars ::= ? [A-Fa-f0-9]+ ?
 bin_chars ::= ? [0-1]+ ?
 any_char ::= ? . ?
@@ -18,8 +18,8 @@ bin ::= '\b' <bin_chars> {8}
 escaped ::= '\"' | '\'' | '\n' | '\t' | '\r' | hex | bin
 basic_string ::= ("'" | '"') ( <escaped> | <any_char> )* ("'" | '"')
 
-paragraph_string ::= 'p' ('"' | "'") <identifer> '(' ( <escaped> | <any_char> )* ')' <identifer> ('"' | "'")
-raw_string ::= 'r' ('"' | "'") <identifer> '(' ( <escaped> | <any_char> )* ')' <identifer> ('"' | "'")
+paragraph_string ::= 'p"' <any_char> ( <escaped> | <any_char> )* <any_char> '"'
+raw_string ::= 'r"' <any_char> ( <escaped> | <any_char> )* <any_char> '"'
 
 hex_literal ::= '0x' ( <hex_chars> | '_' )*
 bin_literal ::= '0b' ( <bin_chars> | '_' )*
@@ -38,22 +38,22 @@ string ::= <basic_string> | <paragraph_string> | <raw_string> | <hex_literal> | 
 fn_args ::= '(' <identifer> ( ',' <identifer> )* ')' [ ',' ]
 fn ::= 'let' <identifier> [ <fn_args> ] <expression>
 
-fn_intrinsic ::= 'run' | 'file' | 'eval' | 'assert'
+fn_intrinsic ::= 'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' | 'pipe' | 'error'
 fn_invoke ::= ( <identifer> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
 
 
-/// Namespaces
+/// Prefixes
 //
-// `namespace foo/bar { let name "jack" }`
+// `prefix foo/bar/ { let name "jack" }`
 //
-ns_path ::= ( <identifier> ( '/' <identifer> ) )
-ns ::= 'namespace' <ns_path> '{' <statement>* '}'
+pre ::= 'prefix' <identifer> '{' <statement>* '}'
 
 
 /// Misc.
 //
 // `#[ comment #[ nested comment ] ]`
 //
+// ! - Comments are just stripped from the source.
 comment ::= '#[' ( <any_char> | <comment> )* ']'
 
 
@@ -75,5 +75,5 @@ expression ::= (
 	)
 
 
-statement ::= <fn> | <ns> | <comment> | <expression>
+statement ::= <fn> | <pre> | <expression>
 document ::= <statement>*

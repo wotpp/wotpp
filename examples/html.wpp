@@ -57,17 +57,17 @@ prefix user/ {
 blog/blog(
 	blog/header(user/title, user/author),
 
-	blog/post("What is Wot++?",
-		"Wot++ is a macro language that can wrap other formats " ..
-		"like html or markdown with ease."
-	) ..
+	blog/post("What is Wot++?", p"#
+		Wot++ is a macro language that can wrap other formats
+		like html or markdown with ease.
+	#") ..
 
-	blog/post("Is Wot++ Turing Complete?",
-		"Wot++ is lazily evaluated and so functions can define " ..
-		"new functions when they are called. Wot++ also has meta-programming " ..
-		"support through the use of the `source` intrinsic which runs a given string " ..
-		"as Wot++ code within the current environment."
-	)
+	blog/post("Is Wot++ Turing Complete?", p"#
+		Wot++ is lazily evaluated and so functions can define
+		new functions when they are called. Wot++ also has meta-programming
+		support through the use of the `source` intrinsic which runs a given string
+		as Wot++ code within the current environment.
+	#")
 )
 
 
