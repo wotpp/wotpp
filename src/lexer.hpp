@@ -88,7 +88,7 @@ namespace wpp {
 
 namespace wpp {
 	class Lexer {
-		private:
+		public:
 			const char* const start = nullptr;
 			const char* str = nullptr;
 
@@ -118,14 +118,22 @@ namespace wpp {
 				return lookahead;
 			}
 
+			char char_at(int n = 0) const {
+				return *(str + n);
+			}
+
+			void char_skip(int n = 0) {
+				str += n;
+			}
+
 			wpp::Token advance(int mode = modes::normal) {
 				auto tok = peek(mode);
 				lookahead = next_token(mode);
 				return tok;
 			}
 
-			wpp::Position position() const {
-				return wpp::position(start, lookahead.view.ptr);
+			wpp::Position position(int line_offset = 0, int column_offset = 0) const {
+				return wpp::position(start, lookahead.view.ptr, line_offset, column_offset);
 			}
 
 			wpp::Token next_token(int mode = modes::normal) {
@@ -179,14 +187,14 @@ namespace wpp {
 						}
 
 						// raw string
-						else if (*str == 'r' and (*(str + 1) == '"' or *(str + 1) == '\'')) {
+						else if (*str == 'r' and *(str + 1) == '"') {
 							str += 2;
 							type = TOKEN_RAW;
 							vlen = str - vptr;
 						}
 
 						// paragraph
-						else if (*str == 'p' and (*(str + 1) == '"' or *(str + 1) == '\'')) {
+						else if (*str == 'p' and *(str + 1) == '"') {
 							str += 2;
 							type = TOKEN_PARA;
 							vlen = str - vptr;

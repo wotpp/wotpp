@@ -26,7 +26,12 @@ namespace wpp {
 	}
 
 
-	Position position(const char* ptr, const char* const end) {
+	Position position(
+		const char* ptr,
+		const char* const end,
+		int line_offset = 0,
+		int column_offset = 0
+	) {
 		Position coord;
 		auto& [msg, line, column] = coord;
 
@@ -46,6 +51,9 @@ namespace wpp {
 		if (*ptr == '\0') {
 			msg = "EOF";
 		}
+
+		line += line_offset;
+		column += column_offset;
 
 		return coord;
 	}

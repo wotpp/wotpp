@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <limits>
 #include <string>
 
 #include <utils/util.hpp>
@@ -248,6 +249,59 @@ namespace wpp {
 
 
 
+
+
+
+
+	void accumulate_string(wpp::Lexer& lex, std::string& literal) {
+		if (lex.peek(wpp::modes::string) == TOKEN_EOF)
+			throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
+
+		const auto part = lex.advance(wpp::modes::string);
+
+		// handle escape sequences.
+		if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
+			literal.append("\"");
+
+		else if (part == TOKEN_ESCAPE_QUOTE)
+			literal.append("'");
+
+		else if (part == TOKEN_ESCAPE_BACKSLASH)
+			literal.append("\\");
+
+		else if (part == TOKEN_ESCAPE_NEWLINE)
+			literal.append("\n");
+
+		else if (part == TOKEN_ESCAPE_TAB)
+			literal.append("\t");
+
+		else if (part == TOKEN_ESCAPE_HEX) {
+			uint8_t first_nibble = *part.view.ptr;
+			uint8_t second_nibble = *(part.view.ptr + 1);
+
+			literal += static_cast<uint8_t>(wpp::hex_to_digit(first_nibble) << 4 | wpp::hex_to_digit(second_nibble));
+		}
+
+		else if (part == TOKEN_ESCAPE_BIN) {
+			const auto& [ptr, len] = part.view;
+			uint8_t value = 0;
+
+			for (size_t i = 0; i < len; ++i) {
+				value <<= 1;
+				value |= ptr[i] - '0';
+			}
+
+			literal += value;
+		}
+
+		else
+			literal.append(part.str());
+	}
+
+
+
+
+
 	// Forward declarations.
 	inline wpp::node_t string(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t function(wpp::Lexer&, wpp::AST&);
@@ -330,7 +384,6 @@ namespace wpp {
 		return node;
 	}
 
-
 	// Parse a string.
 	// `"hey" 'hello' "a\nb\nc\n"`
 	inline wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree) {
@@ -338,20 +391,10 @@ namespace wpp {
 		const wpp::node_t node = tree.add<String>(lex.position());
 		auto& [literal, pos] = tree.get<String>(node);
 
-		const auto hex_digit = [] (char c) -> int {
-			if (c >= '0' && c <= '9')
-				return c - '0';
+		// Reserve some space, this is kind of arbitrary.
+		literal.reserve(1024);
 
-			if (c >= 'a' && c <= 'f')
-				return c - 'a' + 10;
-
-			if (c >= 'A' && c <= 'F')
-				return c - 'A' + 10;
-
-			return '\0';
-		};
-
-		// 0010101010101010___10101010101__10100
+		// 0xFFBBAADD
 		if (lex.peek() == TOKEN_HEX) {
 			const auto& [ptr, len] = lex.advance().view;
 
@@ -363,10 +406,10 @@ namespace wpp {
 					continue;
 
 				if (j & 1)
-					literal.back() |= hex_digit(c) << 4;
+					literal.back() |= wpp::hex_to_digit(c) << 4;
 
 				else
-					literal.push_back(hex_digit(c));
+					literal.push_back(wpp::hex_to_digit(c));
 
 				j++;
 			}
@@ -374,6 +417,7 @@ namespace wpp {
 			std::reverse(literal.begin(), literal.end());
 		}
 
+		// 0010101010101010___10101010101__10100
 		else if (lex.peek() == TOKEN_BIN) {
 			const auto& [ptr, len] = lex.advance().view;
 
@@ -396,59 +440,133 @@ namespace wpp {
 			std::reverse(literal.begin(), literal.end());
 		}
 
-		else {
-			const auto delim = lex.advance(wpp::modes::string); // Store delimeter.
+		else if (lex.peek() == TOKEN_RAW or lex.peek() == TOKEN_PARA) {
+			bool is_para = lex.peek() == TOKEN_PARA;
+			const auto delim = lex.char_at();
 
-			// Reserve some space, this is kind of arbitrary.
-			literal.reserve(1024);
+			if (wpp::is_whitespace(delim))
+				throw wpp::Exception{lex.position(0, 2), "delimiter character must not be whitespace."};
 
-			// Consume tokens until we reach `delim` or EOF.
-			while (lex.peek(wpp::modes::string) != delim) {
+			lex.advance(); // skip `r"` or `p"`.
+
+			while (true) {
 				if (lex.peek(wpp::modes::string) == TOKEN_EOF)
 					throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
 
-				const auto part = lex.advance(wpp::modes::string);
-
-				// handle escape sequences.
-				if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
-					literal.append("\"");
-
-				else if (part == TOKEN_ESCAPE_QUOTE)
-					literal.append("'");
-
-				else if (part == TOKEN_ESCAPE_BACKSLASH)
-					literal.append("\\");
-
-				else if (part == TOKEN_ESCAPE_NEWLINE)
-					literal.append("\n");
-
-				else if (part == TOKEN_ESCAPE_TAB)
-					literal.append("\t");
-
-				else if (part == TOKEN_ESCAPE_HEX) {
-					uint8_t first_nibble = *part.view.ptr;
-					uint8_t second_nibble = *(part.view.ptr + 1);
-
-					literal += static_cast<uint8_t>(hex_digit(first_nibble) << 4 | hex_digit(second_nibble));
+				else if (lex.peek(wpp::modes::string) == TOKEN_DOUBLEQUOTE) {
+					if (lex.char_at(-2) == delim)
+						break;
 				}
 
-				else if (part == TOKEN_ESCAPE_BIN) {
-					const auto& [ptr, len] = part.view;
-					uint8_t value = 0;
-
-					for (size_t i = 0; i < len; ++i) {
-						value <<= 1;
-						value |= ptr[i] - '0';
-					}
-
-					literal += value;
-				}
-
-				else
-					literal.append(part.str());
+				accumulate_string(lex, literal);
 			}
 
-			lex.advance(); // consume end quote
+			// remove user defined string termination characters.
+			literal.erase(literal.end() - 1, literal.end());
+			literal.erase(literal.begin(), literal.begin() + 1);
+
+			// skip end quote.
+			lex.advance();
+
+			if (is_para) {
+				// trim trailing whitespace.
+				for (auto it = literal.rbegin(); it != literal.rend(); ++it) {
+					if (not wpp::is_whitespace(*it)) {
+						literal.erase(it.base(), literal.end());
+						break;
+					}
+				}
+
+				// discover tab depth.
+				int min_indent = std::numeric_limits<int>::max();
+
+				{
+					const char* ptr = literal.c_str();
+
+					while (*ptr) {
+						if (*ptr == '\n') {
+							int indent = 0;
+
+							++ptr;
+							while (wpp::is_whitespace(*ptr)) {
+								indent++;
+								++ptr;
+							}
+
+							if (indent < min_indent)
+								min_indent = indent;
+						}
+
+						++ptr;
+					}
+				}
+
+				// remove leading indentation on newline up to min_indent amount.
+				{
+					const char* ptr = literal.c_str();
+
+					while (*ptr) {
+						if (*ptr == '\n') {
+							const char* start = ptr + 1;
+							int count_whitespace = 0;
+
+							do {
+								++ptr;
+								++count_whitespace;
+							} while (wpp::is_whitespace(*ptr) and count_whitespace != min_indent);
+
+							literal.erase(start - literal.c_str(), ptr - start + 1);
+
+							// set pointer back to beginning of removed range because
+							// we are iterating while altering the string.
+							ptr = start;
+						}
+
+						++ptr;
+					}
+				}
+
+				// reduce consecutive whitespace to single whitespace.
+				{
+					const char* ptr = literal.c_str();
+
+					while (*ptr) {
+						if (*ptr != '\n' and wpp::is_whitespace(*ptr) and not wpp::is_whitespace(*(ptr - 1))) {
+							const char* start = ptr + 1;
+
+							do {
+								++ptr;
+							} while (wpp::is_whitespace(*ptr));
+
+							literal.erase(start - literal.c_str(), ptr - start);
+
+							ptr = start;
+						}
+
+						++ptr;
+					}
+				}
+
+				// trim leading whitespace.
+				// must do this after discovering tab depth to not ignore
+				// the first line indent.
+				for (auto it = literal.begin(); it != literal.end(); ++it) {
+					if (not wpp::is_whitespace(*it)) {
+						literal.erase(literal.begin(), it);
+						break;
+					}
+				}
+			}
+		}
+
+		else {
+			const auto delim = lex.advance(wpp::modes::string); // Store delimeter.
+
+			// Consume tokens until we reach `delim` or EOF.
+			while (lex.peek(wpp::modes::string) != delim)
+				accumulate_string(lex, literal);
+
+			lex.advance();
 		}
 
 		return node;
