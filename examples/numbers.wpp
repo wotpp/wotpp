@@ -1,0 +1,43 @@
+let nl "\n"
+let quoted(x) "\"" .. x .. "\""
+
+#[ numbers ]
+let zero "z"
+let succ(x) "s(" .. x .. ")"
+let add(x,z) {
+  let s(x) succ(x)
+  eval(x)
+}
+
+let mult(x,y) {
+  let s(x) add(y, x)
+  let z zero
+  eval(x)
+}
+
+let one succ(zero)
+let two succ(one)
+let three add(one, two)
+let six mult(two, three)
+
+zero nl
+one nl
+two nl
+three nl
+six nl
+
+let ifz(x, then, else) {
+  let s(x) else
+  let z then
+  eval(x)
+}
+
+ifz(zero, "it is!", "not?!") nl
+ifz(one, "it is!", "not?!") nl
+
+let repeat(str, x) {
+  let s(x) str .. x
+  let z ""
+  eval(x)
+}
+repeat("Let's go!" .. nl, add(one, add(three, six)))
