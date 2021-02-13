@@ -1,0 +1,6 @@
+#[expect(\n\tfuck    fuck\n)]
+r"#
+	fuck    fuck
+#"
+
+

@@ -27,11 +27,11 @@ def run(args):
 
 if __name__ == "__main__":
 	if len(sys.argv) != 3:
-		print("usage: <test.wpp> <w++ exe>")
+		print("usage: <w++ exe> <test.wpp>")
 		sys.exit(1)
 
 	# Unpack argv
-	_, test_file, binary = sys.argv
+	_, binary, test_file = sys.argv
 
 
 	# Run wot++ and get output.

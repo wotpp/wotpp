@@ -99,6 +99,8 @@ test_cases = {
 	'tests/meta.wpp': true,
 	'tests/prefix.wpp': true,
 	'tests/literals.wpp': true,
+	'tests/paragraph.wpp': true,
+	'tests/raw.wpp': true,
 	'tests/error_no_func.wpp': false,
 	'tests/assert_fail.wpp': false,
 	'tests/run_fail.wpp': false,
@@ -111,7 +113,7 @@ if not get_option('disable_run')
 endif
 
 foreach case, should_pass: test_cases
-	test(case, test_runner, args: [files(case), exe], should_fail: not should_pass)
+	test(case, test_runner, args: [exe, files(case)], should_fail: not should_pass)
 endforeach
 
 

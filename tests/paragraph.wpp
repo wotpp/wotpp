@@ -1,0 +1,9 @@
+#[expect(fuck\n fuck fuck\nfuck\n fuck)]
+p"#
+	fuck
+	 fuck   fuck
+	fuck
+	 fuck
+#"
+
+
