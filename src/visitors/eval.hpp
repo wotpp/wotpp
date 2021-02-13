@@ -146,14 +146,13 @@ namespace wpp {
 				Arguments env_args;
 
 				if (args) {
-					for (const auto& [key, val]: *args) {
+					for (const auto& [key, val]: *args)
 						env_args.emplace(key, val);
-					}
 				}
 
 				// Evaluate arguments and store their result.
 				for (int i = 0; i < (int)caller_args.size(); i++)
-					env_args.emplace(params[i], eval_ast(caller_args[i], tree, functions, args));
+					env_args.insert_or_assign(params[i], eval_ast(caller_args[i], tree, functions, args));
 
 				// Call function.
 				str = eval_ast(body, tree, functions, &env_args);
