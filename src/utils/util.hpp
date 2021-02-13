@@ -31,18 +31,18 @@ namespace wpp {
 namespace wpp {
 	template <typename T, typename... Ts>
 	inline std::string cat(const T& first, Ts&&... args) {
-		const auto tostr = [] (const auto& x) {
-			if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
-				return x;
-
-			else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
-				return x;
-
-			else
-				return std::to_string(x);
-		};
-
 		if constexpr(sizeof...(Ts) > 0) {
+			const auto tostr = [] (const auto& x) {
+				if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
+					return x;
+
+				else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
+					return x;
+
+				else
+					return std::to_string(x);
+			};
+
 			return std::string{first} + (tostr(args) + ...);
 		}
 

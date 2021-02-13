@@ -187,14 +187,14 @@ namespace wpp {
 						}
 
 						// raw string
-						else if (*str == 'r' and ((*(str + 1) == '"') or *(str + 1) == '\'')) {
+						else if (*str == 'r' and *(str + 1) == '"') {
 							str += 2;
 							type = TOKEN_RAW;
 							vlen = str - vptr;
 						}
 
 						// paragraph
-						else if (*str == 'p' and ((*(str + 1) == '"') or *(str + 1) == '\'')) {
+						else if (*str == 'p' and *(str + 1) == '"') {
 							str += 2;
 							type = TOKEN_PARA;
 							vlen = str - vptr;

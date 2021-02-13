@@ -13,6 +13,7 @@
 #include <structures/ast.hpp>
 #include <exception.hpp>
 #include <parser.hpp>
+#include <visitors/reconstruct.hpp>
 
 // AST visitor that evaluates the program.
 
@@ -27,28 +28,27 @@ namespace wpp {
 
 		wpp::visit(variant,
 			[&] (const Intrinsic& fn) {
-				const auto& [type, exprs, pos] = fn;
+				const auto& [type, name, exprs, pos] = fn;
 
 				if (type == TOKEN_ASSERT) {
 					if (exprs.size() != 2)
 						throw wpp::Exception{pos, "assert takes exactly 2 arguments."};
 
 					// Check if strings are equal.
-					auto a = eval_ast(exprs[0], tree, functions, args);
-					auto b = eval_ast(exprs[1], tree, functions, args);
+					const auto a = eval_ast(exprs[0], tree, functions, args);
+					const auto b = eval_ast(exprs[1], tree, functions, args);
 
-					// todo: print reconstruction of AST nodes for arguments.
-					// `assert(fun(x), "d")`
-					// `assertion failure fun("a") != "d"`
 					if (a != b)
-						throw wpp::Exception{ pos, "assertion failed." };
+						throw wpp::Exception{
+							pos, "assertion failed: ", reconstruct_source(node_id, tree)
+						};
 				}
 
 				else if (type == TOKEN_ERROR) {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "error takes exactly 1 argument."};
 
-					auto msg = eval_ast(exprs[0], tree, functions, args);
+					const auto msg = eval_ast(exprs[0], tree, functions, args);
 					throw wpp::Exception{ pos, msg };
 				}
 
@@ -56,7 +56,7 @@ namespace wpp {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "file takes exactly 1 argument."};
 
-					auto fname = eval_ast(exprs[0], tree, functions, args);
+					const auto fname = eval_ast(exprs[0], tree, functions, args);
 
 					try {
 						str = wpp::read_file(fname);
@@ -71,24 +71,16 @@ namespace wpp {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "source takes exactly 1 argument."};
 
-					auto fname = eval_ast(exprs[0], tree, functions, args);
+					const auto fname = eval_ast(exprs[0], tree, functions, args);
 
 					throw wpp::Exception{ pos, "source not implemented." };
-
-					// try {
-					// 	str = wpp::read_file(fname);
-					// }
-
-					// catch (...) {
-					// 	throw wpp::Exception{ pos, "failed sourcing '", fname, "'" };
-					// }
 				}
 
 				else if (type == TOKEN_ESCAPE) {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "escape takes exactly 1 argument."};
 
-					auto input = eval_ast(exprs[0], tree, functions, args);
+					const auto input = eval_ast(exprs[0], tree, functions, args);
 
 					throw wpp::Exception{ pos, "escape not implemented." };
 				}
@@ -97,7 +89,7 @@ namespace wpp {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "eval takes exactly 1 argument."};
 
-					auto code = eval_ast(exprs[0], tree, functions, args);
+					const auto code = eval_ast(exprs[0], tree, functions, args);
 
 					wpp::Lexer lex{code.c_str()};
 					wpp::node_t root;
@@ -116,7 +108,7 @@ namespace wpp {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "run takes exactly 1 argument."};
 
-					auto cmd = eval_ast(exprs[0], tree, functions, args);
+					const auto cmd = eval_ast(exprs[0], tree, functions, args);
 
 					int rc = 0;
 					str = wpp::exec(cmd, rc);
@@ -132,7 +124,7 @@ namespace wpp {
 
 			[&] (const FnInvoke& call) {
 				const auto& [caller_name, caller_args, caller_pos] = call;
-				std::string caller_mangled_name = cat(caller_name, caller_args.size());
+				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
 				// Check if parameter.
 				if (args) {
@@ -169,7 +161,7 @@ namespace wpp {
 
 			[&] (const Fn& func) {
 				const auto& [name, params, body, pos] = func;
-				functions.insert_or_assign(cat(name, params.size()), node_id);
+				functions.insert_or_assign(wpp::cat(name, params.size()), node_id);
 			},
 
 			[&] (const String& x) {
@@ -184,9 +176,8 @@ namespace wpp {
 			[&] (const Block& block) {
 				const auto& [stmts, expr, pos] = block;
 
-				for (const wpp::node_t node: stmts) {
+				for (const wpp::node_t node: stmts)
 					str += eval_ast(node, tree, functions, args);
-				}
 
 				str = eval_ast(expr, tree, functions, args);
 			},
@@ -207,9 +198,8 @@ namespace wpp {
 			},
 
 			[&] (const Document& doc) {
-				for (const wpp::node_t node: doc.stmts) {
+				for (const wpp::node_t node: doc.stmts)
 					str += eval_ast(node, tree, functions, args);
-				}
 			}
 		);
 

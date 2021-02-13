@@ -42,15 +42,18 @@ namespace wpp {
 
 	struct Intrinsic {
 		uint8_t type;
+		std::string identifer;
 		std::vector<wpp::node_t> arguments;
 		wpp::Position pos;
 
 		Intrinsic(
 			const uint8_t type_,
+			const std::string& identifier_,
 			const std::vector<wpp::node_t>& arguments_,
 			const wpp::Position& pos_
 		):
 			type(type_),
+			identifer(identifier_),
 			arguments(arguments_),
 			pos(pos_) {}
 
@@ -488,10 +491,8 @@ namespace wpp {
 							int indent = 0;
 
 							++ptr;
-							while (wpp::is_whitespace(*ptr)) {
-								indent++;
-								++ptr;
-							}
+							while (wpp::is_whitespace(*ptr))
+								++ptr, ++indent;
 
 							if (indent < min_indent)
 								min_indent = indent;
@@ -507,15 +508,15 @@ namespace wpp {
 
 					while (*ptr) {
 						if (*ptr == '\n') {
-							const char* start = ptr + 1;
+							++ptr;
+
+							const char* start = ptr;
 							int count_whitespace = 0;
 
-							do {
-								++ptr;
-								++count_whitespace;
-							} while (wpp::is_whitespace(*ptr) and count_whitespace != min_indent);
+							while (wpp::is_whitespace(*ptr) and count_whitespace != min_indent)
+								++ptr, ++count_whitespace;
 
-							literal.erase(start - literal.c_str(), ptr - start + 1);
+							literal.erase(start - literal.c_str(), ptr - start);
 
 							// set pointer back to beginning of removed range because
 							// we are iterating while altering the string.
@@ -614,7 +615,7 @@ namespace wpp {
 		const auto [_, args, pos] = tree.get<FnInvoke>(node);
 
 		if (peek_is_intrinsic(fn_token)) {
-			tree.replace<Intrinsic>(node, fn_token.type, args, pos);
+			tree.replace<Intrinsic>(node, fn_token.type, fn_token.str(), args, pos);
 		}
 
 		else {
@@ -790,6 +791,5 @@ namespace wpp {
 		return node;
 	}
 }
-
 
 #endif
