@@ -112,6 +112,37 @@ namespace wpp {
 					}
 				}
 
+				else if (type == TOKEN_INCLUDE) {
+					// Read file
+					if (exprs.size() != 1)
+						throw wpp::Exception{pos, "include takes exactly 1 argument."};
+
+					auto fname = eval_ast(exprs[0], tree, functions, args);
+
+					std::string from_file;
+
+					try {
+						from_file = wpp::read_file(fname);
+					}
+
+					catch (...) {
+						throw wpp::Exception{ pos, "failed importing file '", fname, "'" };
+					}
+					
+					// Eval file
+					wpp::Lexer lex{from_file.c_str()};
+					wpp::node_t root;
+
+					try {
+						root = document(lex, tree);
+						str = wpp::eval_ast(root, tree, functions, args);
+					}
+
+					catch (const wpp::Exception& e) {
+						throw wpp::Exception{ pos, "inside import: ", e.what() };
+					}
+				}
+
 				else if (type == TOKEN_RUN) {
 					if (exprs.size() != 1)
 						throw wpp::Exception{pos, "run takes exactly 1 argument."};

@@ -181,6 +181,7 @@ namespace wpp {
 namespace wpp {
 	inline bool peek_is_intrinsic(const wpp::Token& tok) {
 		return
+			tok == TOKEN_INCLUDE or
 			tok == TOKEN_RUN or
 			tok == TOKEN_EVAL or
 			tok == TOKEN_FILE or
