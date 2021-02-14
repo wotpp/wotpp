@@ -25,6 +25,9 @@ provide-module -override wpp %{
 	add-highlighter shared/wpp/paragraph_doublequote_string region 'p"' (?<!\\)(\\\\)*" group
 	add-highlighter shared/wpp/paragraph_singlequote_string region "p'" (?<!\\)(\\\\)*' group
 
+	add-highlighter shared/wpp/code_doublequote_string region 'c"' (?<!\\)(\\\\)*" group
+	add-highlighter shared/wpp/code_singlequote_string region "c'" (?<!\\)(\\\\)*' group
+
 
 	add-highlighter shared/wpp/doublequote_string/ fill string
 	add-highlighter shared/wpp/singlequote_string/ fill string
@@ -35,6 +38,9 @@ provide-module -override wpp %{
 	add-highlighter shared/wpp/paragraph_singlequote_string/ fill string
 	add-highlighter shared/wpp/paragraph_doublequote_string/ fill string
 
+	add-highlighter shared/wpp/code_singlequote_string/ fill string
+	add-highlighter shared/wpp/code_doublequote_string/ fill string
+
 
 	add-highlighter shared/wpp/doublequote_string/ regex \\[\\ntvr'"]|\\x[A-Fa-f0-9]+|\\b[01]+ 0:keyword
 	add-highlighter shared/wpp/singlequote_string/ regex \\[\\ntvr'"]|\\x[A-Fa-f0-9]+|\\b[01]+ 0:keyword
@@ -44,6 +50,9 @@ provide-module -override wpp %{
 
 	add-highlighter shared/wpp/paragraph_doublequote_string/ regex \\[\\ntvr'"]|\\x[A-Fa-f0-9]+|\\b[01]+ 0:keyword
 	add-highlighter shared/wpp/paragraph_singlequote_string/ regex \\[\\ntvr'"]|\\x[A-Fa-f0-9]+|\\b[01]+ 0:keyword
+
+	add-highlighter shared/wpp/code_doublequote_string/ regex \\[\\ntvr'"]|\\x[A-Fa-f0-9]+|\\b[01]+ 0:keyword
+	add-highlighter shared/wpp/code_singlequote_string/ regex \\[\\ntvr'"]|\\x[A-Fa-f0-9]+|\\b[01]+ 0:keyword
 }
 
 hook global BufCreate .*\.(wpp) %{
