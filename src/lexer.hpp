@@ -119,14 +119,6 @@ namespace wpp {
 				return lookahead;
 			}
 
-			char char_at(int n = 0) const {
-				return *(str + n);
-			}
-
-			void char_skip(int n = 0) {
-				str += n;
-			}
-
 			wpp::Token advance(int mode = modes::normal) {
 				auto tok = peek(mode);
 				lookahead = next_token(mode);

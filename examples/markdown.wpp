@@ -29,11 +29,11 @@ hr
 
 h3("Testing a wot++ markdown wrapper")
 quote("Here's a quote.")
-codeblock("cpp", p"#
+codeblock("cpp", c#"
 	int main(int, const char*[]) {
 		return 0;
 	}
-#")
+"#)
 "Here's a link" .. link("Discord", "https://discord.gg/hQ7yS9dxcp") \n
 
 
