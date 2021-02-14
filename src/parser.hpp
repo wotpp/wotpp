@@ -213,7 +213,8 @@ namespace wpp {
 			tok == TOKEN_BIN or
 
 			tok == TOKEN_RAW or
-			tok == TOKEN_PARA
+			tok == TOKEN_PARA or
+			tok == TOKEN_CODE
 		;
 	}
 
@@ -443,14 +444,16 @@ namespace wpp {
 			std::reverse(literal.begin(), literal.end());
 		}
 
-		else if (lex.peek() == TOKEN_RAW or lex.peek() == TOKEN_PARA) {
+		else if (lex.peek() == TOKEN_RAW or lex.peek() == TOKEN_PARA or lex.peek() == TOKEN_CODE) {
 			bool is_para = lex.peek() == TOKEN_PARA;
+			bool is_code = lex.peek() == TOKEN_CODE;
+
 			const auto delim = lex.char_at();
 
 			if (wpp::is_whitespace(delim))
 				throw wpp::Exception{lex.position(0, 2), "delimiter character must not be whitespace."};
 
-			lex.advance(); // skip `r"` or `p"`.
+			lex.advance(); // skip `r"` or `p"` or `t"`.
 
 			while (true) {
 				if (lex.peek(wpp::modes::string) == TOKEN_EOF)
@@ -471,13 +474,27 @@ namespace wpp {
 			// skip end quote.
 			lex.advance();
 
-			if (is_para) {
+			if (is_code) {
 				// trim trailing whitespace.
 				for (auto it = literal.rbegin(); it != literal.rend(); ++it) {
 					if (not wpp::is_whitespace(*it)) {
 						literal.erase(it.base(), literal.end());
 						break;
 					}
+				}
+
+				// trim leading whitespace.
+				for (auto it = literal.begin(); it != literal.end();) {
+					if (not wpp::is_whitespace(*it))
+						break;
+
+					else if (*it == '\n') {
+						literal.erase(literal.begin(), it + 1);
+						it = literal.begin();
+						continue;
+					}
+
+					++it;
 				}
 
 				// discover tab depth.
@@ -506,6 +523,16 @@ namespace wpp {
 				{
 					const char* ptr = literal.c_str();
 
+					// remove whitespace on first line between start of string and first non whitespace character.
+					if (wpp::is_whitespace(*ptr)) {
+						int count_whitespace = 0;
+						while (wpp::is_whitespace(*ptr) and count_whitespace != min_indent)
+							++ptr, ++count_whitespace;
+
+						literal.erase(literal.begin(), literal.begin() + count_whitespace);
+						ptr = literal.c_str();
+					}
+
 					while (*ptr) {
 						if (*ptr == '\n') {
 							++ptr;
@@ -526,37 +553,23 @@ namespace wpp {
 						++ptr;
 					}
 				}
+			}
 
-				// reduce consecutive whitespace to single whitespace.
-				{
-					const char* ptr = literal.c_str();
+			else if (is_para) {
+				literal.erase(std::unique(literal.begin(), literal.end(), [] (char lhs, char rhs) {
+					return wpp::is_whitespace(lhs) and wpp::is_whitespace(rhs);
+				}), literal.end());
 
-					while (*ptr) {
-						if (*ptr != '\n' and wpp::is_whitespace(*ptr) and not wpp::is_whitespace(*(ptr - 1))) {
-							const char* start = ptr + 1;
-
-							do {
-								++ptr;
-							} while (wpp::is_whitespace(*ptr));
-
-							literal.erase(start - literal.c_str(), ptr - start);
-
-							ptr = start;
-						}
-
-						++ptr;
-					}
+				for (char& c: literal) {
+					if (wpp::is_whitespace(c))
+						c = ' ';
 				}
 
-				// trim leading whitespace.
-				// must do this after discovering tab depth to not ignore
-				// the first line indent.
-				for (auto it = literal.begin(); it != literal.end(); ++it) {
-					if (not wpp::is_whitespace(*it)) {
-						literal.erase(literal.begin(), it);
-						break;
-					}
-				}
+				if (wpp::is_whitespace(literal.front()))
+					literal.erase(literal.begin(), literal.begin() + 1);
+
+				if (wpp::is_whitespace(literal.back()))
+					literal.erase(literal.end() - 1, literal.end());
 			}
 		}
 

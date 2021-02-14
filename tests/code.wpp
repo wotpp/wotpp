@@ -1,0 +1,32 @@
+#[expect( coode\ncoode   coode\ncoode\n coode)]
+c"#
+
+     coode
+    coode   coode
+    coode
+     coode
+#"
+
+
+#[expect( coode\ncoode   coode\ncoode\n coode)]
+c"#     coode
+    coode   coode
+    coode
+     coode
+#"
+
+
+#[expect( coode\ncoode   coode\ncoode\n coode)]
+c"#     coode
+    coode   coode
+    coode
+     coode
+
+
+
+
+#"
+
+
+
+

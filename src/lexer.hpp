@@ -15,6 +15,7 @@ namespace wpp {
 		enum {
 			normal,
 			string,
+			character,
 		};
 	}
 }
@@ -33,6 +34,7 @@ namespace wpp {
 	#define TOKEN_TYPES \
 		TOKEN(TOKEN_NONE) \
 		TOKEN(TOKEN_EOF) \
+		TOKEN(TOKEN_CHAR) \
 		\
 		TOKEN(TOKEN_WHITESPACE) \
 		TOKEN(TOKEN_SLASH) \
@@ -71,6 +73,7 @@ namespace wpp {
 		TOKEN(TOKEN_HEX) \
 		TOKEN(TOKEN_BIN) \
 		TOKEN(TOKEN_RAW) \
+		TOKEN(TOKEN_CODE) \
 		TOKEN(TOKEN_PARA)
 
 
@@ -152,6 +155,11 @@ namespace wpp {
 						type = TOKEN_EOF;
 					}
 
+					else if (mode == modes::character) {
+						type = TOKEN_CHAR;
+						++str;
+					}
+
 					else if (*str == '\'') { ++str; type = TOKEN_QUOTE; }
 					else if (*str == '"')  { ++str; type = TOKEN_DOUBLEQUOTE; }
 
@@ -197,6 +205,13 @@ namespace wpp {
 						else if (*str == 'p' and *(str + 1) == '"') {
 							str += 2;
 							type = TOKEN_PARA;
+							vlen = str - vptr;
+						}
+
+						// code block
+						else if (*str == 'c' and *(str + 1) == '"') {
+							str += 2;
+							type = TOKEN_CODE;
 							vlen = str - vptr;
 						}
 

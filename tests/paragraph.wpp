@@ -1,9 +1,41 @@
-#[expect(fuck\n fuck fuck\nfuck\n fuck)]
+#[expect(paragraph paragraph paragraph paragraph paragraph)]
 p"#
-	fuck
-	 fuck   fuck
-	fuck
-	 fuck
+	 paragraph
+	paragraph   paragraph
+	paragraph
+	 paragraph
 #"
+
+
+#[expect(paragraph paragraph paragraph paragraph paragraph)]
+p"# paragraph
+	paragraph   paragraph
+	paragraph
+	 paragraph
+#"
+
+#[expect(paragraph paragraph paragraph paragraph paragraph)]
+p"# paragraph
+	paragraph   paragraph
+	paragraph
+	 paragraph
+
+
+
+#"
+
+
+#[expect(paragraph paragraph paragraph paragraph paragraph)]
+p"#
+paragraph
+paragraph				paragraph
+paragraph   paragraph
+paragraph
+#"
+
+
+
+
+
 
 
