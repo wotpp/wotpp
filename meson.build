@@ -13,7 +13,25 @@ deps = []
 
 modules_inc = include_directories('modules/')
 
-sources = files('src/main.cpp')
+sources = files(
+	'src/main.cpp',
+	'src/exception.hpp',
+	'src/genprog.hpp',
+	'src/parser.hpp',
+	'src/lexer.hpp',
+	'src/structures/ast.hpp',
+	'src/structures/token.hpp',
+	'src/structures/rng.hpp',
+	'src/structures/position.hpp',
+	'src/structures/view.hpp',
+	'src/structures/error.hpp',
+	'src/utils/char.hpp',
+	'src/utils/util.hpp',
+	'src/visitors/sexpr.hpp',
+	'src/visitors/reconstruct.hpp',
+	'src/visitors/eval.hpp'
+)
+
 sources_inc = include_directories('src/')
 
 
