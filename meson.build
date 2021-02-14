@@ -9,10 +9,29 @@ project(
 )
 
 extra_opts = []
+deps = []
 
 modules_inc = include_directories('modules/')
 
-sources = files('src/main.cpp')
+sources = files(
+	'src/main.cpp',
+	'src/exception.hpp',
+	'src/genprog.hpp',
+	'src/parser.hpp',
+	'src/lexer.hpp',
+	'src/structures/ast.hpp',
+	'src/structures/token.hpp',
+	'src/structures/rng.hpp',
+	'src/structures/position.hpp',
+	'src/structures/view.hpp',
+	'src/structures/error.hpp',
+	'src/utils/char.hpp',
+	'src/utils/util.hpp',
+	'src/visitors/sexpr.hpp',
+	'src/visitors/reconstruct.hpp',
+	'src/visitors/eval.hpp'
+)
+
 sources_inc = include_directories('src/')
 
 
@@ -47,39 +66,40 @@ if get_option('profile')
 endif
 
 
-# Sanitizer support.
-if get_option('sanitizers')
-	if meson.get_compiler('cpp').has_argument('-fsanitize=address,undefined')
-		extra_opts += ['b_sanitize=address,undefined']
-
-	else
-		error('sanitizers are not unsupported')
-	endif
+# Look for libstdc++fs when using GCC or clang (except clang that emulates msvc)
+if meson.get_compiler('cpp').get_argument_syntax() == 'gcc'
+	deps += meson.get_compiler('cpp').find_library('stdc++fs', required: false)
 endif
 
+
+# Sanitizer support.
+if get_option('sanitizers')
+	extra_opts += 'b_sanitize=address,undefined'
+	deps += meson.get_compiler('cpp').find_library('asan', required: false)
+endif
 
 if get_option('disable_run')
 	add_project_arguments('-DWPP_DISABLE_RUN', language: 'cpp')
 endif
 
-libasan_dep = meson.get_compiler('cpp').find_library('asan', required: get_option('sanitizers'))
-libstdcppfs_dep = meson.get_compiler('cpp').find_library('stdc++fs', required: false)
+
+# REPL stuff
 libreadline_dep = dependency('readline', required: false)
 
 if get_option('disable_repl') or not libreadline_dep.found()
 	add_project_arguments('-DWPP_DISABLE_REPL', language: 'cpp')
+else
+	deps += libreadline_dep
 endif
-
 
 exe = executable(
 	'w++',
 	sources,
 	include_directories: [sources_inc, modules_inc],
-	dependencies: [libstdcppfs_dep, libasan_dep, libreadline_dep],
+	dependencies: deps,
 	install: true,
 	override_options: extra_opts
 )
-
 
 # Test cases
 test_runner = find_program('tests/run_test.py')
@@ -116,5 +136,3 @@ endif
 foreach case, should_pass: test_cases
 	test(case, test_runner, args: [exe, files(case)], should_fail: not should_pass)
 endforeach
-
-
