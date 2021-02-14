@@ -27,6 +27,11 @@ namespace wpp {
 			ptr(ptr_), length(length_) {}
 
 
+		constexpr char at(int n) const {
+			return *(ptr + n);
+		}
+
+
 		// Comparison operators.
 		// First compares length and then failing that, character by character.
 		friend bool operator==(const View& v, const char* const s) {
@@ -36,8 +41,16 @@ namespace wpp {
 			;
 		}
 
+		friend bool operator==(const View& v, char c) {
+			return *v.ptr == c;
+		}
+
 		friend bool operator!=(const View& v, const char* const s) {
 			return not(v == s);
+		}
+
+		friend bool operator!=(const View& v, char c) {
+			return not(v == c);
 		}
 
 
@@ -47,6 +60,14 @@ namespace wpp {
 
 		friend bool operator!=(const char* const s, const View& v) {
 			return not(v == s);
+		}
+
+		friend bool operator==(char c, const View& v) {
+			return v == c;
+		}
+
+		friend bool operator!=(char c, const View& v) {
+			return not(v == c);
 		}
 
 		bool operator==(const View& v) const {

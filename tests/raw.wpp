@@ -1,6 +1,22 @@
-#[expect(\n\tfuck    fuck\n)]
-r"#
-	fuck    fuck
-#"
+#[expect(\n\traw    raw\n)]
+r#"
+	raw    raw
+"#
+
+
+#[expect(\n\n\traw    raw\n\n)]
+r#"
+
+	raw    raw
+
+"#
+
+#[expect(\n\traw \traw\n\n\t\traw\n\n\t\t\traw)]
+r#"
+	raw 	raw
+
+		raw
+
+			raw"#
 
 

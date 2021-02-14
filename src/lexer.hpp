@@ -72,9 +72,7 @@ namespace wpp {
 		TOKEN(TOKEN_QUOTE) \
 		TOKEN(TOKEN_HEX) \
 		TOKEN(TOKEN_BIN) \
-		TOKEN(TOKEN_RAW) \
-		TOKEN(TOKEN_CODE) \
-		TOKEN(TOKEN_PARA)
+		TOKEN(TOKEN_SMART) \
 
 
 
@@ -195,24 +193,20 @@ namespace wpp {
 						}
 
 						// raw string
-						else if (*str == 'r' and *(str + 1) == '"') {
-							str += 2;
-							type = TOKEN_RAW;
-							vlen = str - vptr;
-						}
+						else if (wpp::in_group(*str, 'p', 'r', 'c')) {
+							++str;
+							type = TOKEN_SMART;
 
-						// paragraph
-						else if (*str == 'p' and *(str + 1) == '"') {
-							str += 2;
-							type = TOKEN_PARA;
-							vlen = str - vptr;
-						}
+							const char user_delim = *str;
+							++str;
 
-						// code block
-						else if (*str == 'c' and *(str + 1) == '"') {
-							str += 2;
-							type = TOKEN_CODE;
-							vlen = str - vptr;
+							if (not wpp::in_group(*str, '\'', '"')) {
+								str = vptr;
+								goto handle_ident;
+							}
+
+							if (wpp::is_whitespace(user_delim))
+								throw wpp::Exception{ wpp::position(start, str), "user defined delimiter cannot be whitespace." };
 						}
 
 						// bin literal
@@ -268,6 +262,7 @@ namespace wpp {
 
 						// Handle identifiers.
 						else {
+							handle_ident:
 							type = TOKEN_IDENTIFIER;
 
 							while (
