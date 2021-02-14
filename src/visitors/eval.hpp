@@ -82,7 +82,13 @@ namespace wpp {
 
 					const auto input = eval_ast(exprs[0], tree, functions, args);
 
-					throw wpp::Exception{ pos, "escape not implemented." };
+					for (const char c: input) {
+						switch (c) {
+							case '"':  str += "\""; break;
+							case '\'': str += "'"; break;
+							default:   str += c; break;
+						}
+					}
 				}
 
 				else if (type == TOKEN_EVAL) {

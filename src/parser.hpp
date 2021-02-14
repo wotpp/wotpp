@@ -593,10 +593,10 @@ namespace wpp {
 				}
 			}
 
-			accumulate_string(lex.advance(wpp::modes::string), str);
+			else {
+				accumulate_string(lex.advance(wpp::modes::string), str);
+			}
 		}
-
-		// tinge::warnln('"', str, '"');
 
 		if (str_type == 'r')
 			raw_string(str);

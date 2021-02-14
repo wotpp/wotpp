@@ -1,2 +1,9 @@
 #[expect(\"hey\")]
-escape("hey")
+escape(r#""hey""#)
+
+#[expect('hey')]
+escape(r#"'hey'"#)
+
+#[expect('hey')]
+escape(r#''hey''#)
+
