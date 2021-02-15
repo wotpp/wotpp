@@ -22,7 +22,7 @@ Would produce an output of:
 
 ### Paragraph Strings
 
-Now what a paragraph string does is removes leading and trailing whitespace. It's syntax is very similar to the raw string it is. `p#" "#`
+A paragraph string is a string that removes leading and trailing whitespace. It's syntax is very similar to the raw string it is. `p#" "#`
 
 Input:
 
@@ -81,7 +81,7 @@ prefix name/ {
  } 
 ```
 
-You can now call these two functions by writing `name/foo()` and ` name/boo() ` This will be very useful for organisation.
+You can now call these two functions by writing `name/foo()` and ` name/boo() ` This will be useful for organisation.
 
 ### Concatenation
 
