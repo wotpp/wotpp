@@ -138,8 +138,38 @@ namespace wpp {
 	}
 
 
-	inline std::string intrinsic_pipe(wpp::node_t, const wpp::Position&, wpp::Environment&, wpp::Arguments* = nullptr) {
-		return "";
+	inline std::string intrinsic_pipe(wpp::node_t cmd, wpp::node_t data, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+		std::string str;
+
+		const auto cmd_str = eval_ast(cmd, env, args);
+		const auto data_str = eval_ast(data, env, args);
+
+		for (const char c: data_str) {
+			switch (c) {
+				case '"':  str += "\\\""; break;
+				case '\'': str += "\\'"; break;
+				case '\n': str += "\\n"; break;
+				case '\t': str += "\\t"; break;
+				case '\r': str += "\\r"; break;
+				default:   str += c; break;
+			}
+		}
+
+		std::string runner = wpp::cat("echo \"", str, "\" | ", cmd_str);
+
+		tinge::warnln(runner);
+
+		int rc = 0;
+		std::string out = wpp::exec(runner, rc);
+
+		// trim trailing newline.
+		if (str.back() == '\n')
+			str.erase(str.end() - 1, str.end());
+
+		if (rc)
+			throw wpp::Exception{ pos, "subprocess exited with non-zero status." };
+
+		return out;
 	}
 
 
@@ -156,12 +186,12 @@ namespace wpp {
 					std::array<size_t, 100> lookup{};
 
 					lookup[TOKEN_ASSERT] = 2;
-					lookup[TOKEN_ERROR] = 1;
-					lookup[TOKEN_FILE] = 1;
-					lookup[TOKEN_PIPE] = 1;
+					lookup[TOKEN_PIPE]   = 2;
+					lookup[TOKEN_ERROR]  = 1;
+					lookup[TOKEN_FILE]   = 1;
 					lookup[TOKEN_ESCAPE] = 1;
-					lookup[TOKEN_EVAL] = 1;
-					lookup[TOKEN_RUN] = 1;
+					lookup[TOKEN_EVAL]   = 1;
+					lookup[TOKEN_RUN]    = 1;
 					lookup[TOKEN_SOURCE] = 1;
 
 					return lookup;
@@ -195,7 +225,7 @@ namespace wpp {
 					str = wpp::intrinsic_run(exprs[0], pos, env, args);
 
 				else if (type == TOKEN_PIPE)
-					str = wpp::intrinsic_pipe(exprs[0], pos, env, args);
+					str = wpp::intrinsic_pipe(exprs[0], exprs[1], pos, env, args);
 			},
 
 			[&] (const FnInvoke& call) {
