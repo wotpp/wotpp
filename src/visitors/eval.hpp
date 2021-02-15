@@ -157,14 +157,12 @@ namespace wpp {
 
 		std::string runner = wpp::cat("echo \"", str, "\" | ", cmd_str);
 
-		tinge::warnln(runner);
-
 		int rc = 0;
 		std::string out = wpp::exec(runner, rc);
 
 		// trim trailing newline.
-		if (str.back() == '\n')
-			str.erase(str.end() - 1, str.end());
+		if (out.back() == '\n')
+			out.erase(out.end() - 1, out.end());
 
 		if (rc)
 			throw wpp::Exception{ pos, "subprocess exited with non-zero status." };

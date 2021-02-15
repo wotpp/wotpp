@@ -123,6 +123,7 @@ test_cases = {
 	'tests/raw.wpp': true,
 	'tests/code.wpp': true,
 	'tests/escape.wpp': true,
+	'tests/pipe.wpp': true,
 	'tests/error_no_func.wpp': false,
 	'tests/assert_fail.wpp': false,
 	'tests/run_fail.wpp': false,
