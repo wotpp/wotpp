@@ -1,9 +1,7 @@
 #[metaprogramming]
 
-let \n "\n"
-
 let new_tag(name, pre, suf)
-	eval("let " .. name .. "(value) '" .. pre .. "' .. value .. '" .. suf .. "' .. \\n")
+	eval("let " .. name .. "(value) '" .. pre .. "' .. value .. '" .. suf .. "' .. '\n'")
 
 new_tag("h1", "<h1>", "</h1>")
 new_tag("h2", "<h2>", "</h2>")
@@ -20,7 +18,7 @@ h1("hello")
 #[expect(<em>hello</em>\n)]
 em("hello")
 
-#[expect(<strong>hello</strong>\n)]
+#[expect(<strong>hello</strong>)]
 strong("hello")
 
 

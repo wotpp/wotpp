@@ -39,8 +39,9 @@ if __name__ == "__main__":
 
 	try:
 		wpp_output = run([binary, test_file])
-		if wpp_output[-1] == '\n':
-			wpp_output = wpp_output[:-1]
+		if len(wpp_output) > 0:
+			if wpp_output[-1] == '\n':
+				wpp_output = wpp_output[:-1]
 
 	except RuntimeError as err:
 		print(f"w++ failed: {err.args[0]}")
