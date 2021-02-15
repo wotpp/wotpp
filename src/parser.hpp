@@ -433,15 +433,18 @@ namespace wpp {
 
 
 	inline void code_string(std::string& str) {
-		// trim trailing whitespace.
+		// Trim trailing whitespace.
+		// Loop from back of string to beginning.
 		for (auto it = str.rbegin(); it != str.rend(); ++it) {
+			// If we find something that isn't whitespace, erase from the back
+			// of the string to the current position of the iterator.
 			if (not wpp::is_whitespace(*it)) {
 				str.erase(it.base(), str.end());
 				break;
 			}
 		}
 
-		// trim leading whitespace.
+		// Trim leading whitespace.
 		for (auto it = str.begin(); it != str.end();) {
 			if (not wpp::is_whitespace(*it))
 				break;
@@ -449,67 +452,64 @@ namespace wpp {
 			else if (*it == '\n') {
 				str.erase(str.begin(), it + 1);
 				it = str.begin();
-				continue;
+				continue;  // Skip the increment of the iterator.
 			}
 
 			++it;
 		}
 
-		// discover tab depth.
-		int min_indent = std::numeric_limits<int>::max();
 
-		{
-			const char* ptr = str.c_str();
+		// Discover tab depth.
+		int common_indent = std::numeric_limits<int>::max();
 
-			while (*ptr) {
-				if (*ptr == '\n') {
-					int indent = 0;
+		for (auto it = str.begin(); *it; ++it) {
+			if (*it == '\n') {
+				int indent = 0;
 
-					++ptr;
-					while (wpp::is_whitespace(*ptr))
-						++ptr, ++indent;
+				++it; // Skip newline.
 
-					if (indent < min_indent)
-						min_indent = indent;
-				}
+				// Loop until we find something that isn't whitespace.
+				while (wpp::is_whitespace(*it))
+					++it, ++indent;
 
-				++ptr;
+				if (indent < common_indent)
+					common_indent = indent;
 			}
 		}
 
-		// remove leading indentation on newline up to min_indent amount.
-		{
-			const char* ptr = str.c_str();
 
-			// remove whitespace on first line between start of string and first non whitespace character.
-			if (wpp::is_whitespace(*ptr)) {
-				int count_whitespace = 0;
-				while (wpp::is_whitespace(*ptr) and count_whitespace != min_indent)
-					++ptr, ++count_whitespace;
+		// Remove leading indentation on each line up to common_indent amount.
 
-				str.erase(str.begin(), str.begin() + count_whitespace);
-				ptr = str.c_str();
-			}
+		// Strips whitespace until we hit either a non whitespace character
+		// or reach the maximum amount of indentation to strip.
+		const auto strip = [&] (const char* ptr) {
+			const char* start = ptr;
+			int count_whitespace = 0;
 
-			while (*ptr) {
-				if (*ptr == '\n') {
-					++ptr;
+			while (wpp::is_whitespace(*ptr) and count_whitespace != common_indent)
+				++ptr, ++count_whitespace;
 
-					const char* start = ptr;
-					int count_whitespace = 0;
+			str.erase(start - str.c_str(), ptr - start);
 
-					while (wpp::is_whitespace(*ptr) and count_whitespace != min_indent)
-						++ptr, ++count_whitespace;
+			// Set pointer back to beginning of removed range because
+			// we are iterating while altering the string.
+			ptr = start;
 
-					str.erase(start - str.c_str(), ptr - start);
+			return ptr;
+		};
 
-					// set pointer back to beginning of removed range because
-					// we are iterating while altering the string.
-					ptr = start;
-				}
+		const char* ptr = str.c_str();
 
-				++ptr;
-			}
+		// Remove whitespace on first line between start of string and first non whitespace character.
+		if (wpp::is_whitespace(*ptr))
+			ptr = strip(ptr);
+
+		// Remove the rest of the leading whitespace.
+		while (*ptr) {
+			if (*ptr == '\n')
+				ptr = strip(++ptr);
+
+			++ptr;
 		}
 	}
 
