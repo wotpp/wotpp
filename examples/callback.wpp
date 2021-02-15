@@ -1,0 +1,21 @@
+#[
+	Callback functions.
+
+	A library defines "library_callback" which calls "user_callback" but it
+	doesn't exist yet.
+
+	The user defines "user_callback" and when "library_callback" is invoked,
+	it can call "user_callback".
+
+	This happens because of lazy function evaluation where the body of a
+	function is only semantically checked for validity at invocation.
+]
+
+let library_callback
+	"library: " .. user_callback("foo")
+
+let user_callback(x)
+	"user: " .. x
+
+library_callback
+

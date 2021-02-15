@@ -1,0 +1,15 @@
+#[
+	Function that redefines itself and returns a new value on each invocation.
+	Prints "abc".
+]
+
+let foo {
+	let foo {
+		let foo "c"
+		"b"
+	}
+	"a"
+}
+
+foo foo foo
+
