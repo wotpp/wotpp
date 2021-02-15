@@ -400,10 +400,11 @@ namespace wpp {
 			if (lex.peek(wpp::modes::string) == TOKEN_EOF)
 				throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
 
+			// Parse escape characters and append "parts" of the string to `str`.
 			accumulate_string(lex.advance(wpp::modes::string), str);
 		}
 
-		lex.advance();
+		lex.advance(); // Skip terminating quote.
 	}
 
 
@@ -413,17 +414,19 @@ namespace wpp {
 
 
 	inline void para_string(std::string& str) {
+		// Collapse consecutive runs of whitespace to a single whitespace.
 		str.erase(std::unique(str.begin(), str.end(), [] (char lhs, char rhs) {
 			return wpp::is_whitespace(lhs) and wpp::is_whitespace(rhs);
 		}), str.end());
 
-
+		// Replace all whitespace with a literal space.
+		// So, newlines and tabs become spaces.
 		for (char& c: str) {
 			if (wpp::is_whitespace(c))
 				c = ' ';
 		}
 
-
+		// Strip leading and trailing whitespace.
 		if (wpp::is_whitespace(str.front()))
 			str.erase(str.begin(), str.begin() + 1);
 
@@ -569,35 +572,40 @@ namespace wpp {
 
 
 	inline void smart_string(wpp::Lexer& lex, std::string& str) {
-		const auto tok = lex.advance();
+		const auto tok = lex.advance(); // Consume the smart string opening token.
 
-		const auto str_type = tok.view.at(0);
-		const auto delim = tok.view.at(1);
+		const auto str_type = tok.view.at(0);  // 'r', 'p' or 'c'
+		const auto delim = tok.view.at(1);  // User defined delimiter.
 
-		const auto quote = lex.advance(wpp::modes::string);
+		const auto quote = lex.advance(wpp::modes::string); // ' or "
 
 		while (true) {
 			if (lex.peek(wpp::modes::string) == TOKEN_EOF)
 				throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
 
+			// If we encounter ' or ", we check one character ahead to see
+			// if it matches the user defined delimiter, it if does,
+			// we erase the last quote character and break.
 			else if (lex.peek(wpp::modes::string) == quote) {
+				// Consume this quote because it may actually be part of the
+				// string and not the terminator.
 				accumulate_string(lex.advance(wpp::modes::string), str);
 
 				if (lex.peek(wpp::modes::character).view == delim) {
-					lex.advance(wpp::modes::character);
-
-					// remove end quote.
-					str.erase(str.end() - 1, str.end());
-
-					break;
+					lex.advance(wpp::modes::character); // Skip user delimiter.
+					str.erase(str.end() - 1, str.end()); // Remove last quote.
+					break;  // Exit the loop, string is fully consumed.
 				}
 			}
 
+			// If not EOF or '/", consume.
 			else {
 				accumulate_string(lex.advance(wpp::modes::string), str);
 			}
 		}
 
+		// From here, the different string types just make adjustments to the
+		// contents of the parsed string.
 		if (str_type == 'r')
 			raw_string(str);
 
