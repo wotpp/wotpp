@@ -101,6 +101,37 @@ namespace wpp {
 		return str;
 	}
 
+	inline std::string intrinsic_slice(
+		wpp::node_t string_expr, 
+		wpp::node_t start_expr,
+		wpp::node_t end_expr,
+		const wpp::Position& pos, 
+		wpp::Environment& env, 
+		wpp::Arguments* args = nullptr
+	) {
+		// Evaluate arguments and process
+		const auto string = eval_ast(string_expr, env, args);
+		const auto start = std::stoi(eval_ast(start_expr, env, args));
+		const auto end = std::stoi(eval_ast(end_expr, env, args));
+		
+		const auto len = string.length();
+
+		// Make sure range is valid, else throw exception
+		if (start >= 0 and end >= start) 
+			return string.substr(start, end - start + 1);
+
+		if (start < 0 and end >= 0) 
+			throw wpp::Exception{ pos, "start of range cannot be negative with positive end" };
+		
+		else if (start >= 0 and end < 0 and len + end > start)
+			return string.substr(start, len + end - start + 1);
+		
+		else if (start < 0 and end < 0 and end > start)
+			return string.substr(len + start, end - start + 1);
+
+		else 
+			throw wpp::Exception{ pos, "invalid range for slice." };
+	}
 
 	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		auto& [functions, tree] = env;
@@ -183,6 +214,7 @@ namespace wpp {
 				constexpr std::array intrinsic_arg_n = [&] {
 					std::array<size_t, 100> lookup{};
 
+					lookup[TOKEN_SLICE]  = 3;
 					lookup[TOKEN_ASSERT] = 2;
 					lookup[TOKEN_PIPE]   = 2;
 					lookup[TOKEN_ERROR]  = 1;
@@ -224,6 +256,9 @@ namespace wpp {
 
 				else if (type == TOKEN_PIPE)
 					str = wpp::intrinsic_pipe(exprs[0], exprs[1], pos, env, args);
+
+				else if (type == TOKEN_SLICE)
+					str = wpp::intrinsic_slice(exprs[0], exprs[1], exprs[2], pos, env, args);
 			},
 
 			[&] (const FnInvoke& call) {
