@@ -111,26 +111,48 @@ namespace wpp {
 	) {
 		// Evaluate arguments and process
 		const auto string = eval_ast(string_expr, env, args);
-		const auto start = std::stoi(eval_ast(start_expr, env, args));
-		const auto end = std::stoi(eval_ast(end_expr, env, args));
+
+		const auto start_raw = eval_ast(start_expr, env, args);
+		const auto end_raw = eval_ast(end_expr, env, args);
+		
+		int start;
+		int end;
+
+		try {
+			start = std::stoi(start_raw);
+			end = std::stoi(end_raw);
+		}
+
+		catch (...) {
+			throw wpp::Exception { pos, "slice range must be numerical." };
+		}
 		
 		const auto len = string.length();
 
-		// Make sure range is valid, else throw exception
-		if (start >= 0 and end >= start) 
-			return string.substr(start, end - start + 1);
+		int begin;
+		int count;
 
-		if (start < 0 and end >= 0) 
-			throw wpp::Exception{ pos, "start of range cannot be negative with positive end" };
-		
-		else if (start >= 0 and end < 0 and len + end > start)
-			return string.substr(start, len + end - start + 1);
-		
-		else if (start < 0 and end < 0 and end > start)
-			return string.substr(len + start, end - start + 1);
+		if (start < 0) 
+			begin = len + start;	// 7
+		else 
+			begin = start;
+
+		if (end < 0) 
+			count = (len + end) - begin + 1;	// 
+		else
+			count = end - begin + 1;
+
+		if (count <= 0)
+			throw wpp::Exception{ pos, "end of slice cannot be before the start." };
+
+		else if (len < begin + count)
+			throw wpp::Exception{ pos, "slice extends outwith string bounds." };
+
+		else if (start < 0 && end >= 0) 
+			throw wpp::Exception{ pos, "start cannot be negative where end is positive." };
 
 		else 
-			throw wpp::Exception{ pos, "invalid range for slice." };
+			return string.substr(begin, count);
 	}
 
 	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
