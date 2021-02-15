@@ -73,7 +73,7 @@ int main(int argc, const char* argv[]) {
 		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
 
 		try {
-			std::cout << wpp::eval(file) << std::endl;
+			std::cout << wpp::eval(file) << std::flush;
 		}
 
 		catch (const wpp::Exception& e) {
