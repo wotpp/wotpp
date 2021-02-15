@@ -177,6 +177,13 @@ namespace wpp {
 			return "";
 	}
 
+	inline std::string intrinsic_length(wpp::node_t string_expr, wpp::Environment& env, wpp::Arguments* args) {
+		// Evaluate argument
+		const auto string = eval_ast(string_expr, env, args);
+
+		return std::to_string(string.size());
+	}
+
 	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		auto& [functions, tree] = env;
 
@@ -268,6 +275,7 @@ namespace wpp {
 					lookup[TOKEN_EVAL]   = 1;
 					lookup[TOKEN_RUN]    = 1;
 					lookup[TOKEN_SOURCE] = 1;
+					lookup[TOKEN_LENGTH] = 1;
 
 					return lookup;
 				} ();
@@ -307,6 +315,9 @@ namespace wpp {
 
 				else if (type == TOKEN_FIND)
 					str = wpp::intrinsic_find(exprs[0], exprs[1], env, args);
+
+				else if (type == TOKEN_LENGTH)
+					str = wpp::intrinsic_length(exprs[0], env, args);
 			},
 
 			[&] (const FnInvoke& call) {
