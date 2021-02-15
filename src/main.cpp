@@ -23,7 +23,6 @@
 #endif
 
 int main(int argc, const char* argv[]) {
-	wpp::Environment env;
 
 	if (argc == 1) {
 #ifdef WPP_DISABLE_REPL
@@ -31,6 +30,8 @@ int main(int argc, const char* argv[]) {
 		return 2;
 #else
 		wpp::AST tree;
+		wpp::Environment env{tree};
+
 		// Reserve 10MiB
 		tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
@@ -53,7 +54,7 @@ int main(int argc, const char* argv[]) {
 				auto root = document(lex, tree);
 
 				// Evaluate.
-				auto out = wpp::eval_ast(root, tree, env);
+				auto out = wpp::eval_ast(root, env);
 				std::cout << out << std::flush;
 
 				if (out.size() && out[out.size() - 1] != '\n')
@@ -72,7 +73,7 @@ int main(int argc, const char* argv[]) {
 		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
 
 		try {
-			std::cout << wpp::eval(file, env) << std::endl;
+			std::cout << wpp::eval(file) << std::endl;
 		}
 
 		catch (const wpp::Exception& e) {
