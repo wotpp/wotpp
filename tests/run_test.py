@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
 			# Print error location and the error itself.
 			print(f"expect @ {line}:{column} failed!")
-			print(f" -> expected '{actual}', got '{test}'.")
+			print(f" -> expected '{test}', got '{actual}'.")
 
 
 			# Return non-zero status.

@@ -1,9 +1,9 @@
-#[expect(\"hey\")]
+#[expect(\\"hey\\")]
 escape(r#""hey""#)
 
-#[expect('hey')]
+#[expect(\\'hey\\')]
 escape(r#"'hey'"#)
 
-#[expect('hey')]
+#[expect(\\'hey\\')]
 escape(r#''hey''#)
 

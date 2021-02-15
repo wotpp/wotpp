@@ -89,8 +89,11 @@ namespace wpp {
 
 		for (const char c: input) {
 			switch (c) {
-				case '"':  str += "\""; break;
-				case '\'': str += "'"; break;
+				case '"':  str += "\\\""; break;
+				case '\'': str += "\\'"; break;
+				case '\n': str += "\\n"; break;
+				case '\t': str += "\\t"; break;
+				case '\r': str += "\\r"; break;
 				default:   str += c; break;
 			}
 		}
@@ -138,7 +141,6 @@ namespace wpp {
 	inline std::string intrinsic_pipe(wpp::node_t, const wpp::Position&, wpp::Environment&, wpp::Arguments* = nullptr) {
 		return "";
 	}
-
 
 
 	inline std::string eval_ast(const wpp::node_t node_id, wpp::Environment& env, wpp::Arguments* args) {
