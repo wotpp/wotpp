@@ -11,8 +11,10 @@ endif
 
 syn case match
 
-syn keyword wppKeyword let run file eval assert prefix pipe escape error
+syn keyword wppKeyword let run file eval assert prefix pipe escape error match
 syn match wppOperator /\.\./
+syn match wppOperator /->/
+syn match wppOperator /\*/
 
 syn keyword wppTodo TODO XXX FIXME HACK contained 
 syn cluster wppCommentGrp contains=wppTodo,wppComment
