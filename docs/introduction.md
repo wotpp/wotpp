@@ -9,7 +9,7 @@ Strings are the data we focus on in this language and there are different types 
 Raw strings are as simple as they come what gets entered is what gets stored as a string. The two ways to call it are either `""` which implicitly treats the string as a raw string but if you wish to be explicit you can use. `r#" "#`
 The # can actually be changed to any single non whitespace character you want this applies to all string types.  
 
-Input:
+#### Input 1
 
 ```wot++
 r#"
@@ -17,14 +17,15 @@ r#"
 #"
 ```
 
-Would produce an output of:
+#### Output 1
+
 `\n\tHello world.\n`
 
 ### Paragraph Strings
 
 A paragraph string is a string that removes leading and trailing whitespace. It's syntax is very similar to the raw string it is. `p#" "#`
 
-Input:
+#### Input 2
 
 ```wot++
 p#"
@@ -32,14 +33,15 @@ p#"
 p#"
 ```
 
-This makes the output:
+#### Output 2
+
 `Hello world`
 
 ### Code Strings
 
 This is for when you want to store a string that is code It will remove common leading white space. Like the last two it follows as such. `c#" "#`
 
-Input:
+#### Input 3
 
 ```wot++
     c#"
@@ -47,7 +49,8 @@ Input:
     #"
 ```
 
-The output is:
+#### Output 3
+
 ` \tHello World. `
 
 ### Functions
@@ -56,7 +59,7 @@ A function is a command which takes arguments and return an expression. The synt
 
 Code blocks are denoted via the use of curly brackets "{}"  This is used for when you want to state that something is apart of an expression of a function and not a function itself.
 
-Input:
+#### Input 4
 
 ```wot++
 let foo(){
@@ -66,12 +69,15 @@ let foo(){
 }
 ```
 
-Output:2
+#### Output 4
+
 ` baz `
+
 This prints baz and declares two functions.
 Calling a function is simply done by saying. ` name(args) `
 
-Prefixes:
+### Prefixes
+
 The prefix is a way to group code together the syntax for this is:
 
 ```wot++
