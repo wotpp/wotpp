@@ -41,13 +41,13 @@ namespace wpp {
 	};
 
 	struct Intrinsic {
-		uint8_t type;
+		wpp::token_type_t type;
 		std::string identifer;
 		std::vector<wpp::node_t> arguments;
 		wpp::Position pos;
 
 		Intrinsic(
-			const uint8_t type_,
+			const wpp::token_type_t type_,
 			const std::string& identifier_,
 			const std::vector<wpp::node_t>& arguments_,
 			const wpp::Position& pos_
@@ -255,6 +255,7 @@ namespace wpp {
 
 
 
+	// Consume tokens comprising a string. Handles escape chars.
 	void accumulate_string(const wpp::Token& part, std::string& literal) {
 		// handle escape sequences.
 		if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
@@ -276,16 +277,25 @@ namespace wpp {
 			literal.append("\r");
 
 		else if (part == TOKEN_ESCAPE_HEX) {
+			// Get first and second nibble.
 			uint8_t first_nibble = *part.view.ptr;
 			uint8_t second_nibble = *(part.view.ptr + 1);
 
-			literal += static_cast<uint8_t>(wpp::hex_to_digit(first_nibble) << 4 | wpp::hex_to_digit(second_nibble));
+			// Shift the first nibble to the left by 4 and then OR it with
+			// the second nibble so the first nibble is the first 4 bits
+			// and the second nibble is the last 4 bits.
+			literal += static_cast<uint8_t>(
+				wpp::hex_to_digit(first_nibble) << 4 |
+				wpp::hex_to_digit(second_nibble)
+			);
 		}
 
 		else if (part == TOKEN_ESCAPE_BIN) {
 			const auto& [ptr, len] = part.view;
 			uint8_t value = 0;
 
+			// Shift value by 1 each loop and OR 0/1 depending on
+			// the current char.
 			for (size_t i = 0; i < len; ++i) {
 				value <<= 1;
 				value |= ptr[i] - '0';
@@ -653,17 +663,16 @@ namespace wpp {
 
 		// Optional arguments.
 		if (lex.peek() == TOKEN_LPAREN) {
-			lex.advance(); // skip lparen.
+			lex.advance(); // Skip '('.
 
+			// Check this is not the end of the argument list.
+			// Collect arguments.
 			if (lex.peek() != TOKEN_RPAREN) {
-				// throw wpp::Exception{lex.position(), "empty arguments, drop the parens."};
-
-				// Collect arguments.
-				wpp::node_t expr;
-
-				expr = expression(lex, tree);
+				// Parse first expression.
+				wpp::node_t expr = expression(lex, tree);
 				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 
+				// Check for remaining arguments.
 				while (lex.peek() == TOKEN_COMMA) {
 					lex.advance(); // skip comma.
 
@@ -671,23 +680,30 @@ namespace wpp {
 					if (lex.peek() == TOKEN_RPAREN)
 						break;
 
+					// Parse expr.
 					expr = expression(lex, tree);
 					tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 				}
 
+				// Check for ')'.
 				if (lex.advance() != TOKEN_RPAREN)
 					throw wpp::Exception{lex.position(), "expecting closing parenthesis after argument list."};
 			}
 
+			// If there are no arguments, we skip the ')'.
 			else {
-				lex.advance(); // skip `)`
+				lex.advance();
 			}
 		}
 
-		const auto [_, args, pos] = tree.get<FnInvoke>(node);
+		// Check if function call is an intrinsic.
 
-		if (peek_is_intrinsic(fn_token))
+		// If it is an intrinsic, we replace the FnInvoke node type with
+		// the Intrinsic node type and forward the arguments.
+		if (peek_is_intrinsic(fn_token)) {
+			const auto [_, args, pos] = tree.get<FnInvoke>(node);
 			tree.replace<Intrinsic>(node, fn_token.type, fn_token.str(), args, pos);
+		}
 
 		else
 			tree.get<FnInvoke>(node).identifier = fn_token.str();
@@ -748,37 +764,45 @@ namespace wpp {
 	inline wpp::node_t block(wpp::Lexer& lex, wpp::AST& tree) {
 		const wpp::node_t node = tree.add<Block>(lex.position());
 
-		lex.advance(); // skip lbrace
+		lex.advance(); // Skip '{'.
 
-		// check if theres a statement, otherwise its just a single expression
+		// Check for statement, otherwise we parse a single expression.
+		// last_is_expr is used to check if the last statement holds
+		// an expression, if it does we need to back up after parsing
+		// the last statement to consider it as the trailing expression
+		// of the block.
 		bool last_is_expr = false;
-		if (peek_is_stmt(lex.peek())) {
-			do {
-				if (peek_is_expr(lex.peek()))
-					last_is_expr = true;
 
-				else
-					last_is_expr = false;
+		if (peek_is_stmt(lex.peek())) {
+			// Consume statements.
+			do {
+				last_is_expr = peek_is_expr(lex.peek());
 
 				const wpp::node_t stmt = statement(lex, tree);
 				tree.get<Block>(node).statements.emplace_back(stmt);
 			} while (peek_is_stmt(lex.peek()));
 		}
 
+		// If the next token is not an expression and the last statement
+		// was an expression then we can pop the last statement and use
+		// it as our trailing expression.
 		if (not peek_is_expr(lex.peek()) and last_is_expr) {
 			tree.get<Block>(node).expr = tree.get<Block>(node).statements.back();
 			tree.get<Block>(node).statements.pop_back();
 		}
 
-		else if (peek_is_expr(lex.peek()) and not last_is_expr) {
-			const wpp::node_t expr = expression(lex, tree);
-			tree.get<Block>(node).expr = expr;
-		}
+		// If the next statement is an expression and the last statement
+		// // was not an expression...
+		// else if (peek_is_expr(lex.peek()) and not last_is_expr) {
+		// 	const wpp::node_t expr = expression(lex, tree);
+		// 	tree.get<Block>(node).expr = expr;
+		// }
 
 		else {
 			throw wpp::Exception{lex.position(), "expecting a trailing expression at the end of a block"};
 		}
 
+		// Expect '}'.
 		if (lex.advance() != TOKEN_RBRACE)
 			throw wpp::Exception{lex.position(), "block is unterminated."};
 
@@ -788,6 +812,11 @@ namespace wpp {
 
 	// Parse an expression.
 	inline wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree) {
+		// We use lhs to store the resulting expression
+		// from the following cases and if the next token
+		// is concatenation, we make a new Concat node using
+		// lhs as the left hand side of the node and then continue on to
+		// parse another expression for the right hand side.
 		wpp::node_t lhs;
 
 		const auto lookahead = lex.peek();
@@ -825,17 +854,14 @@ namespace wpp {
 	inline wpp::node_t statement(wpp::Lexer& lex, wpp::AST& tree) {
 		const auto lookahead = lex.peek();
 
-		// function declaration.
 		if (lookahead == TOKEN_LET)
 			return wpp::function(lex, tree);
 
-		// prefix
 		else if (lookahead == TOKEN_PREFIX)
 			return wpp::nspace(lex, tree);
 
-		else if (peek_is_expr(lookahead)) {
+		else if (peek_is_expr(lookahead))
 			return wpp::expression(lex, tree);
-		};
 
 		throw wpp::Exception{lex.position(), "expecting a statement."};
 	}

@@ -21,23 +21,23 @@ namespace wpp {
 
 		constexpr Token() {}
 
-		constexpr Token(View view_, uint8_t type_):
+		constexpr Token(View view_, token_type_t type_):
 			view(view_), type(type_) {}
 
 
-		friend bool operator==(const Token& tok, uint8_t t) {
+		friend bool operator==(const Token& tok, token_type_t t) {
 			return tok.type == t;
 		}
 
-		friend bool operator!=(const Token& tok, uint8_t t) {
+		friend bool operator!=(const Token& tok, token_type_t t) {
 			return not(tok == t);
 		}
 
-		friend bool operator==(uint8_t t, const Token& tok) {
+		friend bool operator==(token_type_t t, const Token& tok) {
 			return tok == t;
 		}
 
-		friend bool operator!=(uint8_t t, const Token& tok) {
+		friend bool operator!=(token_type_t t, const Token& tok) {
 			return not(tok == t);
 		}
 

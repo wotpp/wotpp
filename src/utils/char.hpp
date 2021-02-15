@@ -54,16 +54,7 @@ namespace wpp {
 		return is_lower(c) or is_upper(c) or is_digit(c) or in_group(c, '_', '.', ':', '/');
 	}
 
-	// Increment pointer as long as predicate is satisfied.
-	template <typename Pred, typename... Ts>
-	constexpr auto consume(const char*& ptr, const char* const begin, const Pred pred, Ts&&... args) {
-		do {
-			++ptr;
-		} while (pred(*ptr, std::forward<Ts>(args)...));
-
-		return ptr - begin;
-	}
-
+	// Get the size of a UTF-8 codepoint.
 	uint8_t utf_size(const char* ptr) {
 		uint8_t out = 0;
 
@@ -80,6 +71,7 @@ namespace wpp {
 		return out + 1;
 	}
 
+	// Convert a hex digit to an int.
 	uint8_t hex_to_digit(char c) {
 		if (c >= '0' && c <= '9')
 			return c - '0';
