@@ -10,16 +10,6 @@
 
 #include <tinge.hpp>
 
-namespace wpp {
-	namespace modes {
-		enum {
-			normal,
-			string,
-			character,
-		};
-	}
-}
-
 // Token types.
 namespace wpp {
 	// A macro to define our token types.
@@ -75,10 +65,8 @@ namespace wpp {
 		TOKEN(TOKEN_BIN) \
 		TOKEN(TOKEN_SMART) \
 
-
-
 	#define TOKEN(x) x,
-		enum { TOKEN_TYPES };
+		enum: token_type_t { TOKEN_TYPES };
 	#undef TOKEN
 
 	#define TOKEN(x) #x,
@@ -91,25 +79,28 @@ namespace wpp {
 namespace wpp {
 	class Lexer;
 
-	void lex_quote(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_doublequote(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_comment(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_smart(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_bin(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_hex(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_cat(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_comma(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_lparen(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_rparen(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_lbrace(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_rbrace(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_identifier(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_string_other(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok);
-	void lex_mode_character(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_simple(wpp::token_type_t, int, wpp::Lexer& lex, wpp::Token& tok);
+
+	inline void lex_comment(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok);
+
+	inline void lex_identifier(wpp::Lexer& lex, wpp::Token& tok);
+
+	inline void lex_smart(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_string_other(wpp::Lexer& lex, wpp::Token& tok);
+
+	inline void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok);
+}
+
+namespace wpp::modes {
+	enum {
+		normal,
+		string,
+		character,
+	};
 }
 
 namespace wpp {
@@ -131,9 +122,17 @@ namespace wpp {
 		}
 
 
+		std::pair<decltype(start), decltype(str)&> get_ptrs() {
+			return { start, str };
+		}
+
 		const wpp::Token& peek(int mode = modes::normal) {
+			// If the current mode is different from the lookahead mode
+			// then we update the lookahead token and set the new
+			// lookahead mode.
 			if (mode != lookahead_mode) {
-				str = lookahead.view.ptr; // reset pointer.
+				str = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
+
 				lookahead = next_token(mode);
 				lookahead_mode = mode;
 			}
@@ -162,48 +161,50 @@ namespace wpp {
 		wpp::Token next_token(int mode = modes::normal) {
 			wpp::Token tok{{ str, 1 }, TOKEN_NONE};
 
-			auto& [view, type] = tok;
-			auto& [vptr, vlen] = view;
-
+			// Loop until we find a valid token.
+			// This skips comments and whitespace.
 			while (true) {
-				// we dont need to update vlen or type because
-				// all of the cases where we continue dont actually
-				// alter them from their initial state.
-				vptr = str;
-
+				// EOF
 				if (*str == '\0')
-					type = TOKEN_EOF;
+					tok.type = TOKEN_EOF;
 
-				else if (mode == modes::character)
-					lex_mode_character(*this, tok);
+				// Character mode: Return the next character.
+				else if (mode == modes::character) {
+					next();
+					tok.type = TOKEN_CHAR;
+				}
 
+				// Handle quotes.
 				else if (*str == '\'')
-					lex_quote(*this, tok);
+					lex_simple(TOKEN_QUOTE, 1, *this, tok);
 
 				else if (*str == '"')
-					lex_doublequote(*this, tok);
+					lex_simple(TOKEN_DOUBLEQUOTE, 1, *this, tok);
 
+				// Normal mode.
 				else if (mode == modes::normal) {
+					// Comment.
 					if (*str == '#' and *(str + 1) == '[') {
 						lex_comment(*this, tok);
-						continue;
+						continue; // Throw away comment and get next token.
 					}
 
 					else if (wpp::is_whitespace(*str)) {
 						lex_whitespace(*this, tok);
-						continue;
+						continue; // Throw away whitespace and get next token.
 					}
 
+					// If neither comment nor token, handle a normal token.
 					lex_mode_normal(*this, tok);
 				}
 
+				// String mode.
 				else if (mode == modes::string)
 					lex_mode_string(*this, tok);
 
+				// Break by default. We use continue above if we need another token.
 				break;
 			}
-
-			// tinge::warnln(wpp::to_str[tok.type], " ", tok);
 
 			return tok;
 		}
@@ -211,214 +212,196 @@ namespace wpp {
 }
 
 namespace wpp {
-	void lex_quote(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_QUOTE;
-	}
+	inline void lex_comment(wpp::Lexer& lex, wpp::Token& tok) {
+		auto [start, ptr] = lex.get_ptrs();
 
+		auto& [view, type] = tok;
+		auto& [vptr, vlen] = view;
 
-	void lex_doublequote(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_DOUBLEQUOTE;
-	}
-
-
-	void lex_comment(wpp::Lexer& lex, wpp::Token&) {
 		lex.next(2);
 
+		// Track matching opening and closing tokens for comments
+		// and skip comment contents.
 		int depth = 1;
 
-		while (depth > 0 and *lex.str != '\0') {
-			if (*lex.str == '#' and *(lex.str + 1) == '[') {
-				depth++;
-				lex.next(2);
-			}
+		while (depth > 0 and *ptr != '\0') {
+			if (*ptr == '#' and *(ptr + 1) == '[')
+				depth++, lex.next(2);
 
-			else if (*lex.str == ']') {
-				depth--;
-				lex.next();
-			}
+			else if (*ptr == ']')
+				depth--, lex.next();
 
-			else {
+			else
 				lex.next();
-			}
 		}
 
-		if (*lex.str == '\0' and depth != 0) {
-			throw wpp::Exception{wpp::position(lex.start, lex.str), "unterminated comment."};
-		}
+		if (*ptr == '\0' and depth != 0)
+			throw wpp::Exception{wpp::position(start, ptr), "unterminated comment."};
+
+		// Update view pointer so when the lexer continues, the token starts
+		// at the right location.
+		vptr = ptr;
 	}
 
 
-	void lex_smart(wpp::Lexer& lex, wpp::Token& tok) {
+	inline void lex_smart(wpp::Lexer& lex, wpp::Token& tok) {
+		// Skip 'r', 'p' or 'c'.
 		++lex.str;
 		tok.type = TOKEN_SMART;
 
+		// Get user delimiter. 'r#"'
+		//                       ^
 		const char user_delim = *lex.str;
 		++lex.str;
 
+		// Make sure there's a quote here, if there isn't, we've made
+		// a mistake and this is actually an identifier.
+		// We call lex_identifier to perform the correct action.
 		if (not wpp::in_group(*lex.str, '\'', '"')) {
-			lex.str = tok.view.ptr;
-			// goto handle_ident;
+			lex.str = tok.view.ptr; // Reset pointer to where it was before this function.
 			lex_identifier(lex, tok);
 		}
 
+		// If we are not, in fact, an identifer, check if the user delimiter is not whitespace.
 		if (wpp::is_whitespace(user_delim))
 			throw wpp::Exception{ wpp::position(lex.start, lex.str), "user defined delimiter cannot be whitespace." };
 	}
 
 
-	void lex_bin(wpp::Lexer& lex, wpp::Token& tok) {
+	inline void lex_literal(wpp::token_type_t type, bool(*predicate)(char), wpp::Lexer& lex, wpp::Token& tok) {
 		lex.next(2);
-		tok.type = TOKEN_BIN;
+		tok.type = type;
 
+		// Token view skips past the leading 0b or 0x.
 		tok.view.ptr = lex.str;
 
-		while (wpp::is_bin(*lex.str) or *lex.str == '_') {
+		// Consume digits while predicate is satisfied.
+		while (predicate(*lex.str) or *lex.str == '_')
 			lex.next();
-		}
 
+		// Set token view length to the number of consumed characters.
 		tok.view.length = lex.str - tok.view.ptr;
 	}
 
 
-	void lex_hex(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next(2);
-		tok.type = TOKEN_HEX;
-
-		tok.view.ptr = lex.str;
-
-		while (wpp::is_hex(*lex.str) or *lex.str == '_') {
-			++lex.str;
-		}
-
-		tok.view.length = lex.str - tok.view.ptr;
+	// Handle simple tokens which are just a couple of characters.
+	inline void lex_simple(wpp::token_type_t type, int n, wpp::Lexer& lex, wpp::Token& tok) {
+		lex.next(n);
+		tok.type = type;
 	}
 
 
-	void lex_cat(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next(2);
-		tok.type = TOKEN_CAT;
-		tok.view.length = lex.str - tok.view.ptr;
-	}
-
-
-	void lex_comma(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_COMMA;
-	}
-
-
-	void lex_lparen(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_LPAREN;
-	}
-
-
-	void lex_rparen(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_RPAREN;
-	}
-
-
-	void lex_lbrace(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_LBRACE;
-	}
-
-
-	void lex_rbrace(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_RBRACE;
-	}
-
-
-	void lex_whitespace(wpp::Lexer& lex, wpp::Token&) {
+	inline void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok) {
+		// Consume as much whitespace as we can.
 		do {
 			lex.next();
 		} while (wpp::is_whitespace(*lex.str));
+
+		// Update view pointer so when the lexer continues, the token starts
+		// at the right location.
+		tok.view.ptr = lex.str;
 	}
 
 
-	void lex_identifier(wpp::Lexer& lex, wpp::Token& tok) {
-		tok.type = TOKEN_IDENTIFIER;
+	inline void lex_identifier(wpp::Lexer& lex, wpp::Token& tok) {
+		auto [start, ptr] = lex.get_ptrs();
 
+		auto& [view, type] = tok;
+		auto& [vptr, vlen] = view;
+
+		type = TOKEN_IDENTIFIER;
+
+		// Make sure we don't run into a character that belongs to another token.
 		while (
-			// make sure we don't run into a character that belongs to a token above.
-			not wpp::is_whitespace(*lex.str) and
-			not wpp::in_group(*lex.str, '(', ')', '{', '}', ',', '\0', '\'', '"') and
-			not (*lex.str == '.' and *(lex.str + 1) == '.') and
-			not (*lex.str == '#' and *(lex.str + 1) == '[')
-		) {
+			not wpp::is_whitespace(*ptr) and
+			not wpp::in_group(*ptr, '(', ')', '{', '}', ',', '\0', '\'', '"') and
+			not (*ptr == '.' and *(ptr + 1) == '.') and
+			not (*ptr == '#' and *(ptr + 1) == '[')
+		)
 			lex.next();
-		}
 
-		tok.view.length = lex.str - tok.view.ptr;
+		// Set length to the number of consumed characters.
+		vlen = ptr - vptr;
 
-		if      (tok.view == "let")       tok.type = TOKEN_LET;
-		else if (tok.view == "prefix")    tok.type = TOKEN_PREFIX;
-		else if (tok.view == "run")       tok.type = TOKEN_RUN;
-		else if (tok.view == "eval")      tok.type = TOKEN_EVAL;
-		else if (tok.view == "file")      tok.type = TOKEN_FILE;
-		else if (tok.view == "assert")    tok.type = TOKEN_ASSERT;
-		else if (tok.view == "pipe")      tok.type = TOKEN_PIPE;
-		else if (tok.view == "error")     tok.type = TOKEN_ERROR;
-		else if (tok.view == "source")    tok.type = TOKEN_SOURCE;
-		else if (tok.view == "escape")    tok.type = TOKEN_ESCAPE;
+		// Check if consumed string is actually a keyword.
+		if      (view == "let")       type = TOKEN_LET;
+		else if (view == "prefix")    type = TOKEN_PREFIX;
+		else if (view == "run")       type = TOKEN_RUN;
+		else if (view == "eval")      type = TOKEN_EVAL;
+		else if (view == "file")      type = TOKEN_FILE;
+		else if (view == "assert")    type = TOKEN_ASSERT;
+		else if (view == "pipe")      type = TOKEN_PIPE;
+		else if (view == "error")     type = TOKEN_ERROR;
+		else if (view == "source")    type = TOKEN_SOURCE;
+		else if (view == "escape")    type = TOKEN_ESCAPE;
 	}
 
 
-	void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok) {
+	inline void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok) {
+		auto [start, ptr] = lex.get_ptrs();
+
+		auto& [view, type] = tok;
+		auto& [vptr, vlen] = view;
+
 		lex.next();
-		tok.type = TOKEN_BACKSLASH;
+		type = TOKEN_BACKSLASH;
 
-		if      (*lex.str == '\\') { ++lex.str; tok.type = TOKEN_ESCAPE_BACKSLASH; }
-		else if (*lex.str == '\'') { ++lex.str; tok.type = TOKEN_ESCAPE_QUOTE; }
-		else if (*lex.str == '"')  { ++lex.str; tok.type = TOKEN_ESCAPE_DOUBLEQUOTE; }
-		else if (*lex.str == 't')  { ++lex.str; tok.type = TOKEN_ESCAPE_TAB; }
-		else if (*lex.str == 'n')  { ++lex.str; tok.type = TOKEN_ESCAPE_NEWLINE; }
-		else if (*lex.str == 'r')  { ++lex.str; tok.type = TOKEN_ESCAPE_CARRIAGERETURN; }
+		// Handle basic escapes.
+		if      (*ptr == '\\') { ++ptr; type = TOKEN_ESCAPE_BACKSLASH; }
+		else if (*ptr == '\'') { ++ptr; type = TOKEN_ESCAPE_QUOTE; }
+		else if (*ptr == '"')  { ++ptr; type = TOKEN_ESCAPE_DOUBLEQUOTE; }
+		else if (*ptr == 't')  { ++ptr; type = TOKEN_ESCAPE_TAB; }
+		else if (*ptr == 'n')  { ++ptr; type = TOKEN_ESCAPE_NEWLINE; }
+		else if (*ptr == 'r')  { ++ptr; type = TOKEN_ESCAPE_CARRIAGERETURN; }
 
-		else if (*lex.str == 'x') {
+		// Hex escape \xFF.
+		else if (*ptr == 'x') {
 			lex.next();
 			tok.type = TOKEN_ESCAPE_HEX;
 
-			tok.view.ptr = lex.str;
+			view.ptr = ptr;
 
-			uint8_t first_nibble = *lex.str++;
-			uint8_t second_nibble = *lex.str++;
+			// Get first and second nibble.
+			uint8_t first_nibble = *ptr++;
+			uint8_t second_nibble = *ptr++;
 
+			// Check if nibbles are valid digits.
 			if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
-				throw wpp::Exception{wpp::position(lex.start, tok.view.ptr), "invalid character in hex escape."};
+				throw wpp::Exception{wpp::position(start, vptr), "invalid character in hex escape."};
 		}
 
-		else if (*lex.str == 'b') {
+		// Bin escape \b00001111.
+		else if (*ptr == 'b') {
 			lex.next();
-			tok.type = TOKEN_ESCAPE_BIN;
+			type = TOKEN_ESCAPE_BIN;
 
-			tok.view.ptr = lex.str;
+			vptr = ptr;
 
-			for (; lex.str != tok.view.ptr + 8; lex.next()) {
-				if (not wpp::is_bin(*lex.str))
-					throw wpp::Exception{wpp::position(lex.start, tok.view.ptr), "invalid character in bin escape."};
+			// Consume 8 characters, check if each one is a valid digit.
+			for (; ptr != vptr + 8; lex.next()) {
+				if (not wpp::is_bin(*ptr))
+					throw wpp::Exception{wpp::position(start, vptr), "invalid character in bin escape."};
 			}
 		}
 
-		tok.view.length = lex.str - tok.view.ptr;
+		// Set view length to the number of consumed characters.
+		vlen = ptr - vptr;
 	}
 
 
-	void lex_string_other(wpp::Lexer& lex, wpp::Token& tok) {
+	inline void lex_string_other(wpp::Lexer& lex, wpp::Token& tok) {
 		tok.type = TOKEN_STRING;
 
+		// Consume all characters except quotes, escapes and EOF.
 		while (not wpp::in_group(*lex.str, '\\', '"', '\'', '\0'))
 			++lex.str;
 
+		// Set view length equal to the number of consumed characters.
 		tok.view.length = lex.str - tok.view.ptr;
 	}
 
 
-	void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok) {
+	inline void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok) {
 		if (*lex.str == '\\')
 			lex_string_escape(lex, tok);
 
@@ -427,42 +410,36 @@ namespace wpp {
 	}
 
 
-	void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok) {
+	inline void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok) {
 		if (wpp::in_group(*lex.str, 'p', 'r', 'c'))
 			lex_smart(lex, tok);
 
 		else if (*lex.str == '0' and *(lex.str + 1) == 'b')
-			lex_bin(lex, tok);
+			lex_literal(TOKEN_BIN, wpp::is_bin, lex, tok);
 
 		else if (*lex.str == '0' and *(lex.str + 1) == 'x')
-			lex_hex(lex, tok);
+			lex_literal(TOKEN_HEX, wpp::is_hex, lex, tok);
 
 		else if (*lex.str == '.' and *(lex.str + 1) == '.')
-			lex_cat(lex, tok);
+			lex_simple(TOKEN_CAT, 2, lex, tok);
 
 		else if (*lex.str == ',')
-			lex_comma(lex, tok);
+			lex_simple(TOKEN_COMMA, 1, lex, tok);
 
 		else if (*lex.str == '(')
-			lex_lparen(lex, tok);
+			lex_simple(TOKEN_LPAREN, 1, lex, tok);
 
 		else if (*lex.str == ')')
-			lex_rparen(lex, tok);
+			lex_simple(TOKEN_RPAREN, 1, lex, tok);
 
 		else if (*lex.str == '{')
-			lex_lbrace(lex, tok);
+			lex_simple(TOKEN_LBRACE, 1, lex, tok);
 
 		else if (*lex.str == '}')
-			lex_rbrace(lex, tok);
+			lex_simple(TOKEN_RBRACE, 1, lex, tok);
 
 		else
 			lex_identifier(lex, tok);
-	}
-
-
-	void lex_mode_character(wpp::Lexer& lex, wpp::Token& tok) {
-		lex.next();
-		tok.type = TOKEN_CHAR;
 	}
 }
 

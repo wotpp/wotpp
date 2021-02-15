@@ -12,9 +12,11 @@
 // Token structure that combines a type with a view of it's contents.
 
 namespace wpp {
+	using token_type_t = uint8_t;
+
 	struct Token {
 		View view{};
-		uint8_t type = 0;
+		wpp::token_type_t type = 0;
 
 
 		constexpr Token() {}
