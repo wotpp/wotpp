@@ -1,0 +1,59 @@
+#[
+	Metaprogramming in wot++.
+
+	Creates a function called `name` which takes a single argument
+	`value` and produces a string that looks like:
+
+	`
+		let name (value)
+			'#name' .. value
+	`
+
+	This function is now available in the caller's environment.
+]
+
+let new_directive(name)
+	eval("let " .. name .. " (value) '#" .. name .. " ' .. value .. '\n'")
+
+
+#[ Create some directives. ]
+new_directive("id")
+new_directive("tag")
+
+new_directive("title")
+new_directive("author")
+
+new_directive("year")
+new_directive("month")
+new_directive("day")
+
+
+#[ Functions to generate pre-filled information. ]
+let generate_id
+	run("uuidgen")
+
+let generate_year   run("date +'%Y'")
+let generate_month  run("date +'%-m'")
+let generate_day    run("date +'%-d'")
+
+
+#[ Helpers. ]
+let \n "\n"
+
+let generate_header
+	id(generate_id) ..
+	year(generate_year) ..
+	month(generate_month) ..
+	day(generate_day)
+
+
+#[The actual note.]
+generate_header
+
+title("Testing")
+author("Jack Clarke")
+
+tag("foo")
+tag("bar")
+
+"This is an example of a note-taking workflow using wot++ for preprocessing."
