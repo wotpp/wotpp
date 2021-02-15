@@ -109,12 +109,12 @@ namespace wpp {
 		wpp::Environment& env, 
 		wpp::Arguments* args = nullptr
 	) {
-		// Evaluate arguments and process
+		// Evaluate arguments
 		const auto string = eval_ast(string_expr, env, args);
-
 		const auto start_raw = eval_ast(start_expr, env, args);
 		const auto end_raw = eval_ast(end_expr, env, args);
-		
+
+		// Parse the start and end arguments
 		int start;
 		int end;
 
@@ -129,19 +129,21 @@ namespace wpp {
 		
 		const auto len = string.length();
 
+		// Work out the start and length of the slice
 		int begin;
 		int count;
 
 		if (start < 0) 
-			begin = len + start;	// 7
+			begin = len + start;
 		else 
 			begin = start;
 
 		if (end < 0) 
-			count = (len + end) - begin + 1;	// 
+			count = (len + end) - begin + 1;
 		else
 			count = end - begin + 1;
 
+		// Make sure the range is valid
 		if (count <= 0)
 			throw wpp::Exception{ pos, "end of slice cannot be before the start." };
 
@@ -151,6 +153,7 @@ namespace wpp {
 		else if (start < 0 && end >= 0) 
 			throw wpp::Exception{ pos, "start cannot be negative where end is positive." };
 
+		// Return the string slice
 		else 
 			return string.substr(begin, count);
 	}
