@@ -193,7 +193,8 @@ namespace wpp {
 			tok == TOKEN_ERROR or
 			tok == TOKEN_SOURCE or
 			tok == TOKEN_ESCAPE or 
-			tok == TOKEN_SLICE
+			tok == TOKEN_SLICE or 
+			tok == TOKEN_FIND
 		;
 	}
 

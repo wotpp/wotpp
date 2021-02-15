@@ -130,7 +130,8 @@ test_cases = {
 	'tests/error.wpp': false,
 	'tests/conflict_keyword.wpp': false,
 	'tests/slice.wpp': true,
-	'tests/slice_fail.wpp': false
+	'tests/slice_fail.wpp': false,
+	'tests/find.wpp': true
 }
 
 if not get_option('disable_run')

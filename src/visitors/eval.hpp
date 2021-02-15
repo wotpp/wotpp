@@ -127,7 +127,7 @@ namespace wpp {
 			throw wpp::Exception { pos, "slice range must be numerical." };
 		}
 		
-		const auto len = string.length();
+		const int len = string.length();
 
 		// Work out the start and length of the slice
 		int begin;
@@ -156,6 +156,25 @@ namespace wpp {
 		// Return the string slice
 		else 
 			return string.substr(begin, count);
+	}
+
+	inline std::string intrinsic_find(
+		wpp::node_t string_expr, 
+		wpp::node_t pattern_expr,
+		wpp::Environment& env, 
+		wpp::Arguments* args = nullptr
+	) {
+		// Evaluate arguments
+		const auto string = eval_ast(string_expr, env, args);
+		const auto pattern = eval_ast(pattern_expr, env, args);
+
+		// Search in string
+		auto position = string.find(pattern);
+
+		if (position != std::string::npos)
+			return std::to_string(position);
+		else 
+			return "";
 	}
 
 	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
@@ -240,6 +259,7 @@ namespace wpp {
 					std::array<size_t, 100> lookup{};
 
 					lookup[TOKEN_SLICE]  = 3;
+					lookup[TOKEN_FIND]   = 2;
 					lookup[TOKEN_ASSERT] = 2;
 					lookup[TOKEN_PIPE]   = 2;
 					lookup[TOKEN_ERROR]  = 1;
@@ -284,6 +304,9 @@ namespace wpp {
 
 				else if (type == TOKEN_SLICE)
 					str = wpp::intrinsic_slice(exprs[0], exprs[1], exprs[2], pos, env, args);
+
+				else if (type == TOKEN_FIND)
+					str = wpp::intrinsic_find(exprs[0], exprs[1], env, args);
 			},
 
 			[&] (const FnInvoke& call) {

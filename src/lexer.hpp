@@ -39,6 +39,7 @@ namespace wpp {
 		TOKEN(TOKEN_FILE) \
 		TOKEN(TOKEN_EVAL) \
 		TOKEN(TOKEN_SLICE) \
+		TOKEN(TOKEN_FIND) \
 		TOKEN(TOKEN_ASSERT) \
 		TOKEN(TOKEN_ERROR) \
 		TOKEN(TOKEN_PIPE) \
@@ -336,6 +337,7 @@ namespace wpp {
 		else if (view == "source")    type = TOKEN_SOURCE;
 		else if (view == "escape")    type = TOKEN_ESCAPE;
 		else if (view == "slice")     type = TOKEN_SLICE;
+		else if (view == "find")      type = TOKEN_FIND;
 	}
 
 
