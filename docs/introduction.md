@@ -6,7 +6,8 @@ Strings are the data we focus on in this language and there are different types 
 
 ### Raw Strings
 
-Raw strings are as simple as they come what gets entered is what gets stored as a string. The two ways to call it are either `""` which implicitly treats the string as a raw string but if you wish to be explicit you can use. `r#" #"`
+Raw strings are as simple as they come what gets entered is what gets stored as a string. The two ways to call it are either `""` which implicitly treats the string as a raw string but if you wish to be explicit you can use. `r#" "#`
+The # can actually be changed to any single non whitespace character you want this applies to all string types.  
 
 Input:
 
@@ -21,7 +22,7 @@ Would produce an output of:
 
 ### Paragraph Strings
 
-Now what a paragraph string does is removes leading and trailing whitespace. It's syntax is very similar to the raw string it is. `p#" #"`
+Now what a paragraph string does is removes leading and trailing whitespace. It's syntax is very similar to the raw string it is. `p#" "#`
 
 Input:
 
@@ -36,7 +37,7 @@ This makes the output:
 
 ### Code Strings
 
-This is for when you want to store a string that is code It will remove common leading white space. Like the last two it follows as such. `c#" #"`
+This is for when you want to store a string that is code It will remove common leading white space. Like the last two it follows as such. `c#" "#`
 
 Input:
 
@@ -65,7 +66,7 @@ let foo(){
 }
 ```
 
-Output:
+Output:2
 ` baz `
 This prints baz and declares two functions.
 Calling a function is simply done by saying. ` name(args) `
