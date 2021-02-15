@@ -17,59 +17,70 @@
 #include <tinge.hpp>
 
 #ifndef WPP_DISABLE_REPL
-#include <readline/readline.h>
-#include <readline/history.h>
-#include <cstdlib>
+	#include <readline/readline.h>
+	#include <readline/history.h>
+	#include <cstdlib>
 #endif
 
 int main(int argc, const char* argv[]) {
-
 	if (argc == 1) {
-#ifdef WPP_DISABLE_REPL
-		tinge::errorln("REPL support is disabled");
-		return 2;
-#else
-		wpp::AST tree;
-		wpp::Environment env{tree};
+		#ifdef WPP_DISABLE_REPL
+			tinge::errorln("REPL support is disabled");
+			return 1;
 
-		// Reserve 10MiB
-		tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+		#else
+			wpp::AST tree;
+			wpp::Environment env{tree};
 
-		tinge::println("wot++ repl");
+			// Reserve 10MiB
+			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
-		using_history();
+			tinge::println("wot++ repl");
 
-		while (true) {
-			auto input = readline(">>> ");
-			if (!input) // EOF
-				break;
+			using_history();
 
-			add_history(input);
+			while (true) {
+				auto input = readline(">>> ");
+				if (!input) // EOF
+					break;
 
-			// Create a new lexer and syntax tree
-			wpp::Lexer lex{input};
+				add_history(input);
 
-			try {
-				// Parse.
-				auto root = document(lex, tree);
+				// Create a new lexer.
+				wpp::Lexer lex{input};
 
-				// Evaluate.
-				auto out = wpp::eval_ast(root, env);
-				std::cout << out << std::flush;
+				try {
+					// Parse.
+					auto root = document(lex, tree);
 
-				if (out.size() && out[out.size() - 1] != '\n')
-					std::cout << std::endl;
+					// Evaluate.
+					auto out = wpp::eval_ast(root, env);
+					std::cout << out << std::flush;
+
+					if (out.size() && out[out.size() - 1] != '\n')
+						std::cout << std::endl;
+				}
+
+				catch (const wpp::Exception& e) {
+					wpp::error(e.pos, e.what());
+				}
+
+				std::free(input);
 			}
+		#endif
 
-			catch (const wpp::Exception& e) {
-				wpp::error(e.pos, e.what());
-			}
-
-			std::free(input);
-		}
-#endif
 	} else if (argc == 2) {
-		auto file = wpp::read_file(argv[1]);
+		std::string file;
+
+		try {
+			file = wpp::read_file(argv[1]);
+		}
+
+		catch (const std::runtime_error& e) {
+			tinge::errorln("file not found.");
+		}
+
+		// Set current path to path of file.
 		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
 
 		try {
@@ -80,6 +91,7 @@ int main(int argc, const char* argv[]) {
 			wpp::error(e.pos, e.what());
 			return 1;
 		}
+
 	} else {
 		tinge::errorln("usage: wpp [file]");
 		return 1;

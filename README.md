@@ -15,6 +15,10 @@ Variadic functions and regex find & replace are planned for the future.
 [![issues](https://img.shields.io/github/issues/Jackojc/wotpp.svg?style=flat)](https://github.com/Jackojc/wotpp/issues)
 [![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/RmgjcES)
 
+### Getting Started & Reference
+See the introduction [here](docs/introduction.md)
+and see the reference [here](docs/reference.md).
+
 ### Example
 ```
 #[ Setup some macros. ]
@@ -123,6 +127,9 @@ Thanks, in no particular order:
 - [Samuel](https://github.com/swr06/)
 
 And everyone else who I may have failed to mention over the years.
+
+### History
+See the timeline [here](docs/history/README.md).
 
 ### License
 This project uses the MPL-2.0 license. (check [LICENSE.md](LICENSE.md))
