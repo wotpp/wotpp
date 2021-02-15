@@ -61,6 +61,7 @@ namespace wpp {
 		\
 		TOKEN(TOKEN_ESCAPE_NEWLINE) \
 		TOKEN(TOKEN_ESCAPE_TAB) \
+		TOKEN(TOKEN_ESCAPE_CARRIAGERETURN) \
 		TOKEN(TOKEN_ESCAPE_QUOTE) \
 		TOKEN(TOKEN_ESCAPE_DOUBLEQUOTE) \
 		TOKEN(TOKEN_ESCAPE_BACKSLASH) \
@@ -297,6 +298,7 @@ namespace wpp {
 							else if (*str == '"')  { ++str; type = TOKEN_ESCAPE_DOUBLEQUOTE; }
 							else if (*str == 't')  { ++str; type = TOKEN_ESCAPE_TAB; }
 							else if (*str == 'n')  { ++str; type = TOKEN_ESCAPE_NEWLINE; }
+							else if (*str == 'r')  { ++str; type = TOKEN_ESCAPE_CARRIAGERETURN; }
 
 							else if (*str == 'x') {
 								++str;

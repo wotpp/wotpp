@@ -272,6 +272,9 @@ namespace wpp {
 		else if (part == TOKEN_ESCAPE_TAB)
 			literal.append("\t");
 
+		else if (part == TOKEN_ESCAPE_CARRIAGERETURN)
+			literal.append("\r");
+
 		else if (part == TOKEN_ESCAPE_HEX) {
 			uint8_t first_nibble = *part.view.ptr;
 			uint8_t second_nibble = *(part.view.ptr + 1);
