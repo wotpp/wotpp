@@ -78,7 +78,6 @@ namespace wpp {
 	inline std::string intrinsic_source(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		const auto fname = eval_ast(expr, env, args);
 		throw wpp::Exception{ pos, "source not implemented." };
-
 		return "";
 	}
 
@@ -86,7 +85,7 @@ namespace wpp {
 	inline std::string intrinsic_log(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		std::string str = eval_ast(expr, env, args);
 		std::cerr << str;
-		return str;
+		return "";
 	}
 
 
