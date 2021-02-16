@@ -30,11 +30,15 @@ namespace wpp {
 		TOKEN(TOKEN_SLASH) \
 		TOKEN(TOKEN_BACKSLASH) \
 		TOKEN(TOKEN_CAT) \
+		TOKEN(TOKEN_ARROW) \
 		TOKEN(TOKEN_COMMA) \
+		TOKEN(TOKEN_STAR) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
+		TOKEN(TOKEN_MAP) \
 		TOKEN(TOKEN_PREFIX) \
 		TOKEN(TOKEN_LET) \
+		\
 		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \
 		TOKEN(TOKEN_EVAL) \
@@ -64,6 +68,8 @@ namespace wpp {
 		TOKEN(TOKEN_HEX) \
 		TOKEN(TOKEN_BIN) \
 		TOKEN(TOKEN_SMART) \
+		\
+		TOKEN(TOKEN_TOTAL)
 
 	#define TOKEN(x) x,
 		enum: token_type_t { TOKEN_TYPES };
@@ -326,6 +332,7 @@ namespace wpp {
 		// Check if consumed string is actually a keyword.
 		if      (view == "let")       type = TOKEN_LET;
 		else if (view == "prefix")    type = TOKEN_PREFIX;
+		else if (view == "map")       type = TOKEN_MAP;
 		else if (view == "run")       type = TOKEN_RUN;
 		else if (view == "eval")      type = TOKEN_EVAL;
 		else if (view == "file")      type = TOKEN_FILE;
@@ -423,8 +430,14 @@ namespace wpp {
 		else if (*lex.str == '.' and *(lex.str + 1) == '.')
 			lex_simple(TOKEN_CAT, 2, lex, tok);
 
+		else if (*lex.str == '-' and *(lex.str + 1) == '>')
+			lex_simple(TOKEN_ARROW, 2, lex, tok);
+
 		else if (*lex.str == ',')
 			lex_simple(TOKEN_COMMA, 1, lex, tok);
+
+		else if (*lex.str == '*')
+			lex_simple(TOKEN_STAR, 1, lex, tok);
 
 		else if (*lex.str == '(')
 			lex_simple(TOKEN_LPAREN, 1, lex, tok);

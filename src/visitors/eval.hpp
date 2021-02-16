@@ -181,7 +181,7 @@ namespace wpp {
 				const auto& [type, name, exprs, pos] = fn;
 
 				constexpr std::array intrinsic_arg_n = [&] {
-					std::array<size_t, 100> lookup{};
+					std::array<size_t, TOKEN_TOTAL> lookup{};
 
 					lookup[TOKEN_ASSERT] = 2;
 					lookup[TOKEN_PIPE]   = 2;
@@ -237,7 +237,6 @@ namespace wpp {
 							throw wpp::Exception{caller_pos, "calling '", caller_name, "' as if it were a function, it is an argument."};
 						}
 
-
 						str = it->second;
 						return;
 					}
@@ -288,6 +287,30 @@ namespace wpp {
 					str += eval_ast(node, env, args);
 
 				str = eval_ast(expr, env, args);
+			},
+
+			[&] (const Map& map) {
+				const auto& [test, cases, default_case, pos] = map;
+
+				const auto test_str = eval_ast(test, env, args);
+
+				// Compare test_str with arms of the map.
+				auto it = std::find_if(cases.begin(), cases.end(), [&] (const auto& elem) {
+					return test_str == eval_ast(elem.first, env, args);
+				});
+
+				// If found, evaluate the hand.
+				if (it != cases.end())
+					str = eval_ast(it->second, env, args);
+
+				// If not found, check for a default arm, otherwise error.
+				else {
+					if (default_case == wpp::NODE_EMPTY)
+						throw wpp::Exception{pos, "no matches found."};
+
+					else
+						str = eval_ast(default_case, env, args);
+				}
 			},
 
 			[&] (const Pre& pre) {

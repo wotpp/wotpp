@@ -120,6 +120,12 @@
 // 				str += " )";
 // 			},
 
+// 			[&] (const Map& map) {
+// 				const auto& [match_against, cases, default_case] = map;
+
+// 				// str += "";
+// 			},
+
 // 			[&] (const Pre& pre) {
 // 				const auto& [name, stmts, pos] = pre;
 
