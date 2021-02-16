@@ -1,0 +1,10 @@
+let s "Hello, World!"
+
+#[expect(Hello)]
+slice(s, "0", "4")
+
+#[expect(World!)]
+slice(s, "7", "-1")
+
+#[expect(World!)]
+slice(s, "-6", "-1")

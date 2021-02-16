@@ -107,6 +107,88 @@ namespace wpp {
 		return str;
 	}
 
+	inline std::string intrinsic_slice(
+		wpp::node_t string_expr, 
+		wpp::node_t start_expr,
+		wpp::node_t end_expr,
+		const wpp::Position& pos, 
+		wpp::Environment& env, 
+		wpp::Arguments* args = nullptr
+	) {
+		// Evaluate arguments
+		const auto string = eval_ast(string_expr, env, args);
+		const auto start_raw = eval_ast(start_expr, env, args);
+		const auto end_raw = eval_ast(end_expr, env, args);
+
+		// Parse the start and end arguments
+		int start;
+		int end;
+
+		try {
+			start = std::stoi(start_raw);
+			end = std::stoi(end_raw);
+		}
+
+		catch (...) {
+			throw wpp::Exception { pos, "slice range must be numerical." };
+		}
+		
+		const int len = string.length();
+
+		// Work out the start and length of the slice
+		int begin;
+		int count;
+
+		if (start < 0) 
+			begin = len + start;
+		else 
+			begin = start;
+
+		if (end < 0) 
+			count = (len + end) - begin + 1;
+		else
+			count = end - begin + 1;
+
+		// Make sure the range is valid
+		if (count <= 0)
+			throw wpp::Exception{ pos, "end of slice cannot be before the start." };
+
+		else if (len < begin + count)
+			throw wpp::Exception{ pos, "slice extends outside of string bounds." };
+
+		else if (start < 0 && end >= 0) 
+			throw wpp::Exception{ pos, "start cannot be negative where end is positive." };
+
+		// Return the string slice
+		else 
+			return string.substr(begin, count);
+	}
+
+	inline std::string intrinsic_find(
+		wpp::node_t string_expr, 
+		wpp::node_t pattern_expr,
+		wpp::Environment& env, 
+		wpp::Arguments* args = nullptr
+	) {
+		// Evaluate arguments
+		const auto string = eval_ast(string_expr, env, args);
+		const auto pattern = eval_ast(pattern_expr, env, args);
+
+		// Search in string
+		auto position = string.find(pattern);
+
+		if (position != std::string::npos)
+			return std::to_string(position);
+		else 
+			return "";
+	}
+
+	inline std::string intrinsic_length(wpp::node_t string_expr, wpp::Environment& env, wpp::Arguments* args) {
+		// Evaluate argument
+		const auto string = eval_ast(string_expr, env, args);
+
+		return std::to_string(string.size());
+	}
 
 	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		auto& [functions, tree] = env;
@@ -189,6 +271,8 @@ namespace wpp {
 				constexpr std::array intrinsic_arg_n = [&] {
 					std::array<size_t, TOKEN_TOTAL> lookup{};
 
+					lookup[TOKEN_SLICE]  = 3;
+					lookup[TOKEN_FIND]   = 2;
 					lookup[TOKEN_ASSERT] = 2;
 					lookup[TOKEN_PIPE]   = 2;
 					lookup[TOKEN_ERROR]  = 1;
@@ -197,6 +281,7 @@ namespace wpp {
 					lookup[TOKEN_EVAL]   = 1;
 					lookup[TOKEN_RUN]    = 1;
 					lookup[TOKEN_SOURCE] = 1;
+					lookup[TOKEN_LENGTH] = 1;
 					lookup[TOKEN_LOG]    = 1;
 
 					return lookup;
@@ -231,6 +316,15 @@ namespace wpp {
 
 				else if (type == TOKEN_PIPE)
 					str = wpp::intrinsic_pipe(exprs[0], exprs[1], pos, env, args);
+
+				else if (type == TOKEN_SLICE)
+					str = wpp::intrinsic_slice(exprs[0], exprs[1], exprs[2], pos, env, args);
+
+				else if (type == TOKEN_FIND)
+					str = wpp::intrinsic_find(exprs[0], exprs[1], env, args);
+
+				else if (type == TOKEN_LENGTH)
+					str = wpp::intrinsic_length(exprs[0], env, args);
 
 				else if (type == TOKEN_LOG)
 					str = wpp::intrinsic_log(exprs[0], pos, env, args);
