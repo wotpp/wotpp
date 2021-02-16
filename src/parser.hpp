@@ -218,7 +218,7 @@ namespace wpp {
 			tok == TOKEN_SOURCE or
 			tok == TOKEN_SLICE or 
 			tok == TOKEN_FIND or 
-			tok == TOKEN_LENGTH
+			tok == TOKEN_LENGTH or
 			tok == TOKEN_ESCAPE or
 			tok == TOKEN_LOG
 		;
@@ -390,41 +390,31 @@ namespace wpp {
 			lex.advance();  // Skip `(`.
 
 
-			// Check for the first parameter.
-			if (lex.peek() == TOKEN_IDENTIFIER)
-				tree.get<Fn>(node).parameters.emplace_back(lex.advance().str());
+			// While there is an identifier there is another parameter.
+			while (lex.peek() == TOKEN_IDENTIFIER) {
+				// Advance the lexer and get the identifier.
+				auto id = lex.advance().str();
 
-			else if (peek_is_reserved_name(lex.peek()))
-				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
+				// Add the argument
+				tree.get<Fn>(node).parameters.emplace_back(id);
 
+				// If the next token is a comma, skip it.
+				if (lex.peek() == TOKEN_COMMA)
+					lex.advance(); // skip the comma
 
-			// While there is a comma, loop until we run out of parameters.
-			while (lex.peek() == TOKEN_COMMA) {
-				lex.advance(); // Skip `,`.
-
-				// Allow trailing comma.
-				if (lex.peek() == TOKEN_RPAREN)
-					break;
-
-
-				// Check if there's an keyword conflict.
-				if (peek_is_reserved_name(lex.peek()))
-					throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
-
-
-				// Check if there is a parameter.
-				if (lex.peek() != TOKEN_IDENTIFIER)
-					throw wpp::Exception{lex.position(), "expecting parameter name to follow comma."};
-
-
-				// Emplace the parameter name into our `Fn` node's list of params.
-				tree.get<Fn>(node).parameters.emplace_back(lex.advance().str());
+				// Otherwise it must be an RPAREN?
+				else if (lex.peek() != TOKEN_RPAREN)
+					// If it's not, throw an exception.
+					throw wpp::Exception{lex.position(), "expecting comma to follow parameter name."};
 			}
 
+			// Check if there's an keyword conflict.
+			if (peek_is_reserved_name(lex.peek()))
+				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
 
 			// Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "parameter list is unterminated."};
+				throw wpp::Exception{lex.position(), "expecting closing parenthesis to follow argument list."};
 		}
 
 		// Parse the function body.
@@ -693,37 +683,27 @@ namespace wpp {
 
 		// Optional arguments.
 		if (lex.peek() == TOKEN_LPAREN) {
-			lex.advance(); // Skip '('.
+			lex.advance();  // Skip `(`.
 
-			// Check this is not the end of the argument list.
-			// Collect arguments.
-			if (lex.peek() != TOKEN_RPAREN) {
-				// Parse first expression.
+			// While there is an identifier there is another parameter.
+			while (peek_is_expr(lex.peek())) {
+				// Parse expr.
 				wpp::node_t expr = expression(lex, tree);
 				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 
-				// Check for remaining arguments.
-				while (lex.peek() == TOKEN_COMMA) {
-					lex.advance(); // skip comma.
+				// If the next token is a comma, skip it.
+				if (lex.peek() == TOKEN_COMMA)
+					lex.advance(); // skip the comma
 
-					// Allow trailing comma.
-					if (lex.peek() == TOKEN_RPAREN)
-						break;
-
-					// Parse expr.
-					expr = expression(lex, tree);
-					tree.get<FnInvoke>(node).arguments.emplace_back(expr);
-				}
-
-				// Check for ')'.
-				if (lex.advance() != TOKEN_RPAREN)
-					throw wpp::Exception{lex.position(), "expecting closing parenthesis after argument list."};
+				// Otherwise it must be an RPAREN?
+				else if (lex.peek() != TOKEN_RPAREN)
+					// If it's not, throw an exception.
+					throw wpp::Exception{lex.position(), "expecting comma to follow parameter name."};
 			}
 
-			// If there are no arguments, we skip the ')'.
-			else {
-				lex.advance();
-			}
+			// Make sure parameter list is terminated by `)`.
+			if (lex.advance() != TOKEN_RPAREN)
+				throw wpp::Exception{lex.position(), "expecting closing parenthesis to follow argument list."};
 		}
 
 		// Check if function call is an intrinsic.
