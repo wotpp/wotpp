@@ -129,7 +129,7 @@ namespace wpp {
 	template <typename T, typename... Ts>
 	inline void error(T&& first, Ts&&... args) {
 		([&] () -> std::ostream& {
-			return (std::cerr << "error @ " << first << " -> ");
+			return (std::cerr << "error @ " << first << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
 	}
 }

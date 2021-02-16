@@ -151,6 +151,29 @@ namespace wpp {
 		Pre() {}
 	};
 
+	// Map strings to new strings.
+	struct Map {
+		wpp::node_t expr;
+		std::vector<std::pair<wpp::node_t, wpp::node_t>> cases;
+		wpp::node_t default_case;
+		wpp::Position pos;
+
+		Map(
+			const wpp::node_t expr_,
+			const std::vector<std::pair<wpp::node_t, wpp::node_t>>& cases_,
+			const wpp::node_t default_case_,
+			const wpp::Position& pos_
+		):
+			expr(expr_),
+			cases(cases_),
+			default_case(default_case_),
+			pos(pos_) {}
+
+		Map(const wpp::Position& pos_): pos(pos_) {}
+
+		Map() {}
+	};
+
 	// The root node of a wot++ program.
 	struct Document {
 		std::vector<wpp::node_t> stmts;
@@ -173,6 +196,7 @@ namespace wpp {
 		FnInvoke,
 		Intrinsic,
 		Fn,
+		Map,
 		String,
 		Concat,
 		Block,
@@ -192,10 +216,11 @@ namespace wpp {
 			tok == TOKEN_PIPE or
 			tok == TOKEN_ERROR or
 			tok == TOKEN_SOURCE or
-			tok == TOKEN_ESCAPE or 
 			tok == TOKEN_SLICE or 
 			tok == TOKEN_FIND or 
 			tok == TOKEN_LENGTH
+			tok == TOKEN_ESCAPE or
+			tok == TOKEN_LOG
 		;
 	}
 
@@ -237,8 +262,9 @@ namespace wpp {
 	// Check if the token is an expression.
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
-			peek_is_string(tok) or
+			tok == TOKEN_MAP or
 			tok == TOKEN_LBRACE or
+			peek_is_string(tok) or
 			peek_is_call(tok)
 		;
 	}
@@ -332,6 +358,7 @@ namespace wpp {
 	inline wpp::node_t nspace(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t statement(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t document(wpp::Lexer&, wpp::AST&);
 
@@ -794,20 +821,78 @@ namespace wpp {
 			tree.get<Block>(node).statements.pop_back();
 		}
 
-		// If the next statement is an expression and the last statement
-		// // was not an expression...
-		// else if (peek_is_expr(lex.peek()) and not last_is_expr) {
-		// 	const wpp::node_t expr = expression(lex, tree);
-		// 	tree.get<Block>(node).expr = expr;
-		// }
-
 		else {
 			throw wpp::Exception{lex.position(), "expecting a trailing expression at the end of a block"};
 		}
 
+		if (lex.peek() == TOKEN_ARROW)
+			throw wpp::Exception{lex.position(), "'->' not expected in this context, did you intend to make a map?"};
+
 		// Expect '}'.
-		if (lex.advance() != TOKEN_RBRACE)
+		if (lex.peek() != TOKEN_RBRACE)
 			throw wpp::Exception{lex.position(), "block is unterminated."};
+
+		lex.advance(); // Skip '}'.
+
+		return node;
+	}
+
+
+	inline wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree) {
+		lex.advance(); // Skip `map`.
+
+		const wpp::node_t node = tree.add<Map>(lex.position());
+
+		// Check for test expression.
+		if (not peek_is_expr(lex.peek()))
+			throw wpp::Exception{lex.position(), "expected an expression to follow `map` keyword."};
+
+
+		const auto expr = wpp::expression(lex, tree); // Consume test expression.
+		tree.get<Map>(node).expr = expr;
+
+
+		if (lex.advance() != TOKEN_LBRACE)
+			throw wpp::Exception{lex.position(), "expected '{'."};
+
+
+		// Collect all arms of the map.
+		while (peek_is_expr(lex.peek())) {
+			const auto arm = wpp::expression(lex, tree);
+
+			if (lex.advance() != TOKEN_ARROW)
+				throw wpp::Exception{lex.position(), "expected '->'."};
+
+			if (not peek_is_expr(lex.peek()))
+				throw wpp::Exception{lex.position(), "expected expression."};
+
+			const auto hand = wpp::expression(lex, tree);
+
+			tree.get<Map>(node).cases.emplace_back(std::pair{ arm, hand });
+		}
+
+
+		// Optional default case.
+		if (lex.peek() == TOKEN_STAR) {
+			lex.advance();
+
+			if (lex.advance() != TOKEN_ARROW)
+				throw wpp::Exception{lex.position(), "expected '->'."};
+
+			if (not peek_is_expr(lex.peek()))
+				throw wpp::Exception{lex.position(), "expected expression."};
+
+			const auto default_case = wpp::expression(lex, tree);
+			tree.get<Map>(node).default_case = default_case;
+		}
+
+		else {
+			tree.get<Map>(node).default_case = wpp::NODE_EMPTY;
+		}
+
+
+		if (lex.advance() != TOKEN_RBRACE)
+			throw wpp::Exception{lex.position(), "expected '}'."};
 
 		return node;
 	}
@@ -832,6 +917,9 @@ namespace wpp {
 
 		else if (lookahead == TOKEN_LBRACE)
 			lhs = wpp::block(lex, tree);
+
+		else if (lookahead == TOKEN_MAP)
+			lhs = wpp::map(lex, tree);
 
 		else
 			throw wpp::Exception{lex.position(), "expecting an expression."};

@@ -7,8 +7,6 @@ or use those made by others.
 Wot++ has some interesting features like meta-programming, the ability to invoke a shell,
 bit-level manipulation, recursion and conditionals.
 
-Variadic functions and regex find & replace are planned for the future.
-
 ![c++](https://img.shields.io/badge/c%2B%2B-%3E%3D17-blue.svg?style=flat)
 [![license](https://img.shields.io/github/license/Jackojc/wotpp.svg?style=flat)](./LICENSE)
 ![code size](https://img.shields.io/github/languages/code-size/Jackojc/wotpp?style=flat-square)

@@ -78,7 +78,13 @@ namespace wpp {
 	inline std::string intrinsic_source(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		const auto fname = eval_ast(expr, env, args);
 		throw wpp::Exception{ pos, "source not implemented." };
+		return "";
+	}
 
+
+	inline std::string intrinsic_log(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+		std::string str = eval_ast(expr, env, args);
+		std::cerr << str;
 		return "";
 	}
 
@@ -263,7 +269,7 @@ namespace wpp {
 				const auto& [type, name, exprs, pos] = fn;
 
 				constexpr std::array intrinsic_arg_n = [&] {
-					std::array<size_t, 100> lookup{};
+					std::array<size_t, TOKEN_TOTAL> lookup{};
 
 					lookup[TOKEN_SLICE]  = 3;
 					lookup[TOKEN_FIND]   = 2;
@@ -276,6 +282,7 @@ namespace wpp {
 					lookup[TOKEN_RUN]    = 1;
 					lookup[TOKEN_SOURCE] = 1;
 					lookup[TOKEN_LENGTH] = 1;
+					lookup[TOKEN_LOG]    = 1;
 
 					return lookup;
 				} ();
@@ -318,6 +325,9 @@ namespace wpp {
 
 				else if (type == TOKEN_LENGTH)
 					str = wpp::intrinsic_length(exprs[0], env, args);
+
+				else if (type == TOKEN_LOG)
+					str = wpp::intrinsic_log(exprs[0], pos, env, args);
 			},
 
 			[&] (const FnInvoke& call) {
@@ -330,7 +340,6 @@ namespace wpp {
 						if (caller_args.size() > 0) {
 							throw wpp::Exception{caller_pos, "calling '", caller_name, "' as if it were a function, it is an argument."};
 						}
-
 
 						str = it->second;
 						return;
@@ -382,6 +391,30 @@ namespace wpp {
 					str += eval_ast(node, env, args);
 
 				str = eval_ast(expr, env, args);
+			},
+
+			[&] (const Map& map) {
+				const auto& [test, cases, default_case, pos] = map;
+
+				const auto test_str = eval_ast(test, env, args);
+
+				// Compare test_str with arms of the map.
+				auto it = std::find_if(cases.begin(), cases.end(), [&] (const auto& elem) {
+					return test_str == eval_ast(elem.first, env, args);
+				});
+
+				// If found, evaluate the hand.
+				if (it != cases.end())
+					str = eval_ast(it->second, env, args);
+
+				// If not found, check for a default arm, otherwise error.
+				else {
+					if (default_case == wpp::NODE_EMPTY)
+						throw wpp::Exception{pos, "no matches found."};
+
+					else
+						str = eval_ast(default_case, env, args);
+				}
 			},
 
 			[&] (const Pre& pre) {

@@ -30,11 +30,15 @@ namespace wpp {
 		TOKEN(TOKEN_SLASH) \
 		TOKEN(TOKEN_BACKSLASH) \
 		TOKEN(TOKEN_CAT) \
+		TOKEN(TOKEN_ARROW) \
 		TOKEN(TOKEN_COMMA) \
+		TOKEN(TOKEN_STAR) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
+		TOKEN(TOKEN_MAP) \
 		TOKEN(TOKEN_PREFIX) \
 		TOKEN(TOKEN_LET) \
+		\
 		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \
 		TOKEN(TOKEN_EVAL) \
@@ -46,6 +50,7 @@ namespace wpp {
 		TOKEN(TOKEN_PIPE) \
 		TOKEN(TOKEN_SOURCE) \
 		TOKEN(TOKEN_ESCAPE) \
+		TOKEN(TOKEN_LOG) \
 		\
 		TOKEN(TOKEN_LPAREN) \
 		TOKEN(TOKEN_RPAREN) \
@@ -67,6 +72,8 @@ namespace wpp {
 		TOKEN(TOKEN_HEX) \
 		TOKEN(TOKEN_BIN) \
 		TOKEN(TOKEN_SMART) \
+		\
+		TOKEN(TOKEN_TOTAL)
 
 	#define TOKEN(x) x,
 		enum: token_type_t { TOKEN_TYPES };
@@ -82,20 +89,21 @@ namespace wpp {
 namespace wpp {
 	class Lexer;
 
-	inline void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_simple(wpp::token_type_t, int, wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer&, wpp::Token&);
+	inline void lex_simple(wpp::token_type_t, int, wpp::Lexer&, wpp::Token&);
 
-	inline void lex_comment(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_comment(wpp::Lexer&, wpp::Token&);
+	inline void lex_single_comment(wpp::Lexer&, wpp::Token&);
+	inline void lex_whitespace(wpp::Lexer&, wpp::Token&);
 
-	inline void lex_identifier(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_identifier(wpp::Lexer&, wpp::Token&);
 
-	inline void lex_smart(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_string_other(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_smart(wpp::Lexer&, wpp::Token&);
+	inline void lex_string_escape(wpp::Lexer&, wpp::Token&);
+	inline void lex_string_other(wpp::Lexer&, wpp::Token&);
 
-	inline void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_mode_string(wpp::Lexer&, wpp::Token&);
+	inline void lex_mode_normal(wpp::Lexer&, wpp::Token&);
 }
 
 namespace wpp::modes {
@@ -143,12 +151,16 @@ namespace wpp {
 			return lookahead;
 		}
 
-		void next(int n = 1) {
+		char next(int n = 1) {
+			char c = *str;
 			str += n;
+			return c;
 		}
 
-		void prev(int n = 1) {
+		char prev(int n = 1) {
+			char c = *str;
 			str -= n;
+			return c;
 		}
 
 		wpp::Token advance(int mode = modes::normal) {
@@ -190,6 +202,11 @@ namespace wpp {
 					if (*str == '#' and *(str + 1) == '[') {
 						lex_comment(*this, tok);
 						continue; // Throw away comment and get next token.
+					}
+
+					else if (*str == '#') {
+						lex_single_comment(*this, tok);
+						continue;
 					}
 
 					else if (wpp::is_whitespace(*str)) {
@@ -243,6 +260,19 @@ namespace wpp {
 
 		// Update view pointer so when the lexer continues, the token starts
 		// at the right location.
+		vptr = ptr;
+	}
+
+
+	inline void lex_single_comment(wpp::Lexer& lex, wpp::Token& tok) {
+		auto [start, ptr] = lex.get_ptrs();
+
+		auto& [view, type] = tok;
+		auto& [vptr, vlen] = view;
+
+		lex.next();
+		while (lex.next() != '\n');
+
 		vptr = ptr;
 	}
 
@@ -329,6 +359,7 @@ namespace wpp {
 		// Check if consumed string is actually a keyword.
 		if      (view == "let")       type = TOKEN_LET;
 		else if (view == "prefix")    type = TOKEN_PREFIX;
+		else if (view == "map")       type = TOKEN_MAP;
 		else if (view == "run")       type = TOKEN_RUN;
 		else if (view == "eval")      type = TOKEN_EVAL;
 		else if (view == "file")      type = TOKEN_FILE;
@@ -340,6 +371,7 @@ namespace wpp {
 		else if (view == "slice")     type = TOKEN_SLICE;
 		else if (view == "find")      type = TOKEN_FIND;
 		else if (view == "length")    type = TOKEN_LENGTH;
+		else if (view == "log")       type = TOKEN_LOG;
 	}
 
 
@@ -429,8 +461,14 @@ namespace wpp {
 		else if (*lex.str == '.' and *(lex.str + 1) == '.')
 			lex_simple(TOKEN_CAT, 2, lex, tok);
 
+		else if (*lex.str == '-' and *(lex.str + 1) == '>')
+			lex_simple(TOKEN_ARROW, 2, lex, tok);
+
 		else if (*lex.str == ',')
 			lex_simple(TOKEN_COMMA, 1, lex, tok);
+
+		else if (*lex.str == '*')
+			lex_simple(TOKEN_STAR, 1, lex, tok);
 
 		else if (*lex.str == '(')
 			lex_simple(TOKEN_LPAREN, 1, lex, tok);

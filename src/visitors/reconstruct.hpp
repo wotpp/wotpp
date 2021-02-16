@@ -83,6 +83,19 @@ namespace wpp {
 				str += reconstruct_source(expr, tree) + " }";
 			},
 
+			[&] (const Map& map) {
+				const auto& [match_against, cases, default_case, pos] = map;
+
+				str += "map " + reconstruct_source(match_against, tree) + " {\n";
+
+				for (const auto& [lhs, rhs]: cases) {
+					str += "\t" + reconstruct_source(lhs, tree) + " -> " + reconstruct_source(rhs, tree) + "\n";
+				}
+
+				str += "\t* -> " + reconstruct_source(default_case, tree) + "\n";
+				str += "}";
+			},
+
 			[&] (const Pre& pre) {
 				const auto& [name, stmts, pos] = pre;
 
