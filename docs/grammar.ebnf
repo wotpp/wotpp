@@ -38,7 +38,7 @@ string ::= <basic_string> | <paragraph_string> | <raw_string> | <code_string> | 
 fn_args ::= '(' <identifer> ( ',' <identifer> )* ')' [ ',' ]
 fn ::= 'let' <identifier> [ <fn_args> ] <expression>
 
-fn_intrinsic ::= 'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' | 'pipe' | 'error'
+fn_intrinsic ::= 'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' | 'pipe' | 'error' | 'log'
 fn_invoke ::= ( <identifer> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
 
 
