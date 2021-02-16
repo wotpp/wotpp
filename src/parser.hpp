@@ -409,6 +409,10 @@ namespace wpp {
 			}
 
 			// Check if there's an keyword conflict.
+            // We check if the next token is a reserved name and throw an error
+            // if it is. The reason we don't check this in the while loop body is
+            // because the loop condition checks for an identifier and so breaks
+            // out if the next token is an intrinsic.
 			if (peek_is_reserved_name(lex.peek()))
 				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
 
