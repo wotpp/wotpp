@@ -837,14 +837,14 @@ namespace wpp {
 	inline wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree) {
 		lex.advance(); // Skip `map`.
 
-
 		const wpp::node_t node = tree.add<Map>(lex.position());
 
+		// Check for test expression.
 		if (not peek_is_expr(lex.peek()))
 			throw wpp::Exception{lex.position(), "expected an expression to follow `map` keyword."};
 
 
-		const auto expr = wpp::expression(lex, tree); // Consume name.
+		const auto expr = wpp::expression(lex, tree); // Consume test expression.
 		tree.get<Map>(node).expr = expr;
 
 
@@ -852,21 +852,23 @@ namespace wpp {
 			throw wpp::Exception{lex.position(), "expected '{'."};
 
 
+		// Collect all arms of the map.
 		while (peek_is_expr(lex.peek())) {
-			const auto match = wpp::expression(lex, tree);
+			const auto arm = wpp::expression(lex, tree);
 
 			if (lex.advance() != TOKEN_ARROW)
 				throw wpp::Exception{lex.position(), "expected '->'."};
 
-			if (not peek_is_string(lex.peek()))
-				throw wpp::Exception{lex.position(), "expected string."};
+			if (not peek_is_expr(lex.peek()))
+				throw wpp::Exception{lex.position(), "expected expression."};
 
-			const auto replacement = wpp::expression(lex, tree);
+			const auto hand = wpp::expression(lex, tree);
 
-			tree.get<Map>(node).cases.emplace_back(std::pair{ match, replacement });
+			tree.get<Map>(node).cases.emplace_back(std::pair{ arm, hand });
 		}
 
 
+		// Optional default case.
 		if (lex.peek() == TOKEN_STAR) {
 			lex.advance();
 

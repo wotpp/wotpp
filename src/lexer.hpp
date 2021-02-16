@@ -85,20 +85,21 @@ namespace wpp {
 namespace wpp {
 	class Lexer;
 
-	inline void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_simple(wpp::token_type_t, int, wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer&, wpp::Token&);
+	inline void lex_simple(wpp::token_type_t, int, wpp::Lexer&, wpp::Token&);
 
-	inline void lex_comment(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_comment(wpp::Lexer&, wpp::Token&);
+	inline void lex_single_comment(wpp::Lexer&, wpp::Token&);
+	inline void lex_whitespace(wpp::Lexer&, wpp::Token&);
 
-	inline void lex_identifier(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_identifier(wpp::Lexer&, wpp::Token&);
 
-	inline void lex_smart(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_string_other(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_smart(wpp::Lexer&, wpp::Token&);
+	inline void lex_string_escape(wpp::Lexer&, wpp::Token&);
+	inline void lex_string_other(wpp::Lexer&, wpp::Token&);
 
-	inline void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok);
-	inline void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok);
+	inline void lex_mode_string(wpp::Lexer&, wpp::Token&);
+	inline void lex_mode_normal(wpp::Lexer&, wpp::Token&);
 }
 
 namespace wpp::modes {
@@ -146,12 +147,16 @@ namespace wpp {
 			return lookahead;
 		}
 
-		void next(int n = 1) {
+		char next(int n = 1) {
+			char c = *str;
 			str += n;
+			return c;
 		}
 
-		void prev(int n = 1) {
+		char prev(int n = 1) {
+			char c = *str;
 			str -= n;
+			return c;
 		}
 
 		wpp::Token advance(int mode = modes::normal) {
@@ -193,6 +198,11 @@ namespace wpp {
 					if (*str == '#' and *(str + 1) == '[') {
 						lex_comment(*this, tok);
 						continue; // Throw away comment and get next token.
+					}
+
+					else if (*str == '#') {
+						lex_single_comment(*this, tok);
+						continue;
 					}
 
 					else if (wpp::is_whitespace(*str)) {
@@ -246,6 +256,19 @@ namespace wpp {
 
 		// Update view pointer so when the lexer continues, the token starts
 		// at the right location.
+		vptr = ptr;
+	}
+
+
+	inline void lex_single_comment(wpp::Lexer& lex, wpp::Token& tok) {
+		auto [start, ptr] = lex.get_ptrs();
+
+		auto& [view, type] = tok;
+		auto& [vptr, vlen] = view;
+
+		lex.next();
+		while (lex.next() != '\n');
+
 		vptr = ptr;
 	}
 

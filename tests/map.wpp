@@ -1,0 +1,53 @@
+#[expect(bar)]
+map "foo" {
+	"foo" -> "bar"
+	"bar" -> "foo"
+}
+
+
+let thing "y"
+
+let x "x"
+let y "y"
+let z "z"
+
+let identity(x) x
+
+#[expect(z)]
+map thing {
+	x -> y
+	y -> z
+	z -> x
+}
+
+
+#[expect(abc)]
+map "123" {
+	"1" .. "2" .. "3" -> "abc"
+}
+
+#[expect(abc)]
+map "123" {
+	"123" -> "a" .. "b" .. "c"
+}
+
+
+#[expect(ok)]
+map "a" .. "b" {
+	"ab" -> "ok"
+}
+
+
+
+#[expect(ok)]
+map identity("foo") {
+	"foo" -> "ok"
+}
+
+let a "a"
+let b "b"
+
+#[expect(ok)]
+map a {
+	"a" -> map b { "b" -> "ok" }
+}
