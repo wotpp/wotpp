@@ -402,7 +402,7 @@ namespace wpp {
 				if (lex.peek() == TOKEN_COMMA)
 					lex.advance(); // skip the comma
 
-				// Otherwise it must be an RPAREN?
+				// Otherwise it must be ')'?
 				else if (lex.peek() != TOKEN_RPAREN)
 					// If it's not, throw an exception.
 					throw wpp::Exception{lex.position(), "expecting comma to follow parameter name."};
@@ -414,7 +414,7 @@ namespace wpp {
 
 			// Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "expecting closing parenthesis to follow argument list."};
+				throw wpp::Exception{lex.position(), "expecting ')' to follow argument list."};
 		}
 
 		// Parse the function body.
@@ -685,7 +685,7 @@ namespace wpp {
 		if (lex.peek() == TOKEN_LPAREN) {
 			lex.advance();  // Skip `(`.
 
-			// While there is an identifier there is another parameter.
+			// While there is an expression there is another parameter.
 			while (peek_is_expr(lex.peek())) {
 				// Parse expr.
 				wpp::node_t expr = expression(lex, tree);
@@ -695,7 +695,7 @@ namespace wpp {
 				if (lex.peek() == TOKEN_COMMA)
 					lex.advance(); // skip the comma
 
-				// Otherwise it must be an RPAREN?
+				// Otherwise it must be ')'?
 				else if (lex.peek() != TOKEN_RPAREN)
 					// If it's not, throw an exception.
 					throw wpp::Exception{lex.position(), "expecting comma to follow parameter name."};
@@ -703,7 +703,7 @@ namespace wpp {
 
 			// Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "expecting closing parenthesis to follow argument list."};
+				throw wpp::Exception{lex.position(), "expecting ')' to follow argument list."};
 		}
 
 		// Check if function call is an intrinsic.
