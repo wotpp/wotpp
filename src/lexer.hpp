@@ -47,6 +47,7 @@ namespace wpp {
 		TOKEN(TOKEN_PIPE) \
 		TOKEN(TOKEN_SOURCE) \
 		TOKEN(TOKEN_ESCAPE) \
+		TOKEN(TOKEN_LOG) \
 		\
 		TOKEN(TOKEN_LPAREN) \
 		TOKEN(TOKEN_RPAREN) \
@@ -364,6 +365,7 @@ namespace wpp {
 		else if (view == "error")     type = TOKEN_ERROR;
 		else if (view == "source")    type = TOKEN_SOURCE;
 		else if (view == "escape")    type = TOKEN_ESCAPE;
+		else if (view == "log")       type = TOKEN_LOG;
 	}
 
 

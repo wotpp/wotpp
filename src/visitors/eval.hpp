@@ -83,6 +83,13 @@ namespace wpp {
 	}
 
 
+	inline std::string intrinsic_log(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+		std::string str = eval_ast(expr, env, args);
+		std::cerr << str;
+		return str;
+	}
+
+
 	inline std::string intrinsic_escape(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		std::string str;
 		const auto input = eval_ast(expr, env, args);
@@ -191,6 +198,7 @@ namespace wpp {
 					lookup[TOKEN_EVAL]   = 1;
 					lookup[TOKEN_RUN]    = 1;
 					lookup[TOKEN_SOURCE] = 1;
+					lookup[TOKEN_LOG]    = 1;
 
 					return lookup;
 				} ();
@@ -224,6 +232,9 @@ namespace wpp {
 
 				else if (type == TOKEN_PIPE)
 					str = wpp::intrinsic_pipe(exprs[0], exprs[1], pos, env, args);
+
+				else if (type == TOKEN_LOG)
+					str = wpp::intrinsic_log(exprs[0], pos, env, args);
 			},
 
 			[&] (const FnInvoke& call) {
