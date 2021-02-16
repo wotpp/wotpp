@@ -148,7 +148,7 @@ namespace wpp {
 			throw wpp::Exception{ pos, "end of slice cannot be before the start." };
 
 		else if (len < begin + count)
-			throw wpp::Exception{ pos, "slice extends outwith string bounds." };
+			throw wpp::Exception{ pos, "slice extends outside of string bounds." };
 
 		else if (start < 0 && end >= 0) 
 			throw wpp::Exception{ pos, "start cannot be negative where end is positive." };
