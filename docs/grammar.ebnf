@@ -28,7 +28,6 @@ bin_literal ::= '0b' ( <bin_chars> | '_' )*
 string ::= <basic_string> | <paragraph_string> | <raw_string> | <code_string> | <hex_literal> | <bin_literal>
 
 
-
 /// Functions
 //
 // `foo("bar", baz())`
@@ -48,6 +47,10 @@ fn_invoke ::= ( <identifer> | <fn_intrinsic> ) [ '(' <expression> ( ',' <express
 // `prefix foo/bar/ { let name "jack" }`
 //
 pre ::= 'prefix' <identifer> '{' <statement>* '}'
+
+
+/// Map
+map ::= 'map' <expression> '{' ( <expression> '->' <expression> )* [ '*' '->' <expression> ] '}'
 
 
 /// Misc.
@@ -72,7 +75,8 @@ expression ::= (
 		<fn_invoke> |
 		<block> |
 		<concat> |
-		<string>
+		<string> |
+		<map>
 	)
 
 
