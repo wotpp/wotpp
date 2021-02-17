@@ -290,14 +290,14 @@ namespace wpp {
 		// Make sure there's a quote here, if there isn't, we've made
 		// a mistake and this is actually an identifier.
 		// We call lex_identifier to perform the correct action.
-		if (not wpp::in_group(*lex.str, '\'', '"')) {
+		if (not wpp::in_group(*lex.str, '\'', '"') or wpp::is_whitespace(user_delim)) {
 			lex.str = tok.view.ptr; // Reset pointer to where it was before this function.
 			lex_identifier(lex, tok);
 		}
 
 		// If we are not, in fact, an identifer, check if the user delimiter is not whitespace.
-		if (wpp::is_whitespace(user_delim))
-			throw wpp::Exception{ wpp::position(lex.start, lex.str), "user defined delimiter cannot be whitespace." };
+		// if (wpp::is_whitespace(user_delim))
+		// 	throw wpp::Exception{ wpp::position(lex.start, lex.str), "user defined delimiter cannot be whitespace." };
 	}
 
 
