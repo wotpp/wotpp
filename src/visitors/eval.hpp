@@ -108,11 +108,11 @@ namespace wpp {
 	}
 
 	inline std::string intrinsic_slice(
-		wpp::node_t string_expr, 
+		wpp::node_t string_expr,
 		wpp::node_t start_expr,
 		wpp::node_t end_expr,
-		const wpp::Position& pos, 
-		wpp::Environment& env, 
+		const wpp::Position& pos,
+		wpp::Environment& env,
 		wpp::Arguments* args = nullptr
 	) {
 		// Evaluate arguments
@@ -132,19 +132,19 @@ namespace wpp {
 		catch (...) {
 			throw wpp::Exception { pos, "slice range must be numerical." };
 		}
-		
+
 		const int len = string.length();
 
 		// Work out the start and length of the slice
 		int begin;
 		int count;
 
-		if (start < 0) 
+		if (start < 0)
 			begin = len + start;
-		else 
+		else
 			begin = start;
 
-		if (end < 0) 
+		if (end < 0)
 			count = (len + end) - begin + 1;
 		else
 			count = end - begin + 1;
@@ -156,18 +156,18 @@ namespace wpp {
 		else if (len < begin + count)
 			throw wpp::Exception{ pos, "slice extends outside of string bounds." };
 
-		else if (start < 0 && end >= 0) 
+		else if (start < 0 && end >= 0)
 			throw wpp::Exception{ pos, "start cannot be negative where end is positive." };
 
 		// Return the string slice
-		else 
+		else
 			return string.substr(begin, count);
 	}
 
 	inline std::string intrinsic_find(
-		wpp::node_t string_expr, 
+		wpp::node_t string_expr,
 		wpp::node_t pattern_expr,
-		wpp::Environment& env, 
+		wpp::Environment& env,
 		wpp::Arguments* args = nullptr
 	) {
 		// Evaluate arguments
@@ -179,7 +179,7 @@ namespace wpp {
 
 		if (position != std::string::npos)
 			return std::to_string(position);
-		else 
+		else
 			return "";
 	}
 
@@ -423,6 +423,11 @@ namespace wpp {
 				for (const wpp::node_t stmt: stmts) {
 					if (wpp::Fn* func = std::get_if<wpp::Fn>(&tree[stmt])) {
 						func->identifier = name + func->identifier;
+						str += eval_ast(stmt, env, args);
+					}
+
+					else if (wpp::Pre* pre = std::get_if<wpp::Pre>(&tree[stmt])) {
+						pre->identifier = name + pre->identifier;
 						str += eval_ast(stmt, env, args);
 					}
 
