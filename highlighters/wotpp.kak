@@ -8,6 +8,9 @@ provide-module -override wpp %{
 	add-highlighter shared/wpp/comment region -recurse '#\[' '#\[' '\]' group
 	add-highlighter shared/wpp/comment/ fill comment
 
+	add-highlighter shared/wpp/single-comment region '#' '\n' group
+	add-highlighter shared/wpp/single-comment/ fill comment
+
 
 	add-highlighter shared/wpp/other/ regex "0b(0|1|_)+" 0:value
 	add-highlighter shared/wpp/other/ regex "0x(A-Fa-f0-9|_)+" 0:value
