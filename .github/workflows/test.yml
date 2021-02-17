@@ -1,0 +1,41 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout the repo
+      - uses: actions/checkout@v2
+      # Setup python (required for meson/ninja)
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+          architecture: 'x64' # optional x64 or x86. Defaults to x64 if not specified
+      # Set up g++ 10
+      - name: Setup gcc
+        run:   |
+           sudo apt update
+           sudo apt install g++-10
+           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+           sudo update-alternatives --config gcc
+        shell: bash
+      # Build w++
+      - uses: BSFishy/meson-build@v1.0.2
+        with:
+          action: build
+      # Test w++
+      - name: Run tests
+        run: ninja -C build test
