@@ -1,0 +1,16 @@
+# make sure the lexer doesn't get tripped up
+# on cases that look like smart strings with
+# a whitespace delimiter.
+
+#[expect(...)]
+let c "..."
+c
+
+#[expect(...)]
+let p "..."
+p
+
+#[expect(...)]
+let r "..."
+r
+
