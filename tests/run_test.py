@@ -32,7 +32,9 @@ if __name__ == "__main__":
 
 	# Unpack argv
 	_, binary, test_file = sys.argv
-
+	
+	# Ensure were running the w++ executable in the current directory
+	binary = f"./{binary}"
 
 	# Run wot++ and get output.
 	wpp_output = ""
