@@ -58,7 +58,9 @@ map ::= 'map' <expression> '{' ( <expression> '->' <expression> )* [ '*' '->' <e
 // `#[ comment #[ nested comment ] ]`
 //
 // ! - Comments are just stripped from the source.
-comment ::= '#[' ( <any_char> | <comment> )* ']'
+comment ::=
+	'#[' ( <any_char> | <comment> )* ']' |
+	'#' <any_char>* '\n'
 
 
 /// Operators
