@@ -1,5 +1,5 @@
 let y(x) x
 let x "test"
 
-#[expect(warn @ 1:10: parameter x is shadowing function x0)]
+#[expect(warn @ 1:10: parameter x is shadowing a function)]
 y("x")
