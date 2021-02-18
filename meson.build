@@ -133,7 +133,8 @@ test_cases = {
 	'tests/slice.wpp': true,
 	'tests/slice_fail.wpp': false,
 	'tests/find.wpp': true,
-	'tests/length.wpp': true
+	'tests/length.wpp': true,
+	'tests/shadow_warn.wpp': true
 }
 
 if not get_option('disable_run')
