@@ -344,7 +344,8 @@ namespace wpp {
 
 						// Check if it's shadowing a function (even this one).
 						auto func = functions.find(it->first + "0");
-						wpp::warn(caller_pos, "parameter ", it->first, " is shadowing function ", func->first);
+						if (func != functions.end())
+							wpp::warn(caller_pos, "parameter ", it->first, " is shadowing function ", func->first);
 
 						return;
 					}
