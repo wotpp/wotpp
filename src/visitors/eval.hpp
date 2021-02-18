@@ -337,11 +337,15 @@ namespace wpp {
 				// Check if parameter.
 				if (args) {
 					if (auto it = (*args).find(caller_name); it != (*args).end()) {
-						if (caller_args.size() > 0) {
+						if (caller_args.size() > 0)
 							throw wpp::Exception{caller_pos, "calling '", caller_name, "' as if it were a function, it is an argument."};
-						}
 
 						str = it->second;
+
+						// Check if it's shadowing a function (even this one).
+						if (functions.find(it->first + "0") != functions.end())
+							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function");
+
 						return;
 					}
 				}
