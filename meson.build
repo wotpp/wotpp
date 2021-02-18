@@ -29,7 +29,7 @@ sources = files(
 	'src/utils/util.hpp',
 	'src/visitors/sexpr.hpp',
 	'src/visitors/reconstruct.hpp',
-	'src/visitors/eval.hpp'
+	'src/visitors/eval.hpp',
 )
 
 sources_inc = include_directories('src/')
@@ -134,11 +134,12 @@ test_cases = {
 	'tests/slice_fail.wpp': false,
 	'tests/find.wpp': true,
 	'tests/length.wpp': true,
-	'tests/shadow_warn.wpp': true
+	'tests/shadow_warn.wpp': true,
+	'tests/smart_strings.wpp': true
 }
 
 if not get_option('disable_run')
-    test_cases += {'tests/run.wpp': true}
+	test_cases += {'tests/run.wpp': true}
 endif
 
 foreach case, should_pass: test_cases
