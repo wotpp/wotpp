@@ -125,11 +125,19 @@ namespace wpp {
 }
 
 namespace wpp {
-	// Print an error with position info and exit.
+	// Print an error with position info.
 	template <typename T, typename... Ts>
 	inline void error(T&& first, Ts&&... args) {
 		([&] () -> std::ostream& {
 			return (std::cerr << "error @ " << first << ": ");
+		} () << ... << std::forward<Ts>(args)) << '\n';
+	}
+
+	// Print a warning with position info.
+	template <typename T, typename... Ts>
+	inline void warn(T&& first, Ts&&... args) {
+		([&] () -> std::ostream& {
+			return (std::cerr << "warn @ " << first << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
 	}
 }
