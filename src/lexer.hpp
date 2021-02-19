@@ -33,11 +33,13 @@ namespace wpp {
 		TOKEN(TOKEN_ARROW) \
 		TOKEN(TOKEN_COMMA) \
 		TOKEN(TOKEN_STAR) \
+		TOKEN(TOKEN_BAR) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
 		TOKEN(TOKEN_MAP) \
 		TOKEN(TOKEN_PREFIX) \
 		TOKEN(TOKEN_LET) \
+		TOKEN(TOKEN_DROP) \
 		\
 		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \
@@ -372,6 +374,7 @@ namespace wpp {
 		else if (view == "find")      type = TOKEN_FIND;
 		else if (view == "length")    type = TOKEN_LENGTH;
 		else if (view == "log")       type = TOKEN_LOG;
+		else if (view == "drop")      type = TOKEN_DROP;
 	}
 
 
@@ -466,6 +469,9 @@ namespace wpp {
 
 		else if (*lex.str == ',')
 			lex_simple(TOKEN_COMMA, 1, lex, tok);
+
+		else if (*lex.str == '|')
+			lex_simple(TOKEN_BAR, 1, lex, tok);
 
 		else if (*lex.str == '*')
 			lex_simple(TOKEN_STAR, 1, lex, tok);

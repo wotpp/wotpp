@@ -11,7 +11,7 @@ let x "x"
 let y "y"
 let z "z"
 
-let identity(x) x
+let identity(a) a
 
 #[expect(z)]
 map thing {

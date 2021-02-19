@@ -63,6 +63,11 @@ namespace wpp {
 				str += ") " + reconstruct_source(body, tree);
 			},
 
+			[&] (const Drop& drop) {
+				const auto& [func, pos] = drop;
+				const auto& [name, args, pos2] = tree.get<FnInvoke>(func);
+			},
+
 			[&] (const String& x) {
 				str = '"' + x.value + '"';
 			},
