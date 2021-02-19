@@ -518,22 +518,42 @@ namespace wpp {
 
 		return str;
 	}
+}
 
-	// inline std::string eval(const std::string& code) {
-	// 	// Create a new lexer and syntax tree
-	// 	wpp::Lexer lex{code.c_str()};
-	// 	wpp::AST tree;
-	// 	wpp::Environment env{tree};
+namespace wpp {
+	int run(const std::string& fname) {
+		std::string file;
 
-	// 	// Reserve 10MiB
-	// 	tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+		try {
+			file = wpp::read_file(fname);
+		}
 
-	// 	// Parse.
-	// 	auto root = document(lex, tree);
+		catch (const std::filesystem::filesystem_error& e) {
+			tinge::errorln("file not found.");
+			return 1;
+		}
 
-	// 	// Evaluate.
-	// 	return wpp::eval_ast(root, env);
-	// }
+		// Set current path to path of file.
+		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{fname}.parent_path());
+
+		try {
+			wpp::Lexer lex{fname, file.c_str()};
+			wpp::AST tree;
+			wpp::Environment env{tree};
+
+			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+
+			auto root = wpp::document(lex, tree);
+			std::cout << wpp::eval_ast(root, env) << std::flush;
+		}
+
+		catch (const wpp::Exception& e) {
+			wpp::error(e.pos, e.what());
+			return 1;
+		}
+
+		return 0;
+	}
 }
 
 #endif
