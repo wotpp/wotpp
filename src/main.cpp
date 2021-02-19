@@ -25,18 +25,22 @@
 
 
 int main(int argc, const char* argv[]) {
-	wpp::ArgResult input, output, sexpr;
+	wpp::ArgResult input, output, sexpr, repl;
 	
 	auto usage = "w++ -i INPUT [-o OUTPUT] [-sh]";
 
-	auto argparser = wpp::ArgumentParser("wpp", "A small macro language for producing and manipulating strings", "alpha-git", usage)
-		.arg(&input, "File to read input from", "input", "i", true)
+	auto argparser = wpp::ArgumentParser(
+		"wpp", "A small macro language for producing and manipulating strings", 
+		"alpha-git", usage)
+		.arg(&input,  "File to read input from",               "input",  "i", true)
 		.arg(&output, "File to output to (stdout by default)", "output", "o", true)
-		.arg(&sexpr, "Print AST as S-expression", "sexpr", "s", false);
+		.arg(&sexpr,  "Print AST as S-expression",             "sexpr",  "s", false)
+		.arg(&repl,   "Start an interactive prompt",           "repl",   "r", false);
 
-	argparser.parse(argc, argv);
-	
-	if (argc == 1) {
+	if (!argparser.parse(argc, argv)) 
+		return -1;
+
+	if (repl.is_present) {
 		#ifdef WPP_DISABLE_REPL
 			tinge::errorln("REPL support is disabled");
 			return 1;
@@ -81,11 +85,11 @@ int main(int argc, const char* argv[]) {
 			}
 		#endif
 
-	} else if (argc == 2) {
+	} else if (input.is_present) {
 		std::string file;
 
 		try {
-			file = wpp::read_file(argv[1]);
+			file = wpp::read_file(input.value);
 		}
 
 		catch (const std::runtime_error& e) {
@@ -104,9 +108,6 @@ int main(int argc, const char* argv[]) {
 			return 1;
 		}
 
-	} else {
-		tinge::errorln("usage: wpp [file]");
-		return 1;
 	}
 
 	return 0;
