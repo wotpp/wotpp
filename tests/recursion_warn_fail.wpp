@@ -1,0 +1,3 @@
+#[ Should warn AND segfault ]
+let test(x) test(x)
+test("hi")

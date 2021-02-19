@@ -1,0 +1,16 @@
+#[ Shouldn't warn ]
+let test(x) x
+let test(x, y) test(x)
+
+#[expect(hi\n)]
+test("hi") "\n"
+
+#[ Shouldn't warn ]
+let test(x)
+    map x {
+        "hi" -> test("bye")
+        * -> "hi"
+    }
+
+#[expect(hi)]
+test("hi")

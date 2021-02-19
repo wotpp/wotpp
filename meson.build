@@ -135,7 +135,9 @@ test_cases = {
 	'tests/find.wpp': true,
 	'tests/length.wpp': true,
 	'tests/shadow_warn.wpp': true,
-	'tests/smart_strings.wpp': true
+	'tests/smart_strings.wpp': true,
+	'tests/recursion_warn.wpp': true,
+	'tests/recursion_warn_fail.wpp': false
 }
 
 if not get_option('disable_run')

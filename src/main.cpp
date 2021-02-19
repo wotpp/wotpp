@@ -23,18 +23,20 @@
 #endif
 
 int main(int argc, const char* argv[]) {
+	// Create new syntax tree, environment and root caller
+	wpp::AST tree;
+	wpp::Environment env{tree};
+	wpp::Caller root_caller;
+
+	// Reserve 10MiB
+	tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+
 	if (argc == 1) {
 		#ifdef WPP_DISABLE_REPL
 			tinge::errorln("REPL support is disabled");
 			return 1;
 
 		#else
-			wpp::AST tree;
-			wpp::Environment env{tree};
-
-			// Reserve 10MiB
-			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
-
 			tinge::println("wot++ repl");
 
 			using_history();
@@ -54,7 +56,7 @@ int main(int argc, const char* argv[]) {
 					auto root = document(lex, tree);
 
 					// Evaluate.
-					auto out = wpp::eval_ast(root, env);
+					auto out = wpp::eval_ast(root, env, root_caller);
 					std::cout << out << std::flush;
 
 					if (out.size() && out[out.size() - 1] != '\n')
@@ -84,7 +86,17 @@ int main(int argc, const char* argv[]) {
 		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
 
 		try {
-			std::cout << wpp::eval(file) << std::flush;
+			// Create a new lexer
+			wpp::Lexer lex{file.c_str()};
+
+			// Reserve 10MiB
+			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+
+			// Parse.
+			auto root = document(lex, tree);
+
+			// Evaluate.
+			std::cout << wpp::eval_ast(root, env, root_caller) << std::flush;
 		}
 
 		catch (const wpp::Exception& e) {
