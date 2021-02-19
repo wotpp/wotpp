@@ -13,6 +13,7 @@
 #include <exception.hpp>
 #include <visitors/sexpr.hpp>
 #include <visitors/eval.hpp>
+#include <utils/argp.hpp>
 
 #include <tinge.hpp>
 
