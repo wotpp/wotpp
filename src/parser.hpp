@@ -216,8 +216,8 @@ namespace wpp {
 			tok == TOKEN_PIPE or
 			tok == TOKEN_ERROR or
 			tok == TOKEN_SOURCE or
-			tok == TOKEN_SLICE or 
-			tok == TOKEN_FIND or 
+			tok == TOKEN_SLICE or
+			tok == TOKEN_FIND or
 			tok == TOKEN_LENGTH or
 			tok == TOKEN_ESCAPE or
 			tok == TOKEN_LOG
@@ -409,10 +409,10 @@ namespace wpp {
 			}
 
 			// Check if there's an keyword conflict.
-            // We check if the next token is a reserved name and throw an error
-            // if it is. The reason we don't check this in the while loop body is
-            // because the loop condition checks for an identifier and so breaks
-            // out if the next token is an intrinsic.
+			// We check if the next token is a reserved name and throw an error
+			// if it is. The reason we don't check this in the while loop body is
+			// because the loop condition checks for an identifier and so breaks
+			// out if the next token is an intrinsic.
 			if (peek_is_reserved_name(lex.peek()))
 				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
 
@@ -810,7 +810,7 @@ namespace wpp {
 		}
 
 		if (lex.peek() == TOKEN_ARROW)
-			throw wpp::Exception{lex.position(), "'->' not expected in this context, did you intend to make a map?"};
+			throw wpp::Exception{tree.get<Block>(node).pos, "map is missing text expression."};
 
 		// Expect '}'.
 		if (lex.peek() != TOKEN_RBRACE)
