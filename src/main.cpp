@@ -98,10 +98,10 @@ int main(int argc, const char* argv[]) {
 		}
 
 		// Set current path to path of file.
-		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
+		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{input.value}.parent_path());
 
 		try {
-			wpp::Lexer lex{argv[1], file.c_str()};
+			wpp::Lexer lex{input.value, file.c_str()};
 			wpp::AST tree;
 			wpp::Environment env{tree};
 
