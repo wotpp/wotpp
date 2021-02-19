@@ -6,7 +6,6 @@
 #include <string>
 #include <unordered_map>
 #include <filesystem>
-#include <stack>
 #include <array>
 #include <type_traits>
 #include <limits>
@@ -23,7 +22,7 @@ namespace wpp {
 	using Arguments = std::unordered_map<std::string, std::string>;
 
 	struct Environment {
-		std::unordered_map<std::string, wpp::node_t> functions{};
+		std::unordered_map<std::string, std::vector<wpp::node_t>> functions{};
 		wpp::AST& tree;
 
 		Environment(wpp::AST& tree_): tree(tree_) {}
@@ -355,8 +354,13 @@ namespace wpp {
 				if (it == functions.end())
 					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
 
+				if (it->second.empty())
+					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+
+				const auto func = tree.get<wpp::Fn>(it->second.back());
+
 				// Retrieve function.
-				const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
+				const auto& [callee_name, params, body, callee_pos] = func;
 
 				// Set up Arguments to pass down to function body.
 				Arguments env_args;
@@ -376,7 +380,35 @@ namespace wpp {
 
 			[&] (const Fn& func) {
 				const auto& [name, params, body, pos] = func;
-				functions.insert_or_assign(wpp::cat(name, params.size()), node_id);
+
+				auto it = functions.find(wpp::cat(name, params.size()));
+
+				if (it != functions.end())
+					it->second.emplace_back(node_id);
+
+				else
+					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
+			},
+
+			[&] (const Drop& drop) {
+				const auto& [func, pos] = drop;
+				const auto& [caller_name, caller_args, caller_pos] = tree.get<FnInvoke>(func);
+
+				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
+
+				auto it = functions.find(caller_mangled_name);
+
+				if (it != functions.end()) {
+					if (not it->second.empty())
+						it->second.pop_back();
+
+					else
+						functions.erase(it);
+				}
+
+				else {
+					throw wpp::Exception{pos, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters)"};
+				}
 			},
 
 			[&] (const String& x) {

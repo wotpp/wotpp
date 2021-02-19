@@ -42,7 +42,7 @@ namespace wpp {
 
 	struct Intrinsic {
 		wpp::token_type_t type;
-		std::string identifer;
+		std::string identifier;
 		std::vector<wpp::node_t> arguments;
 		wpp::Position pos;
 
@@ -53,7 +53,7 @@ namespace wpp {
 			const wpp::Position& pos_
 		):
 			type(type_),
-			identifer(identifier_),
+			identifier(identifier_),
 			arguments(arguments_),
 			pos(pos_) {}
 
@@ -83,6 +83,18 @@ namespace wpp {
 		Fn(const wpp::Position& pos_): pos(pos_) {}
 
 		Fn() {}
+	};
+
+	struct Drop {
+		wpp::node_t func;
+		wpp::Position pos;
+
+		Drop(const wpp::node_t& func_, const wpp::Position& pos_):
+			func(func_), pos(pos_) {}
+
+		Drop(const wpp::Position& pos_): pos(pos_) {}
+
+		Drop() {}
 	};
 
 	// String literal.
@@ -201,7 +213,8 @@ namespace wpp {
 		Concat,
 		Block,
 		Pre,
-		Document
+		Document,
+		Drop
 	>;
 }
 
@@ -227,7 +240,8 @@ namespace wpp {
 	inline bool peek_is_keyword(const wpp::Token& tok) {
 		return
 			tok == TOKEN_LET or
-			tok == TOKEN_PREFIX
+			tok == TOKEN_PREFIX or
+			tok == TOKEN_DROP
 		;
 	}
 
@@ -354,6 +368,7 @@ namespace wpp {
 	inline void code_string(std::string&);
 
 	inline wpp::node_t function(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t drop(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t call(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t nspace(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
@@ -424,6 +439,18 @@ namespace wpp {
 		// Parse the function body.
 		const wpp::node_t body = expression(lex, tree);
 		tree.get<Fn>(node).body = body;
+
+		return node;
+	}
+
+
+	inline wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree) {
+		lex.advance(); // Skip `drop`.
+
+		const wpp::node_t node = tree.add<Drop>(lex.position());
+
+		const wpp::node_t call_expr = wpp::call(lex, tree);
+		tree.get<Drop>(node).func = call_expr;
 
 		return node;
 	}
@@ -810,7 +837,7 @@ namespace wpp {
 		}
 
 		if (lex.peek() == TOKEN_ARROW)
-			throw wpp::Exception{tree.get<Block>(node).pos, "map is missing text expression."};
+			throw wpp::Exception{tree.get<Block>(node).pos, "map is missing test expression."};
 
 		// Expect '}'.
 		if (lex.peek() != TOKEN_RBRACE)
@@ -931,6 +958,9 @@ namespace wpp {
 
 		if (lookahead == TOKEN_LET)
 			return wpp::function(lex, tree);
+
+		else if (lookahead == TOKEN_DROP)
+			return wpp::drop(lex, tree);
 
 		else if (lookahead == TOKEN_PREFIX)
 			return wpp::nspace(lex, tree);
