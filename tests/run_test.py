@@ -16,7 +16,7 @@ from operator import itemgetter
 
 # Run wot++ with test file.
 def run(args):
-	res = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	res = subprocess.run(args, stdout=subprocess.PIPE, stderr=None)
 	output = res.stdout.decode("UTF-8")
 
 	if res.returncode != 0:
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
 	# Unpack argv
 	_, binary, test_file = sys.argv
-	
+
 	# Ensure were running the w++ executable in the current directory
 	binary = f"./{binary}"
 

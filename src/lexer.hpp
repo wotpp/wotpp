@@ -118,6 +118,7 @@ namespace wpp::modes {
 
 namespace wpp {
 	struct Lexer {
+		std::string fname;
 		const char* const start = nullptr;
 		const char* str = nullptr;
 
@@ -125,7 +126,8 @@ namespace wpp {
 		int lookahead_mode = modes::normal;
 
 
-		Lexer(const char* const str_, int mode_ = modes::normal):
+		Lexer(const std::string& fname_, const char* const str_, int mode_ = modes::normal):
+			fname(fname_),
 			start(str_),
 			str(str_),
 			lookahead(),
@@ -172,7 +174,7 @@ namespace wpp {
 		}
 
 		wpp::Position position(int line_offset = 0, int column_offset = 0) const {
-			return wpp::position(start, lookahead.view.ptr, line_offset, column_offset);
+			return wpp::position(fname, start, lookahead.view.ptr, line_offset, column_offset);
 		}
 
 		wpp::Token next_token(int mode = modes::normal) {
@@ -258,7 +260,7 @@ namespace wpp {
 		}
 
 		if (*ptr == '\0' and depth != 0)
-			throw wpp::Exception{wpp::position(start, ptr), "unterminated comment."};
+			throw wpp::Exception{wpp::position(lex.fname, start, ptr), "unterminated comment."};
 
 		// Update view pointer so when the lexer continues, the token starts
 		// at the right location.
@@ -408,7 +410,7 @@ namespace wpp {
 
 			// Check if nibbles are valid digits.
 			if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
-				throw wpp::Exception{wpp::position(start, vptr), "invalid character in hex escape."};
+				throw wpp::Exception{wpp::position(lex.fname, start, vptr), "invalid character in hex escape."};
 		}
 
 		// Bin escape \b00001111.
@@ -421,7 +423,7 @@ namespace wpp {
 			// Consume 8 characters, check if each one is a valid digit.
 			for (; ptr != vptr + 8; lex.next()) {
 				if (not wpp::is_bin(*ptr))
-					throw wpp::Exception{wpp::position(start, vptr), "invalid character in bin escape."};
+					throw wpp::Exception{wpp::position(lex.fname, start, vptr), "invalid character in bin escape."};
 			}
 		}
 

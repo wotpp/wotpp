@@ -76,7 +76,36 @@ namespace wpp {
 
 	inline std::string intrinsic_source(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		const auto fname = eval_ast(expr, env, args);
-		throw wpp::Exception{ pos, "source not implemented." };
+
+		const auto old_path = std::filesystem::current_path();
+		const auto new_path = old_path / std::filesystem::path{fname};
+
+		std::string file;
+
+		try {
+			file = wpp::read_file(fname);
+		}
+
+		catch (const std::filesystem::filesystem_error& e) {
+			throw wpp::Exception{pos, "file '", fname, "' not found."};
+		}
+
+		std::filesystem::current_path(new_path.parent_path());
+
+		wpp::Lexer lex{new_path.string(), file.c_str()};
+		wpp::node_t root;
+
+		try {
+			root = document(lex, env.tree);
+			return wpp::eval_ast(root, env, args);
+		}
+
+		catch (const wpp::Exception& e) {
+			throw wpp::Exception{ pos, e.what() };
+		}
+
+		std::filesystem::current_path(old_path);
+
 		return "";
 	}
 
@@ -194,7 +223,7 @@ namespace wpp {
 
 		const auto code = eval_ast(expr, env, args);
 
-		wpp::Lexer lex{code.c_str()};
+		wpp::Lexer lex{"<eval>", code.c_str()};
 		wpp::node_t root;
 
 		try {
@@ -337,13 +366,13 @@ namespace wpp {
 				if (args) {
 					if (auto it = (*args).find(caller_name); it != (*args).end()) {
 						if (caller_args.size() > 0)
-							throw wpp::Exception{caller_pos, "calling '", caller_name, "' as if it were a function, it is an argument."};
+							throw wpp::Exception{caller_pos, "calling argument '", caller_name, "' as if it were a function."};
 
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (functions.find(it->first + "0") != functions.end())
-							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function");
+						if (functions.find(wpp::cat(it->first, "0")) != functions.end())
+							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function.");
 
 						return;
 					}
@@ -352,10 +381,10 @@ namespace wpp {
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
 				auto it = functions.find(caller_mangled_name);
 				if (it == functions.end())
-					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+					throw wpp::Exception{caller_pos, "func not found: ", caller_name, "."};
 
 				if (it->second.empty())
-					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+					throw wpp::Exception{caller_pos, "func not found: ", caller_name, "."};
 
 				const auto func = tree.get<wpp::Fn>(it->second.back());
 
@@ -383,8 +412,10 @@ namespace wpp {
 
 				auto it = functions.find(wpp::cat(name, params.size()));
 
-				if (it != functions.end())
+				if (it != functions.end()) {
+					wpp::warn(pos, "function '", name, "' redefined.");
 					it->second.emplace_back(node_id);
+				}
 
 				else
 					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
@@ -407,7 +438,7 @@ namespace wpp {
 				}
 
 				else {
-					throw wpp::Exception{pos, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters)"};
+					throw wpp::Exception{pos, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters)."};
 				}
 			},
 
@@ -482,21 +513,21 @@ namespace wpp {
 		return str;
 	}
 
-	inline std::string eval(const std::string& code) {
-		// Create a new lexer and syntax tree
-		wpp::Lexer lex{code.c_str()};
-		wpp::AST tree;
-		wpp::Environment env{tree};
+	// inline std::string eval(const std::string& code) {
+	// 	// Create a new lexer and syntax tree
+	// 	wpp::Lexer lex{code.c_str()};
+	// 	wpp::AST tree;
+	// 	wpp::Environment env{tree};
 
-		// Reserve 10MiB
-		tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+	// 	// Reserve 10MiB
+	// 	tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
-		// Parse.
-		auto root = document(lex, tree);
+	// 	// Parse.
+	// 	auto root = document(lex, tree);
 
-		// Evaluate.
-		return wpp::eval_ast(root, env);
-	}
+	// 	// Evaluate.
+	// 	return wpp::eval_ast(root, env);
+	// }
 }
 
 #endif

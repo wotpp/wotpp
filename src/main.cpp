@@ -63,7 +63,7 @@ int main(int argc, const char* argv[]) {
 				add_history(input);
 
 				// Create a new lexer.
-        			wpp::Lexer lex{input};
+				wpp::Lexer lex{"<repl>", input};
 
 				try {
 					// Parse.
@@ -92,15 +92,23 @@ int main(int argc, const char* argv[]) {
 			file = wpp::read_file(input.value);
 		}
 
-		catch (const std::runtime_error& e) {
+		catch (const std::filesystem::filesystem_error& e) {
 			tinge::errorln("file not found.");
+			return 1;
 		}
 
 		// Set current path to path of file.
 		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{argv[1]}.parent_path());
 
 		try {
-			std::cout << wpp::eval(file) << std::flush;
+			wpp::Lexer lex{argv[1], file.c_str()};
+			wpp::AST tree;
+			wpp::Environment env{tree};
+
+			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+
+			auto root = wpp::document(lex, tree);
+			std::cout << wpp::eval_ast(root, env) << std::flush;
 		}
 
 		catch (const wpp::Exception& e) {
