@@ -27,7 +27,9 @@
 int main(int argc, const char* argv[]) {
 	wpp::ArgResult test;
 
-	auto argparser = wpp::ArgumentParser("wpp", "A small macro language for producing and manipulating strings", "alpha-git")
+	auto usage = "w++ -i INPUT [-o OUTPUT] [-sh]";
+
+	auto argparser = wpp::ArgumentParser("wpp", "A small macro language for producing and manipulating strings", "alpha-git", usage)
 		.arg(&test, "Test", "test", "t", true);
 
 	argparser.parse(argc, argv);
@@ -55,7 +57,7 @@ int main(int argc, const char* argv[]) {
 				add_history(input);
 
 				// Create a new lexer.
-				wpp::Lexer lex{input};
+        			wpp::Lexer lex{input};
 
 				try {
 					// Parse.
