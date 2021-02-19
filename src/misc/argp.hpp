@@ -60,6 +60,8 @@ namespace wpp {
 
 				if (a.takes_value)
 					std::cout << "[VALUE]";
+				else 
+					std::cout << "\t";
 
 				std::cout << "\t\t" << a.description << std::endl;
 			}
