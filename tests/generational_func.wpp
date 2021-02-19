@@ -1,0 +1,13 @@
+let \n "\n"
+
+let fn(x) x .. \n
+let fn(x) "hello " .. x .. \n
+
+#[expect(hello spock\n)]
+fn("spock")
+drop fn(.)
+
+#[expect(spock)]
+fn("spock")
+drop fn(.)
+
