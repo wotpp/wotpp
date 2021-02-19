@@ -23,7 +23,13 @@ int main(int argc, const char* argv[]) {
 		wpp::WARN_PARAM_SHADOW_PARAM |
 		wpp::WARN_VARFUNC_REDEFINED
 	;
+	wpp::ArgResult test;
 
+	auto argparser = wpp::ArgumentParser("wpp", "A small macro language for producing and manipulating strings", "alpha-git")
+		.arg(&test, "Test", "test", "t", true);
+
+	argparser.parse(argc, argv);
+	
 	if (argc == 1)
 		return wpp::repl();
 
