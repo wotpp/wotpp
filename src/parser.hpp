@@ -145,16 +145,16 @@ namespace wpp {
 
 	// Namespace that embodies zero or more statements.
 	struct Pre {
-		std::string identifier;
+		std::vector<wpp::node_t> exprs;
 		std::vector<wpp::node_t> statements;
 		wpp::Position pos;
 
 		Pre(
-			const std::string& identifier_,
+			const std::vector<wpp::node_t>& exprs_,
 			const std::vector<wpp::node_t>& statements_,
 			const wpp::Position& pos_
 		):
-			identifier(identifier_),
+			exprs(exprs_),
 			statements(statements_),
 			pos(pos_) {}
 
@@ -370,7 +370,7 @@ namespace wpp {
 	inline wpp::node_t function(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t drop(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t call(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t nspace(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t prefix(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
@@ -753,7 +753,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t nspace(wpp::Lexer& lex, wpp::AST& tree) {
+	inline wpp::node_t prefix(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create `Pre` node.
 		const wpp::node_t node = tree.add<Pre>(lex.position());
 
@@ -764,11 +764,12 @@ namespace wpp {
 
 
 		// Expect identifier.
-		if (lex.peek() != TOKEN_IDENTIFIER)
+		if (not peek_is_expr(lex.peek()))
 			throw wpp::Exception{lex.position(), "prefix does not have a name."};
 
 		// Set name of `Pre`.
-		tree.get<Pre>(node).identifier = lex.advance().str();
+		const wpp::node_t expr = wpp::expression(lex, tree);
+		tree.get<Pre>(node).exprs = {expr};
 
 
 		// Expect opening brace.
@@ -963,7 +964,7 @@ namespace wpp {
 			return wpp::drop(lex, tree);
 
 		else if (lookahead == TOKEN_PREFIX)
-			return wpp::nspace(lex, tree);
+			return wpp::prefix(lex, tree);
 
 		else if (peek_is_expr(lookahead))
 			return wpp::expression(lex, tree);

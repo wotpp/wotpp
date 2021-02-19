@@ -9,6 +9,7 @@
 #include <array>
 #include <type_traits>
 #include <limits>
+#include <numeric>
 
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
@@ -485,16 +486,21 @@ namespace wpp {
 			},
 
 			[&] (const Pre& pre) {
-				const auto& [name, stmts, pos] = pre;
+				const auto& [exprs, stmts, pos] = pre;
 
 				for (const wpp::node_t stmt: stmts) {
 					if (wpp::Fn* func = std::get_if<wpp::Fn>(&tree[stmt])) {
+						std::string name;
+
+						for (auto it = exprs.rbegin(); it != exprs.rend(); ++it)
+							name += eval_ast(*it, env, args);
+
 						func->identifier = name + func->identifier;
 						str += eval_ast(stmt, env, args);
 					}
 
 					else if (wpp::Pre* pre = std::get_if<wpp::Pre>(&tree[stmt])) {
-						pre->identifier = name + pre->identifier;
+						pre->exprs.insert(pre->exprs.end(), exprs.begin(), exprs.end());
 						str += eval_ast(stmt, env, args);
 					}
 
