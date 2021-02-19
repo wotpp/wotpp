@@ -12,13 +12,9 @@
 
 namespace wpp {
 	struct ArgResult {
-		bool is_present;
-		std::string value;
-
-		ArgResult() {
-			is_present = false;
-			value = "";
-		}
+		bool is_present = false;
+		bool has_value = false;
+		std::string value = "";
 	};
 	
 	struct Argument {
@@ -84,6 +80,7 @@ namespace wpp {
 				if (arg.takes_value) {
 					if (++i < argc) {
 						arg.store->value = std::string(argv[i]);
+						arg.store->has_value = true;
 					} else {
 						std::cout << app_name << ": option requires an argument: " << argv[i - 1] << std::endl;
 						return false;
