@@ -1,2 +1,2 @@
 #[expect(foo)]
-file("file.txt")
+file("data/file.txt")
