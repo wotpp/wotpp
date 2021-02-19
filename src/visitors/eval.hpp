@@ -383,8 +383,10 @@ namespace wpp {
 
 				auto it = functions.find(wpp::cat(name, params.size()));
 
-				if (it != functions.end())
+				if (it != functions.end()) {
+					wpp::warn(pos, "function '", name, "' redefined.");
 					it->second.emplace_back(node_id);
+				}
 
 				else
 					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});

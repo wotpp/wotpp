@@ -137,7 +137,7 @@ namespace wpp {
 	template <typename T, typename... Ts>
 	inline void warn(T&& first, Ts&&... args) {
 		([&] () -> std::ostream& {
-			return (std::cerr << "warn @ " << first << ": ");
+			return (std::cerr << "warning @ " << first << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
 	}
 }
