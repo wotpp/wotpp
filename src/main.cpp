@@ -24,11 +24,17 @@
 #endif
 
 int main(int argc, const char* argv[]) {
+	wpp::ArgResult test;
+
+	auto argparser = wpp::ArgumentParser("wpp", "A small macro language for producing and manipulating strings", "alpha-git")
+		.arg(&test, "Test", "test", "t", true);
+
+	argparser.parse(argc, argv);
+	
 	if (argc == 1) {
 		#ifdef WPP_DISABLE_REPL
 			tinge::errorln("REPL support is disabled");
 			return 1;
-
 		#else
 			wpp::AST tree;
 			wpp::Environment env{tree};
@@ -54,7 +60,7 @@ int main(int argc, const char* argv[]) {
 					// Parse.
 					auto root = document(lex, tree);
 
-					// Evaluate.
+        				// Evaluate.
 					auto out = wpp::eval_ast(root, env);
 					std::cout << out << std::flush;
 
