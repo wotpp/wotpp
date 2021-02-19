@@ -50,7 +50,13 @@ pre ::= 'prefix' <identifer> '{' <statement>* '}'
 
 
 /// Map
-map ::= 'map' <expression> '{' ( <expression> '->' <expression> )* [ '*' '->' <expression> ] '}'
+map_or ::= ( <expression> ( '|' <expression> )* ) | '*'
+map_also ::= <map_or> ( ',' <map_or> )*
+map_arm ::= <map_also> '->' <expression>
+
+map_test ::= <expression> ( ',' <expression> )*
+
+map ::= 'map' <map_test> '{' <map_arm>* '}'
 
 
 /// Misc.
