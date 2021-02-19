@@ -29,13 +29,15 @@ namespace wpp {
 		std::string app_name;
 		std::string app_desc;
 		std::string app_version;
+		std::string app_usage;
 		std::vector<Argument> arguments;
 
 		public:
-		ArgumentParser(std::string name, std::string desc, std::string version) {
+		ArgumentParser(std::string name, std::string desc, std::string version, std::string usage) {
 			app_name = name;
 			app_desc = desc;
 			app_version = version;
+			app_usage = usage;
 		}
 
 		ArgumentParser arg(ArgResult* s, std::string d, std::string l, std::string sh, bool v) {
@@ -43,24 +45,53 @@ namespace wpp {
 			return *this;
 		}
 
+		void print_help() {
+			std::cout << app_name << " v" << app_version << ": " << app_desc << std::endl;
+			std::cout << std::endl;
+			std::cout << "Usage: " << app_usage << std::endl;
+			std::cout << std::endl;
+			std::cout << app_desc << std::endl;
+			std::cout << std::endl;
+
+			std::cout << "\t--help (-h)\t\t\tShows this message" << std::endl;
+
+			for (auto a : arguments) {
+				std::cout << "\t--" << a.long_name << " (-" << a.short_name << ") ";
+
+				if (a.takes_value)
+					std::cout << "[VALUE]";
+
+				std::cout << "\t\t" << a.description << std::endl;
+			}
+		}
+
 		bool parse(int argc, const char** argv) {
+			// If no arguments are supplied, print help
 			if (argc == 1)
-				throw "Expected at least 1 argument";
+				print_help();
 			
 			for (int i = 1; i < argc; i++) {
-				printf("%d : %s : %ld\n", i, argv[i], strlen(argv[i]));
-
+				// If `--` is encountered, stop parsing
 				if (strcmp(argv[i], "--") == 0) 
 					break;
 
+				// Print help message
+				if (strcmp(argv[i], "--help") == 0 or strcmp(argv[i], "-h") == 0) {
+					print_help();
+					return false;
+				}
+
+				// Make sure the argument is a flag (there are no positional arguments)
 				if (argv[i][0] != '-') {
 					std::cout << app_name << ": expected option, found: " << argv[i] << std::endl;
+					print_help();
 					return false;
 				}
 
 				Argument arg;
 				bool found = false;
 
+				// Search for argument provided
 				for (auto a : arguments) {
 					bool is_short = a.short_name == argv[i] + 1;
 					bool is_long = a.long_name == argv[i] + 2;
@@ -70,8 +101,10 @@ namespace wpp {
 					}
 				}
 
+				// Handle unknown options
 				if (not found) {
 					std::cout << app_name << ": unrecognized option: " << argv[i] << std::endl;
+					print_help();
 					return false;
 				}
 
@@ -79,10 +112,13 @@ namespace wpp {
 
 				if (arg.takes_value) {
 					if (++i < argc) {
+						// Set value
 						arg.store->value = std::string(argv[i]);
 						arg.store->has_value = true;
 					} else {
+						// Deal with missing argument
 						std::cout << app_name << ": option requires an argument: " << argv[i - 1] << std::endl;
+						print_help();
 						return false;
 					}
 				}
