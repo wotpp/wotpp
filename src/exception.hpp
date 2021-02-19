@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <structures/position.hpp>
 #include <utils/util.hpp>
 
 namespace wpp {
