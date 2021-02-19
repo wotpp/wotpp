@@ -10,7 +10,11 @@
 #include <misc/warnings.hpp>
 #include <backend/eval/eval.hpp>
 #include <misc/repl.hpp>
-
+#include <lexer.hpp>
+#include <parser.hpp>
+#include <genprog.hpp>
+#include <exception.hpp>
+#include <misc/argp.hpp>
 
 int main(int argc, const char* argv[]) {
 	wpp::warning_t warning_flags =
