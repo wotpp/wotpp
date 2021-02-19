@@ -33,8 +33,8 @@ int main(int argc, const char* argv[]) {
 		"wpp", "A small macro language for producing and manipulating strings", 
 		"alpha-git", usage)
 		.arg(&input,  "File to read input from",               "input",  "i", true)
-		.arg(&output, "File to output to (stdout by default)", "output", "o", true)
-		.arg(&sexpr,  "Print AST as S-expression",             "sexpr",  "s", false)
+//		.arg(&output, "File to output to (stdout by default)", "output", "o", true)
+//		.arg(&sexpr,  "Print AST as S-expression",             "sexpr",  "s", false)
 		.arg(&repl,   "Start an interactive prompt",           "repl",   "r", false);
 
 	if (!argparser.parse(argc, argv)) 
