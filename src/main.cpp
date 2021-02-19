@@ -23,27 +23,27 @@ int main(int argc, const char* argv[]) {
 		wpp::WARN_PARAM_SHADOW_PARAM |
 		wpp::WARN_VARFUNC_REDEFINED
 	;
-	wpp::ArgResult test;
 
-	wpp::ArgResult input, output, sexpr;
+	wpp::ArgResult input, output, sexpr, repl;
 	
 	auto usage = "w++ -i INPUT [-o OUTPUT] [-sh]";
 
-	auto argparser = wpp::ArgumentParser("wpp", "A small macro language for producing and manipulating strings", "alpha-git", usage)
-		.arg(&input, "File to read input from", "input", "i", true)
+	auto argparser = wpp::ArgumentParser(
+		"wpp", "A small macro language for producing and manipulating strings", 
+		"alpha-git", usage)
+		.arg(&input,  "File to read input from",               "input",  "i", true)
 		.arg(&output, "File to output to (stdout by default)", "output", "o", true)
-		.arg(&sexpr, "Print AST as S-expression", "sexpr", "s", false);
+		.arg(&sexpr,  "Print AST as S-expression",             "sexpr",  "s", false)
+		.arg(&repl,   "Start an interactive prompt",           "repl",   "r", false);
 
-	argparser.parse(argc, argv);
-	
-	if (argc == 1)
-		return wpp::repl();
+	if (!argparser.parse(argc, argv)) 
+		return -1;
 
-	else if (argc == 2)
-		return wpp::run(argv[1], warning_flags);
+	if (repl.is_present) {
+		wpp::repl()
 
-	else
-		std::cerr << "usage: wpp [file]\n";
+	else if (input.is_present)
+		return wpp::run(input.value, warning_flags);
 
 	return 1;
 }
