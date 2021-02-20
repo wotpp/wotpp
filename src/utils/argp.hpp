@@ -69,8 +69,8 @@ namespace wpp {
 		}
 
 		bool parse(int argc, const char** argv) {
-			// Set the binary name
 			bin_name = argv[0];
+			bin_name = bin_name.substr(bin_name.rfind("/") + 1);
 			
 			// If no arguments are supplied, print help
 			if (argc == 1)
@@ -89,7 +89,7 @@ namespace wpp {
 
 				// Make sure the argument is a flag (there are no positional arguments)
 				if (argv[i][0] != '-') {
-					std::cout << app_name << ": expected option, found: " << argv[i] << std::endl;
+					std::cout << bin_name << ": expected option, found: " << argv[i] << std::endl;
 					print_help();
 					return false;
 				}
@@ -109,7 +109,7 @@ namespace wpp {
 
 				// Handle unknown options
 				if (not found) {
-					std::cout << app_name << ": unrecognized option: " << argv[i] << std::endl;
+					std::cout << bin_name << ": unrecognized option: " << argv[i] << std::endl;
 					print_help();
 					return false;
 				}
@@ -123,7 +123,7 @@ namespace wpp {
 						arg.store->has_value = true;
 					} else {
 						// Deal with missing argument
-						std::cout << app_name << ": option requires an argument: " << argv[i - 1] << std::endl;
+						std::cout << bin_name << ": option requires an argument: " << argv[i - 1] << std::endl;
 						print_help();
 						return false;
 					}
