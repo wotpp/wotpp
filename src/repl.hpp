@@ -46,15 +46,15 @@ namespace wpp {
 				// Create a new lexer.
 				wpp::Lexer lex{"<repl>", input};
 
-				// Create a root caller.
-				wpp::Caller root_caller;
+				// Create a root fn env.
+				std::optional<wpp::FnEnvironment> root_env;
 
 				try {
 					// Parse.
 					auto root = document(lex, tree);
 
 					// Evaluate.
-					const auto out = wpp::eval_ast(root, env, root_caller);
+					const auto out = wpp::eval_ast(root, env, root_env);
 					std::cout << out << std::flush;
 
 					if (out.size() && out[out.size() - 1] != '\n')
