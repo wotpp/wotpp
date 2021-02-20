@@ -46,7 +46,7 @@ namespace wpp {
 		}
 
 		void print_help() {
-			std::cout << app_name << " v" << app_version << ": " << app_desc << std::endl;
+			std::cout << app_name << " v" << app_version << std::endl;
 			std::cout << std::endl;
 			std::cout << "Usage: " << app_usage << std::endl;
 			std::cout << std::endl;
