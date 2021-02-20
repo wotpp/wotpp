@@ -27,6 +27,7 @@ namespace wpp {
 	
 	class ArgumentParser {
 		std::string app_name;
+		std::string bin_name;
 		std::string app_desc;
 		std::string app_version;
 		std::string app_usage;
@@ -46,7 +47,7 @@ namespace wpp {
 		}
 
 		void print_help() {
-			std::cout << app_name << " v" << app_version << std::endl;
+			std::cout << app_name << " v" << app_version << " interpreter" << std::endl;
 			std::cout << std::endl;
 			std::cout << "Usage: " << app_usage << std::endl;
 			std::cout << std::endl;
@@ -68,6 +69,9 @@ namespace wpp {
 		}
 
 		bool parse(int argc, const char** argv) {
+			// Set the binary name
+			bin_name = argv[0];
+			
 			// If no arguments are supplied, print help
 			if (argc == 1)
 				print_help();
