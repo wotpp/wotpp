@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <array>
 #include <utility>
-// #include <filesystem>
+#include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -83,35 +83,35 @@ namespace wpp {
 
 // Read a file into a string relatively quickly.
 namespace wpp {
-	// inline std::string read_file(const std::string& fname) {
-	// 	auto filesize = std::filesystem::file_size(fname);
-	// 	std::ifstream is(fname, std::ios::binary);
-
-	// 	auto str = std::string(filesize + 1, '\0');
-	// 	is.read(str.data(), static_cast<std::streamsize>(filesize));
-
-	// 	return str;
-	// }
-
 	inline std::string read_file(const std::string& fname) {
-		std::ifstream is(fname, std::ios::in | std::ios::binary);
-		std::string str;
+		auto filesize = std::filesystem::file_size(fname);
+		std::ifstream is(fname, std::ios::binary);
 
-		if (is) {
-			is.seekg(0, std::ios::end);
-			str.resize(is.tellg());
-			is.seekg(0, std::ios::beg);
-
-			is.read(&str[0], str.size());
-			is.close();
-		}
-
-		else {
-			throw std::runtime_error{"file does not exist."};
-		}
+		auto str = std::string(filesize + 1, '\0');
+		is.read(str.data(), static_cast<std::streamsize>(filesize));
 
 		return str;
 	}
+
+	// inline std::string read_file(const std::string& fname) {
+	// 	std::ifstream is(fname, std::ios::in | std::ios::binary);
+	// 	std::string str;
+
+	// 	if (is) {
+	// 		is.seekg(0, std::ios::end);
+	// 		str.resize(is.tellg());
+	// 		is.seekg(0, std::ios::beg);
+
+	// 		is.read(&str[0], str.size());
+	// 		is.close();
+	// 	}
+
+	// 	else {
+	// 		throw std::runtime_error{"file does not exist."};
+	// 	}
+
+	// 	return str;
+	// }
 }
 
 namespace wpp {
@@ -137,7 +137,7 @@ namespace wpp {
 	template <typename T, typename... Ts>
 	inline void warn(T&& first, Ts&&... args) {
 		([&] () -> std::ostream& {
-			return (std::cerr << "warn @ " << first << ": ");
+			return (std::cerr << "warning @ " << first << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
 	}
 }

@@ -6,10 +6,10 @@
 #include <string>
 #include <unordered_map>
 #include <filesystem>
-#include <stack>
 #include <array>
 #include <type_traits>
 #include <limits>
+#include <numeric>
 
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
@@ -23,7 +23,7 @@ namespace wpp {
 	using Arguments = std::unordered_map<std::string, std::string>;
 
 	struct Environment {
-		std::unordered_map<std::string, wpp::node_t> functions{};
+		std::unordered_map<std::string, std::vector<wpp::node_t>> functions{};
 		wpp::AST& tree;
 
 		Environment(wpp::AST& tree_): tree(tree_) {}
@@ -36,8 +36,8 @@ namespace wpp {
 	};
 
 	struct FnCaller : Caller {
-		wpp::Fn& func;
-		Caller& parent;
+		const wpp::Fn& func;
+		const Caller& parent;
 		wpp::Position pos;
 
 		// Flags needed by the recursion warning
@@ -45,8 +45,8 @@ namespace wpp {
 		bool conditional = false;
 
 		FnCaller(
-			wpp::Fn& func_,
-			Caller& parent_,
+			const wpp::Fn& func_,
+			const Caller& parent_,
 			const wpp::Position& pos_
 		):
 			func(func_),
@@ -105,7 +105,36 @@ namespace wpp {
 
 	inline std::string intrinsic_source(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, Caller& caller, wpp::Arguments* args = nullptr) {
 		const auto fname = eval_ast(expr, env, caller, args);
-		throw wpp::Exception{ pos, "source not implemented." };
+
+		const auto old_path = std::filesystem::current_path();
+		const auto new_path = old_path / std::filesystem::path{fname};
+
+		std::string file;
+
+		try {
+			file = wpp::read_file(fname);
+		}
+
+		catch (const std::filesystem::filesystem_error& e) {
+			throw wpp::Exception{pos, "file '", fname, "' not found."};
+		}
+
+		std::filesystem::current_path(new_path.parent_path());
+
+		wpp::Lexer lex{new_path.string(), file.c_str()};
+		wpp::node_t root;
+
+		try {
+			root = document(lex, env.tree);
+			return wpp::eval_ast(root, env, caller, args);
+		}
+
+		catch (const wpp::Exception& e) {
+			throw wpp::Exception{ pos, e.what() };
+		}
+
+		std::filesystem::current_path(old_path);
+
 		return "";
 	}
 
@@ -225,7 +254,7 @@ namespace wpp {
 
 		const auto code = eval_ast(expr, env, caller, args);
 
-		wpp::Lexer lex{code.c_str()};
+		wpp::Lexer lex{"<eval>", code.c_str()};
 		wpp::node_t root;
 
 		try {
@@ -368,13 +397,13 @@ namespace wpp {
 				if (args) {
 					if (auto it = (*args).find(caller_name); it != (*args).end()) {
 						if (caller_args.size() > 0)
-							throw wpp::Exception{caller_pos, "calling '", caller_name, "' as if it were a function, it is an argument."};
+							throw wpp::Exception{caller_pos, "calling argument '", caller_name, "' as if it were a function."};
 
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (functions.find(it->first + "0") != functions.end())
-							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function");
+						if (functions.find(wpp::cat(it->first, "0")) != functions.end())
+							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function.");
 
 						return;
 					}
@@ -383,10 +412,15 @@ namespace wpp {
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
 				auto it = functions.find(caller_mangled_name);
 				if (it == functions.end())
-					throw wpp::Exception{caller_pos, "func not found: ", caller_name};
+					throw wpp::Exception{caller_pos, "func not found: ", caller_name, "."};
+
+				if (it->second.empty())
+					throw wpp::Exception{caller_pos, "func not found: ", caller_name, "."};
+
+				const auto func = tree.get<wpp::Fn>(it->second.back());
 
 				// Retrieve function.
-				const auto& [callee_name, params, body, callee_pos] = tree.get<wpp::Fn>(it->second);
+				const auto& [callee_name, params, body, callee_pos] = func;
 
 				// Set up Arguments to pass down to function body.
 				Arguments env_args;
@@ -401,7 +435,7 @@ namespace wpp {
 					env_args.insert_or_assign(params[i], eval_ast(caller_args[i], env, caller, args));
 
 				// Set up caller to pass down to function body.
-				FnCaller env_caller(tree.get<wpp::Fn>(it->second), caller, caller_pos);
+				FnCaller env_caller(func, caller, caller_pos);
 
 				// Check if we are unconditionally calling ourselves (which should result in
 				// infinite recursion, and ultimately, in segfault).
@@ -427,7 +461,37 @@ namespace wpp {
 
 			[&] (const Fn& func) {
 				const auto& [name, params, body, pos] = func;
-				functions.insert_or_assign(wpp::cat(name, params.size()), node_id);
+
+				auto it = functions.find(wpp::cat(name, params.size()));
+
+				if (it != functions.end()) {
+					wpp::warn(pos, "function '", name, "' redefined.");
+					it->second.emplace_back(node_id);
+				}
+
+				else
+					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
+			},
+
+			[&] (const Drop& drop) {
+				const auto& [func, pos] = drop;
+				const auto& [caller_name, caller_args, caller_pos] = tree.get<FnInvoke>(func);
+
+				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
+
+				auto it = functions.find(caller_mangled_name);
+
+				if (it != functions.end()) {
+					if (not it->second.empty())
+						it->second.pop_back();
+
+					else
+						functions.erase(it);
+				}
+
+				else {
+					throw wpp::Exception{pos, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters)."};
+				}
 			},
 
 			[&] (const String& x) {
@@ -481,16 +545,21 @@ namespace wpp {
 			},
 
 			[&] (const Pre& pre) {
-				const auto& [name, stmts, pos] = pre;
+				const auto& [exprs, stmts, pos] = pre;
 
 				for (const wpp::node_t stmt: stmts) {
 					if (wpp::Fn* func = std::get_if<wpp::Fn>(&tree[stmt])) {
+						std::string name;
+
+						for (auto it = exprs.rbegin(); it != exprs.rend(); ++it)
+							name += eval_ast(*it, env, caller, args);
+
 						func->identifier = name + func->identifier;
 						str += eval_ast(stmt, env, caller, args);
 					}
 
 					else if (wpp::Pre* pre = std::get_if<wpp::Pre>(&tree[stmt])) {
-						pre->identifier = name + pre->identifier;
+						pre->exprs.insert(pre->exprs.end(), exprs.begin(), exprs.end());
 						str += eval_ast(stmt, env, caller, args);
 					}
 
@@ -507,6 +576,43 @@ namespace wpp {
 		);
 
 		return str;
+	}
+}
+
+namespace wpp {
+	int run(const std::string& fname) {
+		std::string file;
+
+		try {
+			file = wpp::read_file(fname);
+		}
+
+		catch (const std::filesystem::filesystem_error& e) {
+			tinge::errorln("file not found.");
+			return 1;
+		}
+
+		// Set current path to path of file.
+		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{fname}.parent_path());
+
+		try {
+			wpp::Lexer lex{fname, file.c_str()};
+			wpp::AST tree;
+			wpp::Environment env{tree};
+			wpp::Caller root_caller;
+
+			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+
+			auto root = wpp::document(lex, tree);
+			std::cout << wpp::eval_ast(root, env, root_caller) << std::flush;
+		}
+
+		catch (const wpp::Exception& e) {
+			wpp::error(e.pos, e.what());
+			return 1;
+		}
+
+		return 0;
 	}
 }
 

@@ -42,7 +42,7 @@ namespace wpp {
 
 	struct Intrinsic {
 		wpp::token_type_t type;
-		std::string identifer;
+		std::string identifier;
 		std::vector<wpp::node_t> arguments;
 		wpp::Position pos;
 
@@ -53,7 +53,7 @@ namespace wpp {
 			const wpp::Position& pos_
 		):
 			type(type_),
-			identifer(identifier_),
+			identifier(identifier_),
 			arguments(arguments_),
 			pos(pos_) {}
 
@@ -83,6 +83,18 @@ namespace wpp {
 		Fn(const wpp::Position& pos_): pos(pos_) {}
 
 		Fn() {}
+	};
+
+	struct Drop {
+		wpp::node_t func;
+		wpp::Position pos;
+
+		Drop(const wpp::node_t& func_, const wpp::Position& pos_):
+			func(func_), pos(pos_) {}
+
+		Drop(const wpp::Position& pos_): pos(pos_) {}
+
+		Drop() {}
 	};
 
 	// String literal.
@@ -133,16 +145,16 @@ namespace wpp {
 
 	// Namespace that embodies zero or more statements.
 	struct Pre {
-		std::string identifier;
+		std::vector<wpp::node_t> exprs;
 		std::vector<wpp::node_t> statements;
 		wpp::Position pos;
 
 		Pre(
-			const std::string& identifier_,
+			const std::vector<wpp::node_t>& exprs_,
 			const std::vector<wpp::node_t>& statements_,
 			const wpp::Position& pos_
 		):
-			identifier(identifier_),
+			exprs(exprs_),
 			statements(statements_),
 			pos(pos_) {}
 
@@ -201,7 +213,8 @@ namespace wpp {
 		Concat,
 		Block,
 		Pre,
-		Document
+		Document,
+		Drop
 	>;
 }
 
@@ -216,8 +229,8 @@ namespace wpp {
 			tok == TOKEN_PIPE or
 			tok == TOKEN_ERROR or
 			tok == TOKEN_SOURCE or
-			tok == TOKEN_SLICE or 
-			tok == TOKEN_FIND or 
+			tok == TOKEN_SLICE or
+			tok == TOKEN_FIND or
 			tok == TOKEN_LENGTH or
 			tok == TOKEN_ESCAPE or
 			tok == TOKEN_LOG
@@ -227,7 +240,8 @@ namespace wpp {
 	inline bool peek_is_keyword(const wpp::Token& tok) {
 		return
 			tok == TOKEN_LET or
-			tok == TOKEN_PREFIX
+			tok == TOKEN_PREFIX or
+			tok == TOKEN_DROP
 		;
 	}
 
@@ -354,8 +368,9 @@ namespace wpp {
 	inline void code_string(std::string&);
 
 	inline wpp::node_t function(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t drop(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t call(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t nspace(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t prefix(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
@@ -409,10 +424,10 @@ namespace wpp {
 			}
 
 			// Check if there's an keyword conflict.
-            // We check if the next token is a reserved name and throw an error
-            // if it is. The reason we don't check this in the while loop body is
-            // because the loop condition checks for an identifier and so breaks
-            // out if the next token is an intrinsic.
+			// We check if the next token is a reserved name and throw an error
+			// if it is. The reason we don't check this in the while loop body is
+			// because the loop condition checks for an identifier and so breaks
+			// out if the next token is an intrinsic.
 			if (peek_is_reserved_name(lex.peek()))
 				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
 
@@ -424,6 +439,18 @@ namespace wpp {
 		// Parse the function body.
 		const wpp::node_t body = expression(lex, tree);
 		tree.get<Fn>(node).body = body;
+
+		return node;
+	}
+
+
+	inline wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree) {
+		lex.advance(); // Skip `drop`.
+
+		const wpp::node_t node = tree.add<Drop>(lex.position());
+
+		const wpp::node_t call_expr = wpp::call(lex, tree);
+		tree.get<Drop>(node).func = call_expr;
 
 		return node;
 	}
@@ -726,7 +753,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t nspace(wpp::Lexer& lex, wpp::AST& tree) {
+	inline wpp::node_t prefix(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create `Pre` node.
 		const wpp::node_t node = tree.add<Pre>(lex.position());
 
@@ -737,11 +764,12 @@ namespace wpp {
 
 
 		// Expect identifier.
-		if (lex.peek() != TOKEN_IDENTIFIER)
+		if (not peek_is_expr(lex.peek()))
 			throw wpp::Exception{lex.position(), "prefix does not have a name."};
 
 		// Set name of `Pre`.
-		tree.get<Pre>(node).identifier = lex.advance().str();
+		const wpp::node_t expr = wpp::expression(lex, tree);
+		tree.get<Pre>(node).exprs = {expr};
 
 
 		// Expect opening brace.
@@ -810,7 +838,7 @@ namespace wpp {
 		}
 
 		if (lex.peek() == TOKEN_ARROW)
-			throw wpp::Exception{lex.position(), "'->' not expected in this context, did you intend to make a map?"};
+			throw wpp::Exception{tree.get<Block>(node).pos, "map is missing test expression."};
 
 		// Expect '}'.
 		if (lex.peek() != TOKEN_RBRACE)
@@ -932,8 +960,11 @@ namespace wpp {
 		if (lookahead == TOKEN_LET)
 			return wpp::function(lex, tree);
 
+		else if (lookahead == TOKEN_DROP)
+			return wpp::drop(lex, tree);
+
 		else if (lookahead == TOKEN_PREFIX)
-			return wpp::nspace(lex, tree);
+			return wpp::prefix(lex, tree);
 
 		else if (peek_is_expr(lookahead))
 			return wpp::expression(lex, tree);

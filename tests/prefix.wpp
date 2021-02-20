@@ -1,6 +1,16 @@
-prefix foo. {
+prefix "foo." {
 	let bar "baz"
 }
 
 #[expect(baz)]
 foo.bar
+
+
+prefix "foo." {
+	prefix "bar." {
+		let qookie "booba"
+	}
+}
+
+#[expect(booba)]
+foo.bar.qookie

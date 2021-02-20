@@ -1,0 +1,3 @@
+#[expect(start\n12345)]
+"start\n"
+source("data/source1")

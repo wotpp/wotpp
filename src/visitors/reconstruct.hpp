@@ -63,6 +63,13 @@ namespace wpp {
 				str += ") " + reconstruct_source(body, tree);
 			},
 
+			[&] (const Drop& drop) {
+				const auto& [func, pos] = drop;
+
+				str += "drop ";
+				str += reconstruct_source(func, tree);
+			},
+
 			[&] (const String& x) {
 				str = '"' + x.value + '"';
 			},
@@ -97,7 +104,12 @@ namespace wpp {
 			},
 
 			[&] (const Pre& pre) {
-				const auto& [name, stmts, pos] = pre;
+				const auto& [exprs, stmts, pos] = pre;
+
+				std::string name;
+
+				for (auto it = exprs.rbegin(); it != exprs.rend(); ++it)
+					name += reconstruct_source(*it, tree);
 
 				str += "prefix " + name + " { ";
 

@@ -4,36 +4,41 @@
 #define WOTPP_POSITION
 
 #include <iostream>
+#include <filesystem>
 
 // Track a position in a source file.
 // Calculated as needed when an error occurs.
 
 namespace wpp {
 	struct Position {
+		std::string path;
 		const char* msg = nullptr;
 		int line = 1, column = 1;
 	};
 
 
 	std::ostream& operator<<(std::ostream& os, const Position& pos) {
-		const auto& [msg, line, column] = pos;
+		const auto& [fname, msg, line, column] = pos;
 
 		if (msg)
 			return (os << msg);
 
 		else
-			return (os << line << ':' << column);
+			return (os << fname << ':' << line << ':' << column);
 	}
 
 
 	Position position(
+		const std::string& fname,
 		const char* ptr,
 		const char* const end,
 		int line_offset = 0,
 		int column_offset = 0
 	) {
 		Position coord;
-		auto& [msg, line, column] = coord;
+		auto& [path, msg, line, column] = coord;
+
+		path = fname;
 
 		while (ptr != end) {
 			if (*ptr == '\n') {
