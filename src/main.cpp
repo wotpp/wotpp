@@ -29,8 +29,11 @@ int main(int argc, const char* argv[]) {
 	auto usage = "w++ -i INPUT [-o OUTPUT] [-sh]";
 
 	auto argparser = wpp::ArgumentParser(
-		"wpp", "A small macro language for producing and manipulating strings", 
-		"alpha-git", usage)
+		"wot++", 
+		"A small macro language for producing and manipulating strings", 
+		"alpha-git", 
+		usage
+	)
 		.arg(&input,  "File to read input from",               "input",  "i", true)
 //		.arg(&output, "File to output to (stdout by default)", "output", "o", true)
 //		.arg(&sexpr,  "Print AST as S-expression",             "sexpr",  "s", false)
