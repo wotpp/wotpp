@@ -1,3 +1,10 @@
-#[ Should warn AND segfault ]
+#[ Should error ]
 let test(x) test(x)
 test("hi")
+
+let test test
+test
+
+#[ Sadly this can't be detected, since the argument changes, and segfaults ]
+let test(x) test("a"..x)
+test

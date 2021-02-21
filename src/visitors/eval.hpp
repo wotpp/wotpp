@@ -435,8 +435,21 @@ namespace wpp {
 					// we are.
 					// See: https://github.com/Jackojc/wotpp/issues/4#issuecomment-782187295
 
+					// We pass the check if and only if the function node ids are the same,
+					// we are not inside a map block, and all the arguments match.
+
 					if (caller.func == body and (not caller.conditional)) {
-						throw wpp::Exception(call_pos, "function ", func_name, " is unconditionally calling itself, which would result in infinite recursion.");
+						// Check arguments
+						bool args_identical = true;
+						for (const auto& [name, value]: args) {
+							if (env_args[name] != value) {
+								args_identical = false;
+								break;
+							}
+						}
+
+						if (args_identical)
+							throw wpp::Exception(call_pos, "function ", func_name, " is trying to unconditionally call itself, which would result in infinite recursion.");
 					}
 				}
 

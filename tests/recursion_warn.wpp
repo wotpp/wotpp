@@ -1,16 +1,21 @@
-#[ Shouldn't warn ]
+#[ Shouldn't error ]
 let test(x) x
 let test(x, y) test(x)
 
 #[expect(hi\n)]
 test("hi") "\n"
 
-#[ Shouldn't warn ]
+#[ Shouldn't error ]
 let test(x)
     map x {
         "hi" -> test("bye")
         * -> "hi"
     }
 
+#[expect(hi\n)]
+test("hi") "\n"
+
 #[expect(hi)]
-test("hi")
+let asd "hi"
+let test(x) eval(x)
+test("test(\"asd\")")
