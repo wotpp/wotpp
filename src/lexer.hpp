@@ -34,6 +34,7 @@ namespace wpp {
 		TOKEN(TOKEN_COMMA) \
 		TOKEN(TOKEN_STAR) \
 		TOKEN(TOKEN_BAR) \
+		TOKEN(TOKEN_BACKTICK) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
 		TOKEN(TOKEN_MAP) \
@@ -474,6 +475,9 @@ namespace wpp {
 
 		else if (*lex.str == '|')
 			lex_simple(TOKEN_BAR, 1, lex, tok);
+
+		else if (*lex.str == '`')
+			lex_simple(TOKEN_BACKTICK, 1, lex, tok);
 
 		else if (*lex.str == '*')
 			lex_simple(TOKEN_STAR, 1, lex, tok);
