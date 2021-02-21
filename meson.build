@@ -138,7 +138,8 @@ test_cases = {
 	'tests/recursion_warn.wpp': true,
 	'tests/recursion_warn_fail.wpp': false,
 	'tests/generational_func.wpp': true,
-	'tests/source.wpp': true
+	'tests/source.wpp': true,
+	'tests/backtick.wpp': true
 }
 
 if not get_option('disable_run')
