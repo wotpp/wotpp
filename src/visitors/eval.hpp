@@ -96,18 +96,12 @@ namespace wpp {
 		wpp::Lexer lex{new_path.string(), file.c_str()};
 		wpp::node_t root;
 
-		try {
-			root = document(lex, env.tree);
-			return wpp::eval_ast(root, env, args);
-		}
-
-		catch (const wpp::Exception& e) {
-			throw wpp::Exception{ pos, e.what() };
-		}
+		root = document(lex, env.tree);
+		const std::string str = wpp::eval_ast(root, env, args);
 
 		std::filesystem::current_path(old_path);
 
-		return "";
+		return str;
 	}
 
 
