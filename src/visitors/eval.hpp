@@ -25,7 +25,6 @@ namespace wpp {
 
 	struct Caller {
 		const wpp::node_t& func;
-		bool warned_recursion = false;
 		bool conditional = false;
 
 		Caller(const wpp::node_t& func_):
@@ -436,13 +435,8 @@ namespace wpp {
 					// we are.
 					// See: https://github.com/Jackojc/wotpp/issues/4#issuecomment-782187295
 
-					env_caller.warned_recursion = caller.warned_recursion;
-
-					if ((not caller.warned_recursion) and
-						caller.func == body and
-						(not caller.conditional)) {
-						wpp::warn(call_pos, "function ", func_name, " is unconditionally calling itself, which will result in infinite recursion.");
-						env_caller.warned_recursion = true;
+					if (caller.func == body and (not caller.conditional)) {
+						throw wpp::Exception(call_pos, "function ", func_name, " is unconditionally calling itself, which would result in infinite recursion.");
 					}
 				}
 
