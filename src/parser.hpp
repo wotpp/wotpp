@@ -251,6 +251,8 @@ namespace wpp {
 			tok == TOKEN_DOUBLEQUOTE or
 			tok == TOKEN_QUOTE or
 
+			tok == TOKEN_BACKTICK or
+
 			tok == TOKEN_HEX or
 			tok == TOKEN_BIN or
 
@@ -359,6 +361,7 @@ namespace wpp {
 	inline wpp::node_t string(wpp::Lexer&, wpp::AST&);
 
 	inline void normal_string(wpp::Lexer&, std::string&);
+	inline void backtick_string(wpp::Lexer&, std::string&);
 	inline void smart_string(wpp::Lexer&, std::string&);
 	inline void hex_string(wpp::Lexer&, std::string&);
 	inline void bin_string(wpp::Lexer&, std::string&);
@@ -469,6 +472,16 @@ namespace wpp {
 		}
 
 		lex.advance(); // Skip terminating quote.
+	}
+
+
+	inline void backtick_string(wpp::Lexer& lex, std::string& str) {
+		lex.advance(); // skip '`'.
+
+		if (lex.peek() != TOKEN_IDENTIFIER)
+			throw wpp::Exception{lex.position(), "expected an identifier to follow `."};
+
+		str = lex.advance().str();
 	}
 
 
@@ -699,6 +712,9 @@ namespace wpp {
 
 		else if (lex.peek() == TOKEN_SMART)
 			smart_string(lex, literal);
+
+		else if (lex.peek() == TOKEN_BACKTICK)
+			backtick_string(lex, literal);
 
 		else if (lex.peek() == TOKEN_QUOTE or lex.peek() == TOKEN_DOUBLEQUOTE)
 			normal_string(lex, literal);

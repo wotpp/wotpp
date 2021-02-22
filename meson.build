@@ -137,6 +137,7 @@ test_cases = {
 	'tests/smart_strings.wpp': true,
 	'tests/generational_func.wpp': true,
 	'tests/source.wpp': true,
+	'tests/backtick.wpp': true,
 }
 
 if not get_option('disable_run')
