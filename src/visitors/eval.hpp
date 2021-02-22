@@ -116,18 +116,12 @@ namespace wpp {
 		wpp::Lexer lex{new_path.string(), file.c_str()};
 		wpp::node_t root;
 
-		try {
-			root = document(lex, env.tree);
-			return wpp::eval_ast(root, env, fn_env);
-		}
-
-		catch (const wpp::Exception& e) {
-			throw wpp::Exception{ pos, e.what() };
-		}
+		root = document(lex, env.tree);
+		const std::string str = wpp::eval_ast(root, env, fn_env);
 
 		std::filesystem::current_path(old_path);
 
-		return "";
+		return str;
 	}
 
 
@@ -260,6 +254,10 @@ namespace wpp {
 
 	inline std::string intrinsic_run(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, const std::optional<wpp::FnEnvironment>& fn_env) {
 		const auto cmd = eval_ast(expr, env, fn_env);
+
+		#if defined(WPP_DISABLE_RUN)
+			throw wpp::Exception{ pos, "run not available." };
+		#endif
 
 		int rc = 0;
 		std::string str = wpp::exec(cmd, rc);

@@ -1,4 +1,4 @@
-prefix html/ {
+prefix "html/" {
 	let html(body)
 		"<!DOCTYPE HTML><html>" .. body .. "</html>"
 
@@ -20,7 +20,7 @@ prefix html/ {
 	let main(x) "<main>" .. x .. "</main>"
 }
 
-prefix blog/ {
+prefix "blog/" {
 	#[ creates a header with title and author titles ]
 	let header(title, author)
 		html/header(html/h1(title) .. html/h5(author))
@@ -47,7 +47,7 @@ prefix blog/ {
 		)
 }
 
-prefix user/ {
+prefix "user/" {
 	let stylesheet "style.css"
 	let title "Wot++ Development Blog"
 	let author "Jack Clarke"
