@@ -235,6 +235,10 @@ namespace wpp {
 	inline std::string intrinsic_run(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
 		const auto cmd = eval_ast(expr, env, args);
 
+		#if defined(WPP_DISABLE_RUN)
+			throw wpp::Exception{ pos, "run not available." };
+		#endif
+
 		int rc = 0;
 		std::string str = wpp::exec(cmd, rc);
 
