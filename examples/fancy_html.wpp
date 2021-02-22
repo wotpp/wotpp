@@ -3,7 +3,7 @@
 	with highlight.js
 ]
 
-prefix html/ {
+prefix "html/" {
 	let html(body)
 		"<!DOCTYPE HTML><html>" .. body .. "</html>"
 
@@ -33,7 +33,7 @@ prefix html/ {
 }
 
 
-prefix code/ {
+prefix "code/" {
 	let highlight(lang, code)
 		"<pre><code class='lang-" .. lang .. "'>" .. code .. "</code></pre>"
 
@@ -75,7 +75,7 @@ let blog/post(title, body)
 	)
 
 
-prefix user/ {
+prefix "user/" {
 	let style "body{margin:40px auto;max-width:650px;line-height:1.6;font-size:18px;color:#444;padding:0 10px}h1,h2,h3{line-height:1.2}"
 	let title "Wot++ Development Blog"
 	let author "Jack Clarke"
