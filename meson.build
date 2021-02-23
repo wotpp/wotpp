@@ -123,11 +123,9 @@ test_cases = {
 	'tests/raw.wpp': true,
 	'tests/code.wpp': true,
 	'tests/escape.wpp': true,
-	'tests/pipe.wpp': true,
 	'tests/map.wpp': true,
 	'tests/error_no_func.wpp': false,
 	'tests/assert_fail.wpp': false,
-	'tests/run_fail.wpp': false,
 	'tests/error.wpp': false,
 	'tests/conflict_keyword.wpp': false,
 	'tests/slice.wpp': true,
@@ -141,7 +139,9 @@ test_cases = {
 }
 
 if not get_option('disable_run')
+	test_cases += {'tests/run_fail.wpp': false}
 	test_cases += {'tests/run.wpp': true}
+	test_cases += {'tests/pipe.wpp': true}
 endif
 
 foreach case, should_pass: test_cases
