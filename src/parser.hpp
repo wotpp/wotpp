@@ -85,6 +85,26 @@ namespace wpp {
 		Fn() {}
 	};
 
+	// Variable definition.
+	struct Var {
+		std::string identifier;
+		wpp::node_t body;
+		wpp::Position pos;
+
+		Var(
+			const std::string& identifier_,
+			const wpp::node_t body_,
+			const wpp::Position& pos_
+		):
+			identifier(identifier_),
+			body(body_),
+			pos(pos_) {}
+
+		Var(const wpp::Position& pos_): pos(pos_) {}
+
+		Var() {}
+	};
+
 	struct Drop {
 		wpp::node_t func;
 		wpp::Position pos;
@@ -208,6 +228,7 @@ namespace wpp {
 		FnInvoke,
 		Intrinsic,
 		Fn,
+		Var,
 		Map,
 		String,
 		Concat,
@@ -240,6 +261,7 @@ namespace wpp {
 	inline bool peek_is_keyword(const wpp::Token& tok) {
 		return
 			tok == TOKEN_LET or
+			tok == TOKEN_VAR or
 			tok == TOKEN_PREFIX or
 			tok == TOKEN_DROP
 		;
@@ -371,6 +393,7 @@ namespace wpp {
 	inline void code_string(std::string&);
 
 	inline wpp::node_t function(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t var(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t drop(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t call(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t prefix(wpp::Lexer&, wpp::AST&);
@@ -442,6 +465,30 @@ namespace wpp {
 		// Parse the function body.
 		const wpp::node_t body = expression(lex, tree);
 		tree.get<Fn>(node).body = body;
+
+		return node;
+	}
+
+
+	inline wpp::node_t var(wpp::Lexer& lex, wpp::AST& tree) {
+		// Create `Var` node ahead of time so we can insert member data
+		// directly instead of copying/moving it into a new node at the end.
+		const wpp::node_t node = tree.add<Var>(lex.position());
+
+		// Skip `var` keyword. The statement parser already checked
+		// for it before calling us.
+		lex.advance();
+
+		// Make sure the next token is an identifier, if it is, set the name
+		// of our `Fn` node to match.
+		if (lex.peek() != TOKEN_IDENTIFIER)
+			throw wpp::Exception{lex.position(), "variable declaration does not have a name."};
+
+		tree.get<Var>(node).identifier = lex.advance().str();
+
+		// Parse the variable body.
+		const wpp::node_t body = expression(lex, tree);
+		tree.get<Var>(node).body = body;
 
 		return node;
 	}
@@ -975,6 +1022,9 @@ namespace wpp {
 
 		if (lookahead == TOKEN_LET)
 			return wpp::function(lex, tree);
+
+		else if (lookahead == TOKEN_VAR)
+			return wpp::var(lex, tree);
 
 		else if (lookahead == TOKEN_DROP)
 			return wpp::drop(lex, tree);

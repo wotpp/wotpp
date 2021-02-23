@@ -233,11 +233,11 @@ namespace wpp {
 
 
 	inline std::string intrinsic_run(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
-		const auto cmd = eval_ast(expr, env, args);
-
 		#if defined(WPP_DISABLE_RUN)
 			throw wpp::Exception{ pos, "run not available." };
 		#endif
+
+		const auto cmd = eval_ast(expr, env, args);
 
 		int rc = 0;
 		std::string str = wpp::exec(cmd, rc);
@@ -254,6 +254,10 @@ namespace wpp {
 
 
 	inline std::string intrinsic_pipe(wpp::node_t cmd, wpp::node_t data, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+		#if defined(WPP_DISABLE_RUN)
+			throw wpp::Exception{ pos, "pipe not available." };
+		#endif
+
 		std::string str;
 
 		const auto cmd_str = eval_ast(cmd, env, args);
@@ -418,6 +422,28 @@ namespace wpp {
 
 				else
 					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
+			},
+
+			[&] (const Var& var) {
+				auto [name, body, pos] = var;
+
+				const auto func_name = wpp::cat(name, 0);
+				const auto str = eval_ast(body, env, args);
+
+				// Replace body with a string of the evaluation result.
+				tree.replace<String>(body, str, pos);
+
+				// Replace Var node with Fn node.
+				tree.replace<Fn>(node_id, func_name, std::vector<std::string>{}, body, pos);
+
+				auto it = functions.find(func_name);
+				if (it != functions.end()) {
+					wpp::warn(tree.get<Fn>(node_id).pos, "function/variable '", name, "' redefined.");
+					it->second.emplace_back(node_id);
+				}
+
+				else
+					functions.emplace(func_name, std::vector{node_id});
 			},
 
 			[&] (const Drop& drop) {

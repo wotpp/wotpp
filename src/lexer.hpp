@@ -41,6 +41,7 @@ namespace wpp {
 		TOKEN(TOKEN_PREFIX) \
 		TOKEN(TOKEN_LET) \
 		TOKEN(TOKEN_DROP) \
+		TOKEN(TOKEN_VAR) \
 		\
 		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \
@@ -378,6 +379,7 @@ namespace wpp {
 		else if (view == "length")    type = TOKEN_LENGTH;
 		else if (view == "log")       type = TOKEN_LOG;
 		else if (view == "drop")      type = TOKEN_DROP;
+		else if (view == "var")       type = TOKEN_VAR;
 	}
 
 

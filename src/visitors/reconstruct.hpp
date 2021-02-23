@@ -63,6 +63,13 @@ namespace wpp {
 				str += ") " + reconstruct_source(body, tree);
 			},
 
+			[&] (const Var& var) {
+				const auto& [name, body, pos] = var;
+
+				str += "var " + name + " ";
+				str += reconstruct_source(body, tree);
+			},
+
 			[&] (const Drop& drop) {
 				const auto& [func, pos] = drop;
 

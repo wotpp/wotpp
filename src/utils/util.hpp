@@ -178,6 +178,9 @@ namespace wpp {
 
 			return result;
 		#else
+			(void)cmd;  // Hide "unused" warnings.
+			(void)rc;
+
 			return "";
 		#endif
 	}
