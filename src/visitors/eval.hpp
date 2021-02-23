@@ -447,8 +447,14 @@ namespace wpp {
 			},
 
 			[&] (const Drop& drop) {
-				const auto& [func, pos] = drop;
-				const auto& [caller_name, caller_args, caller_pos] = tree.get<FnInvoke>(func);
+				const auto& [func_id, pos] = drop;
+
+				auto* func = std::get_if<FnInvoke>(&tree[func_id]);
+
+				if (not func)
+					throw wpp::Exception{pos, "invalid function passed to drop."};
+
+				const auto& [caller_name, caller_args, caller_pos] = *func;
 
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
