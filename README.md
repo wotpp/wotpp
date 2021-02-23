@@ -11,7 +11,7 @@ bit-level manipulation, recursion and conditionals.
 [![license](https://img.shields.io/github/license/Jackojc/wotpp.svg?style=flat)](./LICENSE)
 ![code size](https://img.shields.io/github/languages/code-size/Jackojc/wotpp?style=flat-square)
 [![issues](https://img.shields.io/github/issues/Jackojc/wotpp.svg?style=flat)](https://github.com/Jackojc/wotpp/issues)
-[![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/hq7ys9dxcp)
+[![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/hQ7yS9dxcp)
 
 ### Getting Started & Reference
 See the introduction [here](docs/introduction.md)
