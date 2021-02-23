@@ -403,8 +403,18 @@ namespace wpp {
 				}
 
 				// Evaluate arguments and store their result.
-				for (int i = 0; i < (int)caller_args.size(); i++)
-					env_args.insert_or_assign(params[i], eval_ast(caller_args[i], env, args));
+				for (int i = 0; i < (int)caller_args.size(); i++) {
+					const auto result = eval_ast(caller_args[i], env, args);
+
+					if (auto it = env_args.find(params[i]); it != env_args.end()) {
+						wpp::warn(callee_pos, "parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope.");
+						it->second = result;
+					}
+
+					else {
+						env_args.insert_or_assign(params[i], eval_ast(caller_args[i], env, args));
+					}
+				}
 
 				// Call function.
 				str = eval_ast(body, env, &env_args);
