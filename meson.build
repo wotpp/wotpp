@@ -136,6 +136,7 @@ test_cases = {
 	'tests/generational_func.wpp': true,
 	'tests/source.wpp': true,
 	'tests/backtick.wpp': true,
+	'tests/var.wpp': true,
 }
 
 if not get_option('disable_run')

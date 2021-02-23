@@ -1,0 +1,4 @@
+#[expect(heyhey)]
+var foo "hey"
+var foo foo .. "hey"
+foo
