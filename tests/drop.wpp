@@ -1,0 +1,7 @@
+let x "a"
+let x "b"
+
+#[expect(ba)]
+x
+drop x
+x

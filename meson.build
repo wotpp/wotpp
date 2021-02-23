@@ -137,6 +137,8 @@ test_cases = {
 	'tests/source.wpp': true,
 	'tests/backtick.wpp': true,
 	'tests/var.wpp': true,
+	'tests/drop.wpp': true,
+	'tests/drop_fail.wpp': false,
 }
 
 if not get_option('disable_run')
