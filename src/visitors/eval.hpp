@@ -1,4 +1,4 @@
-#pragma once
+// #pragma once
 
 #ifndef WOTPP_EVAL
 #define WOTPP_EVAL
@@ -13,6 +13,7 @@
 
 #include <utils/util.hpp>
 #include <structures/ast.hpp>
+#include <structures/warnings.hpp>
 #include <exception.hpp>
 #include <parser.hpp>
 #include <visitors/reconstruct.hpp>
@@ -25,8 +26,11 @@ namespace wpp {
 	struct Environment {
 		std::unordered_map<std::string, std::vector<wpp::node_t>> functions{};
 		wpp::AST& tree;
+		wpp::warning_t warning_flags = 0;
 
-		Environment(wpp::AST& tree_): tree(tree_) {}
+		Environment(wpp::AST& tree_, const wpp::warning_t warning_flags_ = 0):
+			tree(tree_),
+			warning_flags(warning_flags_) {}
 	};
 
 
@@ -40,7 +44,7 @@ namespace wpp {
 		wpp::Environment& env,
 		wpp::Arguments* args = nullptr
 	) {
-		auto& [functions, tree] = env;
+		auto& [functions, tree, warnings] = env;
 
 		// Check if strings are equal.
 		const auto str_a = eval_ast(a, env, args);
@@ -214,7 +218,7 @@ namespace wpp {
 	}
 
 	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
-		auto& [functions, tree] = env;
+		auto& [functions, tree, warnings] = env;
 
 		const auto code = eval_ast(expr, env, args);
 
@@ -291,7 +295,7 @@ namespace wpp {
 
 
 	inline std::string eval_ast(const wpp::node_t node_id, wpp::Environment& env, wpp::Arguments* args) {
-		auto& [functions, tree] = env;
+		auto& [functions, tree, warnings] = env;
 		const auto& variant = tree[node_id];
 		std::string str;
 
@@ -374,7 +378,7 @@ namespace wpp {
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (functions.find(wpp::cat(it->first, "0")) != functions.end())
+						if (warnings & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(wpp::cat(caller_name, 0)) != functions.end())
 							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function.");
 
 						return;
@@ -407,7 +411,9 @@ namespace wpp {
 					const auto result = eval_ast(caller_args[i], env, args);
 
 					if (auto it = env_args.find(params[i]); it != env_args.end()) {
-						wpp::warn(callee_pos, "parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope.");
+						if (warnings & wpp::WARN_PARAM_SHADOW_PARAM)
+							wpp::warn(callee_pos, "parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope.");
+
 						it->second = result;
 					}
 
@@ -426,7 +432,9 @@ namespace wpp {
 				auto it = functions.find(wpp::cat(name, params.size()));
 
 				if (it != functions.end()) {
-					wpp::warn(pos, "function '", name, "' redefined.");
+					if (warnings & wpp::WARN_FUNC_REDEFINED)
+						wpp::warn(pos, "function '", name, "' redefined.");
+
 					it->second.emplace_back(node_id);
 				}
 
@@ -448,7 +456,9 @@ namespace wpp {
 
 				auto it = functions.find(func_name);
 				if (it != functions.end()) {
-					wpp::warn(tree.get<Fn>(node_id).pos, "function/variable '", name, "' redefined.");
+					if (warnings & wpp::WARN_VARFUNC_REDEFINED)
+						wpp::warn(tree.get<Fn>(node_id).pos, "function/variable '", name, "' redefined.");
+
 					it->second.emplace_back(node_id);
 				}
 
@@ -561,7 +571,7 @@ namespace wpp {
 }
 
 namespace wpp {
-	int run(const std::string& fname) {
+	int run(const std::string& fname, const wpp::warning_t warning_flags = 0) {
 		std::string file;
 
 		try {
@@ -579,7 +589,7 @@ namespace wpp {
 		try {
 			wpp::Lexer lex{fname, file.c_str()};
 			wpp::AST tree;
-			wpp::Environment env{tree};
+			wpp::Environment env{tree, warning_flags};
 
 			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
