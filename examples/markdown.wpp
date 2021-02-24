@@ -29,7 +29,7 @@ hr
 
 h3("Testing a wot++ markdown wrapper")
 quote("Here's a quote.")
-codeblock("cpp", c#"
+codeblock(!cpp, c#"
 	int main(int, const char*[]) {
 		return 0;
 	}

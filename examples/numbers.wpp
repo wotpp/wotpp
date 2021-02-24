@@ -1,43 +1,38 @@
-let nl "\n"
-let quoted(x) "\"" .. x .. "\""
-
-#[ numbers ]
-let zero "z"
+let 0 "z"
 let succ(x) "s(" .. x .. ")"
-let add(x,z) {
-  let s(x) succ(x)
-  eval(x)
-}
 
-let mult(x,y) {
-  let s(x) add(y, x)
-  let z zero
-  eval(x)
-}
-
-let one succ(zero)
-let two succ(one)
-let three add(one, two)
-let six mult(two, three)
-
-zero nl
-one nl
-two nl
-three nl
-six nl
-
-let ifz(x, then, else) {
-  let s(x) else
-  let z then
-  eval(x)
-}
-
-ifz(zero, "it is!", "not?!") nl
-ifz(one, "it is!", "not?!") nl
 
 let repeat(str, x) {
-  let s(x) str .. x
-  let z ""
-  eval(x)
+	let s(x) str .. '(' .. x .. ')'
+	let z "z"
+	=x
 }
-repeat("Let's go!" .. nl, add(one, add(three, six)))
+
+
+let 1 succ(0) let 2 succ(1)
+let 3 succ(2) let 4 succ(3)
+let 5 succ(4) let 6 succ(5)
+let 7 succ(6) let 8 succ(7)
+let 9 succ(8) let 10 succ(9)
+
+
+let num2str(x) map x {
+	0 ->  !0
+	1 ->  !1
+	2 ->  !2
+	3 ->  !3
+	4 ->  !4
+	5 ->  !5
+	6 ->  !6
+	7 ->  !7
+	8 ->  !8
+	9 ->  !9
+	10 -> !10
+	* -> error('"' .. x .. '"')
+}
+
+let cb(x)
+	"<li>" .. x .. "</li>\n"
+
+
+repeat(!s, 5)

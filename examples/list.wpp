@@ -7,19 +7,18 @@ let pr_line(x)
 
 let print_n(n) {
 	pr_line(n) ..
-	eval(
-		"case" ..
 
-		run(
-			"test " .. n .. " -eq 0; echo $?"
-		) ..
+	="case" ..
 
-		"(" ..
-			run("echo \\\"$((" .. n .. "-1))\\\"") ..
-		")"
-	)
+	run(
+		"test " .. n .. " -eq 0; echo $?"
+	) ..
+
+	"(" ..
+		run(r#"echo \\"$(("# .. n .. r#"-1))\\""#) ..
+	")"
 }
 
 "<html><body><ul>"
-	print_n("20")
+	print_n(!20)
 "</ul></body></html>"
