@@ -65,6 +65,7 @@ eu rhoncus iaculis, justo erat efficitur purus, et dictum mi lorem sit amet nequ
 - Python3 (optional, required for running test suite)
 
 ### Build & Run
+> For distro specific instructions, see: [install.md](docs/install.md)
 ```
 $ meson build
 $ ninja -C build
@@ -101,6 +102,7 @@ $ ninja -C build test
 ```
 
 ### Installation
+> For distro specific instructions, see: [install.md](docs/install.md)
 ```
 $ cd build/
 $ meson install  # requires root perms (sudo/su/doas)
