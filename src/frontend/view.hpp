@@ -5,10 +5,11 @@
 
 #include <string>
 #include <iostream>
+
 #include <cstring>
 #include <cstdint>
 
-#include <utils/util.hpp>
+#include <misc/util/util.hpp>
 
 // A view is a non-owning way to view a string.
 
@@ -96,7 +97,7 @@ namespace wpp {
 	// Hashing function for `View` so that we can insert
 	// it into unordered_map.
 	struct ViewHasher {
-		constexpr std::size_t operator()(const View& v) const {
+		std::size_t operator()(const View& v) const {
 			return wpp::hash_bytes(v.ptr, v.ptr + v.length);
 		}
 	};

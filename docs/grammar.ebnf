@@ -28,28 +28,44 @@ bin_literal ::= '0b' ( <bin_chars> | '_' )*
 string ::= <basic_string> | <paragraph_string> | <raw_string> | <code_string> | <hex_literal> | <bin_literal>
 
 
-/// Functions
+/// Functions/Variables/Drop
 //
 // `foo("bar", baz())`
 // `let greeting(name) "hello " .. name`
 // `let name "jack"`
 // `name`
 //
-fn_args ::= '(' <identifer> ( ',' <identifer> )* ')' [ ',' ]
+fn_args ::= '(' <identifier> ( ',' <identifier> )* ')' [ ',' ]
 fn ::= 'let' <identifier> [ <fn_args> ] <expression>
 
-fn_intrinsic ::= 'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' | 'pipe' | 'error' | 'log'
-fn_invoke ::= ( <identifer> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
+fn_intrinsic ::=
+	'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' |
+	'pipe' | 'error' | 'log' | 'slice' | 'find' | 'length'
+
+fn_invoke ::= ( <identifier> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
+
+// `drop foo(x)`
+drop ::= 'drop' <fn_invoke>
+
+// `var foo "bar"`
+var ::= 'var' <identifier> <expression>
+
+codeify ::= '=' <expression>
+stringify ::= '!' <identifier>
 
 
 /// Prefixes
 //
-// `prefix foo/bar/ { let name "jack" }`
+// `prefix "foo/bar/" { let name "jack" }`
 //
-pre ::= 'prefix' <identifer> '{' <statement>* '}'
+pre ::= 'prefix' <expression> '{' <statement>* '}'
 
 
 /// Map
+// map "foo" {
+//     "foo" -> "bar"
+//     "bar" -> "foo"
+// }
 map_or ::= ( <expression> ( '|' <expression> )* ) | '*'
 map_also ::= <map_or> ( ',' <map_or> )*
 map_arm ::= <map_also> '->' <expression>
@@ -84,9 +100,11 @@ expression ::= (
 		<block> |
 		<concat> |
 		<string> |
-		<map>
+		<map> |
+		<codeify> |
+		<stringify>
 	)
 
 
-statement ::= <fn> | <pre> | <expression>
+statement ::= <fn> | <pre> | <drop> | <var> | <expression>
 document ::= <statement>*

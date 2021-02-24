@@ -38,11 +38,11 @@ prefix "code/" {
 		"<pre><code class='lang-" .. lang .. "'>" .. code .. "</code></pre>"
 
 	let new_highlighter(lang)
-		eval("let code/" .. lang .. "(code) code/highlight('" .. lang .. "', code)")
+		="let code/" .. lang .. "(code) code/highlight('" .. lang .. "', code)"
 
-	code/new_highlighter("cpp")
-	code/new_highlighter("rust")
-	code/new_highlighter("python")
+	code/new_highlighter(!cpp)
+	code/new_highlighter(!rust)
+	code/new_highlighter(!python)
 }
 
 

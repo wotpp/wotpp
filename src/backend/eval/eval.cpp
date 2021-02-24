@@ -1,46 +1,32 @@
-#pragma once
-
-#ifndef WOTPP_EVAL
-#define WOTPP_EVAL
-
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include <filesystem>
 #include <array>
 #include <type_traits>
 #include <limits>
 #include <numeric>
+#include <algorithm>
 
-#include <utils/util.hpp>
-#include <structures/ast.hpp>
-#include <exception.hpp>
-#include <parser.hpp>
-#include <visitors/reconstruct.hpp>
+#include <misc/util/util.hpp>
+#include <misc/warnings.hpp>
+#include <frontend/ast.hpp>
+#include <structures/exception.hpp>
+#include <frontend/parser/parser.hpp>
+#include <frontend/parser/ast_nodes.hpp>
 
-// AST visitor that evaluates the program.
+#include <backend/eval/eval.hpp>
+
 
 namespace wpp {
-	using Arguments = std::unordered_map<std::string, std::string>;
-
-	struct Environment {
-		std::unordered_map<std::string, std::vector<wpp::node_t>> functions{};
-		wpp::AST& tree;
-
-		Environment(wpp::AST& tree_): tree(tree_) {}
-	};
-
-
-	inline std::string eval_ast(const wpp::node_t, wpp::Environment&, wpp::Arguments* = nullptr);
-
-
-	inline std::string intrinsic_assert(
-		wpp::node_t node_id,
+	std::string intrinsic_assert(
+		wpp::node_t expr,
 		wpp::node_t a, wpp::node_t b,
 		const wpp::Position& pos,
 		wpp::Environment& env,
-		wpp::Arguments* args = nullptr
+		wpp::Arguments* args
 	) {
-		auto& [functions, tree] = env;
+		// auto& [base, functions, tree, warnings] = env;
 
 		// Check if strings are equal.
 		const auto str_a = eval_ast(a, env, args);
@@ -48,25 +34,26 @@ namespace wpp {
 
 		if (str_a != str_b)
 			throw wpp::Exception{
-				pos, "assertion failed: ", reconstruct_source(node_id, tree)
+				// pos, "assertion failed: ", reconstruct_source(node_id, tree)
+				pos, "assertion failed!"
 			};
 
 		return "";
 	}
 
 
-	inline std::string intrinsic_error(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+	std::string intrinsic_error(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args) {
 		const auto msg = eval_ast(expr, env, args);
 		throw wpp::Exception{ pos, msg };
 		return "";
 	}
 
 
-	inline std::string intrinsic_file(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+	std::string intrinsic_file(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args) {
 		const auto fname = eval_ast(expr, env, args);
 
 		try {
-			return wpp::read_file(fname);
+			return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
 		}
 
 		catch (...) {
@@ -75,12 +62,14 @@ namespace wpp {
 	}
 
 
-	inline std::string intrinsic_source(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+	std::string intrinsic_source(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args) {
 		const auto fname = eval_ast(expr, env, args);
 
+		// Store current path and get the path of the new file.
 		const auto old_path = std::filesystem::current_path();
 		const auto new_path = old_path / std::filesystem::path{fname};
 
+		// Read the new file.
 		std::string file;
 
 		try {
@@ -91,12 +80,14 @@ namespace wpp {
 			throw wpp::Exception{pos, "file '", fname, "' not found."};
 		}
 
+
+		// Create lexer, passing the new path relative to base path.
+		wpp::Lexer lex{std::filesystem::relative(new_path, env.base), file.c_str()};
+		wpp::node_t root = document(lex, env.tree);
+
+
 		std::filesystem::current_path(new_path.parent_path());
 
-		wpp::Lexer lex{new_path.string(), file.c_str()};
-		wpp::node_t root;
-
-		root = document(lex, env.tree);
 		const std::string str = wpp::eval_ast(root, env, args);
 
 		std::filesystem::current_path(old_path);
@@ -105,16 +96,17 @@ namespace wpp {
 	}
 
 
-	inline std::string intrinsic_log(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args = nullptr) {
-		std::string str = eval_ast(expr, env, args);
-		std::cerr << str;
+	std::string intrinsic_log(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args) {
+		std::cerr << eval_ast(expr, env, args);
 		return "";
 	}
 
 
-	inline std::string intrinsic_escape(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+	std::string intrinsic_escape(wpp::node_t expr, const wpp::Position&, wpp::Environment& env, wpp::Arguments* args) {
+		// Escape escape chars in a string.
 		std::string str;
 		const auto input = eval_ast(expr, env, args);
+		str.reserve(input.size());
 
 		for (const char c: input) {
 			switch (c) {
@@ -130,13 +122,13 @@ namespace wpp {
 		return str;
 	}
 
-	inline std::string intrinsic_slice(
+	std::string intrinsic_slice(
 		wpp::node_t string_expr,
 		wpp::node_t start_expr,
 		wpp::node_t end_expr,
 		const wpp::Position& pos,
 		wpp::Environment& env,
-		wpp::Arguments* args = nullptr
+		wpp::Arguments* args
 	) {
 		// Evaluate arguments
 		const auto string = eval_ast(string_expr, env, args);
@@ -187,34 +179,31 @@ namespace wpp {
 			return string.substr(begin, count);
 	}
 
-	inline std::string intrinsic_find(
+	std::string intrinsic_find(
 		wpp::node_t string_expr,
 		wpp::node_t pattern_expr,
 		wpp::Environment& env,
-		wpp::Arguments* args = nullptr
+		wpp::Arguments* args
 	) {
 		// Evaluate arguments
 		const auto string = eval_ast(string_expr, env, args);
 		const auto pattern = eval_ast(pattern_expr, env, args);
 
-		// Search in string
-		auto position = string.find(pattern);
-
-		if (position != std::string::npos)
+		// Search in string. Returns the index of a match.
+		if (auto position = string.find(pattern); position != std::string::npos)
 			return std::to_string(position);
-		else
-			return "";
+
+		return "";
 	}
 
-	inline std::string intrinsic_length(wpp::node_t string_expr, wpp::Environment& env, wpp::Arguments* args) {
+	std::string intrinsic_length(wpp::node_t string_expr, wpp::Environment& env, wpp::Arguments* args) {
 		// Evaluate argument
 		const auto string = eval_ast(string_expr, env, args);
-
 		return std::to_string(string.size());
 	}
 
-	inline std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
-		auto& [functions, tree] = env;
+	std::string intrinsic_eval(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args) {
+		auto& [base, functions, tree, warnings] = env;
 
 		const auto code = eval_ast(expr, env, args);
 
@@ -232,12 +221,12 @@ namespace wpp {
 	}
 
 
-	inline std::string intrinsic_run(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
-		const auto cmd = eval_ast(expr, env, args);
-
+	std::string intrinsic_run(wpp::node_t expr, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args) {
 		#if defined(WPP_DISABLE_RUN)
 			throw wpp::Exception{ pos, "run not available." };
 		#endif
+
+		const auto cmd = eval_ast(expr, env, args);
 
 		int rc = 0;
 		std::string str = wpp::exec(cmd, rc);
@@ -253,27 +242,18 @@ namespace wpp {
 	}
 
 
-	inline std::string intrinsic_pipe(wpp::node_t cmd, wpp::node_t data, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr) {
+	std::string intrinsic_pipe(wpp::node_t cmd, wpp::node_t data, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args) {
+		#if defined(WPP_DISABLE_RUN)
+			throw wpp::Exception{ pos, "pipe not available." };
+		#endif
+
 		std::string str;
 
 		const auto cmd_str = eval_ast(cmd, env, args);
 		const auto data_str = eval_ast(data, env, args);
 
-		for (const char c: data_str) {
-			switch (c) {
-				case '"':  str += "\\\""; break;
-				case '\'': str += "\\'"; break;
-				case '\n': str += "\\n"; break;
-				case '\t': str += "\\t"; break;
-				case '\r': str += "\\r"; break;
-				default:   str += c; break;
-			}
-		}
-
-		std::string runner = wpp::cat("echo \"", str, "\" | ", cmd_str);
-
 		int rc = 0;
-		std::string out = wpp::exec(runner, rc);
+		std::string out = wpp::exec(cmd_str, data_str, rc);
 
 		// trim trailing newline.
 		if (out.back() == '\n')
@@ -286,15 +266,21 @@ namespace wpp {
 	}
 
 
-	inline std::string eval_ast(const wpp::node_t node_id, wpp::Environment& env, wpp::Arguments* args) {
-		auto& [functions, tree] = env;
-		const auto& variant = tree[node_id];
+
+
+
+
+
+	// The core of the evaluator.
+	std::string eval_ast(const wpp::node_t node_id, wpp::Environment& env, wpp::Arguments* args) {
+		const auto& variant = env.tree[node_id];
 		std::string str;
 
 		wpp::visit(variant,
 			[&] (const Intrinsic& fn) {
 				const auto& [type, name, exprs, pos] = fn;
 
+				// Make sure that intrinsic is called with the correct number of arguments.
 				constexpr std::array intrinsic_arg_n = [&] {
 					std::array<size_t, TOKEN_TOTAL> lookup{};
 
@@ -320,6 +306,7 @@ namespace wpp {
 					throw wpp::Exception{pos, name, " takes exactly ", n_args, " arguments."};
 
 
+				// Dispatch to instrinsics.
 				if (type == TOKEN_ASSERT)
 					str = wpp::intrinsic_assert(node_id, exprs[0], exprs[1], pos, env, args);
 
@@ -358,6 +345,7 @@ namespace wpp {
 			},
 
 			[&] (const FnInvoke& call) {
+				auto& [base, functions, tree, warnings] = env;
 				const auto& [caller_name, caller_args, caller_pos] = call;
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
@@ -370,7 +358,7 @@ namespace wpp {
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (functions.find(wpp::cat(it->first, "0")) != functions.end())
+						if (warnings & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(wpp::cat(caller_name, 0)) != functions.end())
 							wpp::warn(caller_pos, "parameter ", caller_name, " is shadowing a function.");
 
 						return;
@@ -399,20 +387,35 @@ namespace wpp {
 				}
 
 				// Evaluate arguments and store their result.
-				for (int i = 0; i < (int)caller_args.size(); i++)
-					env_args.insert_or_assign(params[i], eval_ast(caller_args[i], env, args));
+				for (int i = 0; i < (int)caller_args.size(); i++) {
+					const auto result = eval_ast(caller_args[i], env, args);
+
+					if (auto it = env_args.find(params[i]); it != env_args.end()) {
+						if (warnings & wpp::WARN_PARAM_SHADOW_PARAM)
+							wpp::warn(callee_pos, "parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope.");
+
+						it->second = result;
+					}
+
+					else {
+						env_args.insert_or_assign(params[i], eval_ast(caller_args[i], env, args));
+					}
+				}
 
 				// Call function.
 				str = eval_ast(body, env, &env_args);
 			},
 
 			[&] (const Fn& func) {
+				auto& [base, functions, tree, warnings] = env;
 				const auto& [name, params, body, pos] = func;
 
 				auto it = functions.find(wpp::cat(name, params.size()));
 
 				if (it != functions.end()) {
-					wpp::warn(pos, "function '", name, "' redefined.");
+					if (warnings & wpp::WARN_FUNC_REDEFINED)
+						wpp::warn(pos, "function '", name, "' redefined.");
+
 					it->second.emplace_back(node_id);
 				}
 
@@ -420,9 +423,46 @@ namespace wpp {
 					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
 			},
 
+			[&] (const Codeify& colby) {
+				const auto& [expr, pos] = colby;
+				str = intrinsic_eval(expr, pos, env, args);
+			},
+
+			[&] (const Var& var) {
+				auto& [base, functions, tree, warnings] = env;
+				auto [name, body, pos] = var;
+
+				const auto func_name = wpp::cat(name, 0);
+				const auto str = eval_ast(body, env, args);
+
+				// Replace body with a string of the evaluation result.
+				tree.replace<String>(body, str, pos);
+
+				// Replace Var node with Fn node.
+				tree.replace<Fn>(node_id, func_name, std::vector<std::string>{}, body, pos);
+
+				auto it = functions.find(func_name);
+				if (it != functions.end()) {
+					if (warnings & wpp::WARN_VARFUNC_REDEFINED)
+						wpp::warn(tree.get<Fn>(node_id).pos, "function/variable '", name, "' redefined.");
+
+					it->second.emplace_back(node_id);
+				}
+
+				else
+					functions.emplace(func_name, std::vector{node_id});
+			},
+
 			[&] (const Drop& drop) {
-				const auto& [func, pos] = drop;
-				const auto& [caller_name, caller_args, caller_pos] = tree.get<FnInvoke>(func);
+				auto& [base, functions, tree, warnings] = env;
+				const auto& [func_id, pos] = drop;
+
+				auto* func = std::get_if<FnInvoke>(&tree[func_id]);
+
+				if (not func)
+					throw wpp::Exception{pos, "invalid function passed to drop."};
+
+				const auto& [caller_name, caller_args, caller_pos] = *func;
 
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
@@ -484,6 +524,7 @@ namespace wpp {
 			},
 
 			[&] (const Pre& pre) {
+				auto& [base, functions, tree, warnings] = env;
 				const auto& [exprs, stmts, pos] = pre;
 
 				for (const wpp::node_t stmt: stmts) {
@@ -518,8 +559,12 @@ namespace wpp {
 	}
 }
 
+
+
+
+
 namespace wpp {
-	int run(const std::string& fname) {
+	int run(const std::string& fname, const wpp::warning_t warning_flags) {
 		std::string file;
 
 		try {
@@ -527,17 +572,18 @@ namespace wpp {
 		}
 
 		catch (const std::filesystem::filesystem_error& e) {
-			tinge::errorln("file not found.");
+			std::cerr << "file not found.\n";
 			return 1;
 		}
 
 		// Set current path to path of file.
-		std::filesystem::current_path(std::filesystem::current_path() / std::filesystem::path{fname}.parent_path());
+		const auto path = std::filesystem::current_path() / std::filesystem::path{fname};
+		std::filesystem::current_path(path.parent_path());
 
 		try {
-			wpp::Lexer lex{fname, file.c_str()};
+			wpp::Lexer lex{std::filesystem::current_path(), file.c_str()};
 			wpp::AST tree;
-			wpp::Environment env{tree};
+			wpp::Environment env{std::filesystem::current_path(), tree, warning_flags};
 
 			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
@@ -554,5 +600,4 @@ namespace wpp {
 	}
 }
 
-#endif
 

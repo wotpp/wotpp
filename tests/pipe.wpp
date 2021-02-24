@@ -1,3 +1,2 @@
 #[expect("hello world")]
-pipe("cat", r#""hello world""#)
-
+pipe("cat", r~""hello world""~)

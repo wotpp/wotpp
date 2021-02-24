@@ -5,9 +5,10 @@
 
 #include <string>
 #include <iostream>
+
 #include <cstdint>
 
-#include <structures/view.hpp>
+#include <frontend/view.hpp>
 
 // Token structure that combines a type with a view of it's contents.
 

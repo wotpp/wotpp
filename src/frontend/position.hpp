@@ -4,7 +4,7 @@
 #define WOTPP_POSITION
 
 #include <iostream>
-#include <filesystem>
+#include <string>
 
 // Track a position in a source file.
 // Calculated as needed when an error occurs.
@@ -17,18 +17,18 @@ namespace wpp {
 	};
 
 
-	std::ostream& operator<<(std::ostream& os, const Position& pos) {
+	inline std::ostream& operator<<(std::ostream& os, const Position& pos) {
 		const auto& [fname, msg, line, column] = pos;
 
 		if (msg)
-			return (os << msg);
+			return (os << fname << ':' << msg);
 
 		else
 			return (os << fname << ':' << line << ':' << column);
 	}
 
 
-	Position position(
+	inline Position position(
 		const std::string& fname,
 		const char* ptr,
 		const char* const end,

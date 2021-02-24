@@ -55,7 +55,7 @@ namespace wpp {
 	}
 
 	// Get the size of a UTF-8 codepoint.
-	uint8_t utf_size(const char* ptr) {
+	inline uint8_t utf_size(const char* ptr) {
 		uint8_t out = 0;
 
 		const bool vals[] = {
@@ -72,7 +72,7 @@ namespace wpp {
 	}
 
 	// Convert a hex digit to an int.
-	uint8_t hex_to_digit(char c) {
+	inline uint8_t hex_to_digit(char c) {
 		if (c >= '0' && c <= '9')
 			return c - '0';
 

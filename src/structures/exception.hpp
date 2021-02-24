@@ -6,8 +6,8 @@
 #include <stdexcept>
 #include <string>
 
-#include <structures/position.hpp>
-#include <utils/util.hpp>
+#include <frontend/position.hpp>
+#include <misc/util/util.hpp>
 
 namespace wpp {
 	constexpr const char* DEFAULT_ERROR_MESSAGE = "an error has occurred.";

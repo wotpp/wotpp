@@ -11,7 +11,7 @@ bit-level manipulation, recursion and conditionals.
 [![license](https://img.shields.io/github/license/Jackojc/wotpp.svg?style=flat)](./LICENSE)
 ![code size](https://img.shields.io/github/languages/code-size/Jackojc/wotpp?style=flat-square)
 [![issues](https://img.shields.io/github/issues/Jackojc/wotpp.svg?style=flat)](https://github.com/Jackojc/wotpp/issues)
-[![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/RmgjcES)
+[![discord](https://img.shields.io/discord/537732103765229590.svg?label=discord&style=flat)](https://discord.gg/hQ7yS9dxcp)
 
 ### Getting Started & Reference
 See the introduction [here](docs/introduction.md)
@@ -65,6 +65,7 @@ eu rhoncus iaculis, justo erat efficitur purus, et dictum mi lorem sit amet nequ
 - Python3 (optional, required for running test suite)
 
 ### Build & Run
+> For distro specific instructions, see: [install.md](docs/install.md)
 ```
 $ meson build
 $ ninja -C build
@@ -101,6 +102,7 @@ $ ninja -C build test
 ```
 
 ### Installation
+> For distro specific instructions, see: [install.md](docs/install.md)
 ```
 $ cd build/
 $ meson install  # requires root perms (sudo/su/doas)
@@ -112,6 +114,13 @@ $ cd build/
 $ meson configure --prefix=/usr/local/
 $ DESTDIR=/ meson install
 ```
+
+### Cool Projects
+[wot-goodies](https://github.com/jlagarespo/wot-goodies)
+> A collection of interesting snippets of Wot++ code.
+
+[waas](https://github.com/iCiaran/waas)
+> A site where you can upload wot++ files and download the compiled output.
 
 ### Acknowledgements
 Thanks, in no particular order:
@@ -132,7 +141,7 @@ And everyone else who I may have failed to mention over the years.
 See the timeline [here](docs/history/README.md).
 
 ### License
-This project uses the MPL-2.0 license. (check [LICENSE.md](LICENSE.md))
+This project uses the MPL-2.0 license. (check [LICENSE](LICENSE))
 
 ### Progress & Discussion
 You can join the discord server in order to follow progress and/or contribute to discussion of the project. (https://discord.gg/hQ7yS9dxcp)

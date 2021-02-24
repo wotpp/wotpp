@@ -1,7 +1,10 @@
 #[ partial application ]
-let partial(f, fx, x) eval("let " .. fx .. "(y) " .. f .. "(\"" .. x .. "\", y)")
-let concat(x,y) x .. y
-partial("concat", "foo", "foo")
+let partial(f, fx, x)
+	="let " .. fx .. "(y) " .. f .. '("' .. x .. '\", y)'
 
-foo("bar")
+let concat(x, y)
+	x .. y
+
+partial(!concat, !foo, !foo)
+foo(!bar)
 
