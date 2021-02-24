@@ -28,7 +28,7 @@ namespace wpp {
 
 		#else
 			wpp::AST tree;
-			wpp::Environment env{tree};
+			wpp::Environment env{std::filesystem::current_path(), tree};
 
 			// Reserve 10MiB
 			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));

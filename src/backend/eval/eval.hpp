@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <filesystem>
 
 #include <frontend/parser/ast_nodes.hpp>
 
@@ -15,11 +16,17 @@ namespace wpp {
 	using Arguments = std::unordered_map<std::string, std::string>;
 
 	struct Environment {
+		std::filesystem::path base;
 		std::unordered_map<std::string, std::vector<wpp::node_t>> functions{};
 		wpp::AST& tree;
 		wpp::warning_t warning_flags = 0;
 
-		Environment(wpp::AST& tree_, const wpp::warning_t warning_flags_ = 0):
+		Environment(
+			const std::filesystem::path& base_,
+			wpp::AST& tree_,
+			const wpp::warning_t warning_flags_ = 0
+		):
+			base(base_),
 			tree(tree_),
 			warning_flags(warning_flags_) {}
 	};

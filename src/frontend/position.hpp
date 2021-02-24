@@ -21,7 +21,7 @@ namespace wpp {
 		const auto& [fname, msg, line, column] = pos;
 
 		if (msg)
-			return (os << msg);
+			return (os << fname << ':' << msg);
 
 		else
 			return (os << fname << ':' << line << ':' << column);
