@@ -5,7 +5,16 @@ project(
 	'cpp',
 	license: 'MPL-2.0',
 	version: '1.0',
-	default_options: ['cpp_std=c++17', 'buildtype=release', 'strip=true', 'warning_level=2']
+	default_options: [
+		'cpp_std=c++17',
+		'buildtype=release',
+		'native=true',
+		'strip=true',
+		'warning_level=2',
+		'b_lto_threads=4',
+		'b_lto=true',
+		'b_ndebug=if-release',
+	]
 )
 
 extra_opts = []
