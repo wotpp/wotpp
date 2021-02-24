@@ -11,7 +11,7 @@ project(
 		'native=true',
 		'strip=true',
 		'warning_level=2',
-		'b_lto_threads=4',
+		# 'b_lto_threads=4',
 		'b_lto=true',
 		'b_ndebug=if-release',
 	]
