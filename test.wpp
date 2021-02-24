@@ -1,0 +1,21 @@
+let foo(y) {
+    let y "y"
+    y
+}
+
+foo("sdfds")
+
+
+let foo(p) {
+    let bar(p) {
+        p
+    }
+
+    bar(p)
+}
+
+foo("sdf")
+
+
+var foo "x"
+var foo "y"
