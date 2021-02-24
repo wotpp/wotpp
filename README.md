@@ -113,6 +113,13 @@ $ meson configure --prefix=/usr/local/
 $ DESTDIR=/ meson install
 ```
 
+### Cool Projects
+[wot-goodies](https://github.com/jlagarespo/wot-goodies)
+> A collection of interesting snippets of Wot++ code.
+
+[waas](https://github.com/iCiaran/waas)
+> A site where you can upload wot++ files and download the compiled output.
+
 ### Acknowledgements
 Thanks, in no particular order:
 - [Noxabellus](https://github.com/noxabellus)
