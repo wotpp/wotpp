@@ -16,7 +16,7 @@
 #include <structures/warnings.hpp>
 #include <exception.hpp>
 #include <parser.hpp>
-#include <visitors/reconstruct.hpp>
+// #include <visitors/reconstruct.hpp>
 
 // AST visitor that evaluates the program.
 
@@ -52,7 +52,8 @@ namespace wpp {
 
 		if (str_a != str_b)
 			throw wpp::Exception{
-				pos, "assertion failed: ", reconstruct_source(node_id, tree)
+				// pos, "assertion failed: ", reconstruct_source(node_id, tree)
+				pos, "assertion failed!"
 			};
 
 		return "";
@@ -440,6 +441,11 @@ namespace wpp {
 
 				else
 					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
+			},
+
+			[&] (const Codeify& colby) {
+				const auto& [expr, pos] = colby;
+				str = intrinsic_eval(expr, pos, env, args);
 			},
 
 			[&] (const Var& var) {

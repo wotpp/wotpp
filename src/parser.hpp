@@ -85,6 +85,22 @@ namespace wpp {
 		Fn() {}
 	};
 
+	struct Codeify {
+		wpp::node_t expr;
+		wpp::Position pos;
+
+		Codeify(
+			const wpp::node_t expr_,
+			const wpp::Position& pos_
+		):
+			expr(expr_),
+			pos(pos_) {}
+
+		Codeify(const wpp::Position& pos_): pos(pos_) {}
+
+		Codeify() {}
+	};
+
 	// Variable definition.
 	struct Var {
 		std::string identifier;
@@ -229,6 +245,7 @@ namespace wpp {
 		Intrinsic,
 		Fn,
 		Var,
+		Codeify,
 		Map,
 		String,
 		Concat,
@@ -273,7 +290,7 @@ namespace wpp {
 			tok == TOKEN_DOUBLEQUOTE or
 			tok == TOKEN_QUOTE or
 
-			tok == TOKEN_BACKTICK or
+			tok == TOKEN_EXCLAIM or
 
 			tok == TOKEN_HEX or
 			tok == TOKEN_BIN or
@@ -301,6 +318,7 @@ namespace wpp {
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
 			tok == TOKEN_MAP or
+			tok == TOKEN_EQUAL or
 			tok == TOKEN_LBRACE or
 			peek_is_string(tok) or
 			peek_is_call(tok)
@@ -383,7 +401,7 @@ namespace wpp {
 	inline wpp::node_t string(wpp::Lexer&, wpp::AST&);
 
 	inline void normal_string(wpp::Lexer&, std::string&);
-	inline void backtick_string(wpp::Lexer&, std::string&);
+	inline void stringify_string(wpp::Lexer&, std::string&);
 	inline void smart_string(wpp::Lexer&, std::string&);
 	inline void hex_string(wpp::Lexer&, std::string&);
 	inline void bin_string(wpp::Lexer&, std::string&);
@@ -400,6 +418,7 @@ namespace wpp {
 	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t codeify(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t statement(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t document(wpp::Lexer&, wpp::AST&);
 
@@ -494,6 +513,21 @@ namespace wpp {
 	}
 
 
+	inline wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree) {
+		lex.advance(); // Skip =.
+
+		if (not peek_is_expr(lex.peek()))
+			throw wpp::Exception{lex.position(), "expecting an expression to follow =."};
+
+		wpp::node_t node = tree.add<Codeify>(lex.position());
+
+		const wpp::node_t expr = wpp::expression(lex, tree);
+		tree.get<Codeify>(node).expr = expr;
+
+		return node;
+	}
+
+
 	inline wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree) {
 		lex.advance(); // Skip `drop`.
 
@@ -522,11 +556,11 @@ namespace wpp {
 	}
 
 
-	inline void backtick_string(wpp::Lexer& lex, std::string& str) {
+	inline void stringify_string(wpp::Lexer& lex, std::string& str) {
 		lex.advance(); // skip '`'.
 
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			throw wpp::Exception{lex.position(), "expected an identifier to follow `."};
+			throw wpp::Exception{lex.position(), "expected an identifier to follow !."};
 
 		str = lex.advance().str();
 	}
@@ -760,8 +794,8 @@ namespace wpp {
 		else if (lex.peek() == TOKEN_SMART)
 			smart_string(lex, literal);
 
-		else if (lex.peek() == TOKEN_BACKTICK)
-			backtick_string(lex, literal);
+		else if (lex.peek() == TOKEN_EXCLAIM)
+			stringify_string(lex, literal);
 
 		else if (lex.peek() == TOKEN_QUOTE or lex.peek() == TOKEN_DOUBLEQUOTE)
 			normal_string(lex, literal);
@@ -995,6 +1029,9 @@ namespace wpp {
 
 		else if (lookahead == TOKEN_MAP)
 			lhs = wpp::map(lex, tree);
+
+		else if (lookahead == TOKEN_EQUAL)
+			lhs = wpp::codeify(lex, tree);
 
 		else
 			throw wpp::Exception{lex.position(), "expecting an expression."};
