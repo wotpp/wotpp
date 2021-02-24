@@ -91,7 +91,7 @@ namespace wpp {
 }
 
 namespace wpp {
-	class Lexer;
+	struct Lexer;
 
 	void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer&, wpp::Token&);
 	void lex_simple(wpp::token_type_t, int, wpp::Lexer&, wpp::Token&);

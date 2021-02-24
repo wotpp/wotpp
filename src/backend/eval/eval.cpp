@@ -277,9 +277,13 @@ namespace wpp {
 	}
 
 
+
+
+
+
+
 	std::string eval_ast(const wpp::node_t node_id, wpp::Environment& env, wpp::Arguments* args) {
-		auto& [functions, tree, warnings] = env;
-		const auto& variant = tree[node_id];
+		const auto& variant = env.tree[node_id];
 		std::string str;
 
 		wpp::visit(variant,
@@ -349,6 +353,7 @@ namespace wpp {
 			},
 
 			[&] (const FnInvoke& call) {
+				auto& [functions, tree, warnings] = env;
 				const auto& [caller_name, caller_args, caller_pos] = call;
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
@@ -410,6 +415,7 @@ namespace wpp {
 			},
 
 			[&] (const Fn& func) {
+				auto& [functions, tree, warnings] = env;
 				const auto& [name, params, body, pos] = func;
 
 				auto it = functions.find(wpp::cat(name, params.size()));
@@ -431,6 +437,7 @@ namespace wpp {
 			},
 
 			[&] (const Var& var) {
+				auto& [functions, tree, warnings] = env;
 				auto [name, body, pos] = var;
 
 				const auto func_name = wpp::cat(name, 0);
@@ -455,6 +462,7 @@ namespace wpp {
 			},
 
 			[&] (const Drop& drop) {
+				auto& [functions, tree, warnings] = env;
 				const auto& [func_id, pos] = drop;
 
 				auto* func = std::get_if<FnInvoke>(&tree[func_id]);
@@ -524,6 +532,7 @@ namespace wpp {
 			},
 
 			[&] (const Pre& pre) {
+				auto& [functions, tree, warnings] = env;
 				const auto& [exprs, stmts, pos] = pre;
 
 				for (const wpp::node_t stmt: stmts) {
@@ -557,6 +566,9 @@ namespace wpp {
 		return str;
 	}
 }
+
+
+
 
 
 namespace wpp {
