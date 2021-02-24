@@ -398,7 +398,6 @@ namespace wpp {
 
 
 	// Forward declarations.
-	inline wpp::node_t string(wpp::Lexer&, wpp::AST&);
 
 	inline void normal_string(wpp::Lexer&, std::string&);
 	inline void stringify_string(wpp::Lexer&, std::string&);
@@ -410,23 +409,25 @@ namespace wpp {
 	inline void para_string(std::string&);
 	inline void code_string(std::string&);
 
-	inline wpp::node_t function(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t codeify(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t string(wpp::Lexer&, wpp::AST&);
+
+	inline wpp::node_t statement(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t var(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t drop(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t call(wpp::Lexer&, wpp::AST&);
+	inline wpp::node_t let(wpp::Lexer&, wpp::AST&);
 	inline wpp::node_t prefix(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t codeify(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t statement(wpp::Lexer&, wpp::AST&);
+
 	inline wpp::node_t document(wpp::Lexer&, wpp::AST&);
 
 
 
-
 	// Parses a function.
-	inline wpp::node_t function(wpp::Lexer& lex, wpp::AST& tree) {
+	inline wpp::node_t let(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create `Fn` node ahead of time so we can insert member data
 		// directly instead of copying/moving it into a new node at the end.
 		const wpp::node_t node = tree.add<Fn>(lex.position());
@@ -533,7 +534,7 @@ namespace wpp {
 
 		const wpp::node_t node = tree.add<Drop>(lex.position());
 
-		const wpp::node_t call_expr = wpp::call(lex, tree);
+		const wpp::node_t call_expr = wpp::fninvoke(lex, tree);
 		tree.get<Drop>(node).func = call_expr;
 
 		return node;
@@ -805,7 +806,7 @@ namespace wpp {
 
 
 	// Parse a function call.
-	inline wpp::node_t call(wpp::Lexer& lex, wpp::AST& tree) {
+	inline wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree) {
 		wpp::node_t node = tree.add<FnInvoke>(lex.position());
 		const auto fn_token = lex.advance();
 
@@ -1019,7 +1020,7 @@ namespace wpp {
 		const auto lookahead = lex.peek();
 
 		if (peek_is_call(lookahead))
-			lhs = wpp::call(lex, tree);
+			lhs = wpp::fninvoke(lex, tree);
 
 		else if (peek_is_string(lookahead))
 			lhs = wpp::string(lex, tree);
@@ -1058,7 +1059,7 @@ namespace wpp {
 		const auto lookahead = lex.peek();
 
 		if (lookahead == TOKEN_LET)
-			return wpp::function(lex, tree);
+			return wpp::let(lex, tree);
 
 		else if (lookahead == TOKEN_VAR)
 			return wpp::var(lex, tree);

@@ -1,0 +1,7 @@
+#[expect(hello)]
+let foo(x)
+	=x
+
+let hello "hello"
+
+foo(!hello)
