@@ -29,7 +29,7 @@ int main(int argc, const char* argv[]) {
 		.arg(&repl,   "Start an interactive prompt",                    "repl",   "r", false)
 		.arg(&lint,   "Enable various warnings (comma-seperated list)", "lint",   "l", true);
 
-	wpp::warning_t warning_flags;
+	wpp::warning_t warning_flags = 0;
 
 	if (not argparser.parse(argc, argv))
 		return 1;
@@ -48,6 +48,10 @@ int main(int argc, const char* argv[]) {
 				warning_flags |= wpp::WARN_FUNC_REDEFINED;
 			else if (buf == "varfunc-redefined")
 				warning_flags |= wpp::WARN_VARFUNC_REDEFINED;
+			else {
+				std::cout << "w++: unrecognized lint: " << buf << std::endl;
+				return 1;
+			}
 		}
 	}
 
