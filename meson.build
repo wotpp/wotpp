@@ -15,21 +15,39 @@ modules_inc = include_directories('modules/')
 
 sources = files(
 	'src/main.cpp',
-	'src/exception.hpp',
-	'src/genprog.hpp',
-	'src/parser.hpp',
-	'src/lexer.hpp',
-	'src/structures/ast.hpp',
-	'src/structures/token.hpp',
-	'src/structures/rng.hpp',
-	'src/structures/position.hpp',
-	'src/structures/view.hpp',
+
+	'src/structures/exception.hpp',
 	'src/structures/error.hpp',
-	'src/utils/char.hpp',
-	'src/utils/util.hpp',
-	'src/visitors/sexpr.hpp',
-	'src/visitors/reconstruct.hpp',
-	'src/visitors/eval.hpp',
+
+	'src/misc/util/util.hpp',
+	'src/misc/util/util.cpp',
+
+	'src/misc/repl.hpp',
+	'src/misc/warnings.hpp',
+
+	'src/frontend/ast.hpp',
+
+	'src/frontend/lexer/lexer.hpp',
+	'src/frontend/lexer/lexer.cpp',
+
+	'src/frontend/parser/ast_nodes.hpp',
+	'src/frontend/parser/parser.hpp',
+	'src/frontend/parser/parser.cpp',
+
+	'src/frontend/position.hpp',
+	'src/frontend/token.hpp',
+	'src/frontend/view.hpp',
+
+	'src/frontend/char.hpp',
+
+	'src/backend/eval/eval.hpp',
+	'src/backend/eval/eval.cpp',
+
+	'src/backend/reconstruct/reconstruct.hpp',
+	'src/backend/reconstruct/reconstruct.cpp',
+
+	'src/backend/sexpr/sexpr.hpp',
+	'src/backend/sexpr/sexpr.cpp',
 )
 
 sources_inc = include_directories('src/')

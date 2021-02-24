@@ -3,25 +3,27 @@
 #ifndef WOTPP_REPL
 #define WOTPP_REPL
 
+#include <iostream>
+
 #ifndef WPP_DISABLE_REPL
 	#include <readline/readline.h>
 	#include <readline/history.h>
 	#include <cstdlib>
 #endif
 
-#include <lexer.hpp>
-#include <parser.hpp>
-#include <genprog.hpp>
-#include <exception.hpp>
-#include <visitors/sexpr.hpp>
-#include <visitors/eval.hpp>
+#include <misc/util/util.hpp>
+#include <structures/exception.hpp>
 
-#include <tinge.hpp>
+#include <frontend/lexer/lexer.hpp>
+#include <frontend/parser/parser.hpp>
+
+#include <backend/sexpr/sexpr.hpp>
+#include <backend/eval/eval.hpp>
 
 namespace wpp {
-	int repl() {
+	inline int repl() {
 		#ifdef WPP_DISABLE_REPL
-			tinge::errorln("REPL support is disabled");
+			std::cerr << "REPL support is disabled\n";
 			return 1;
 
 		#else
@@ -31,7 +33,7 @@ namespace wpp {
 			// Reserve 10MiB
 			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
 
-			tinge::println("wot++ repl");
+			std::cout << "wot++ repl\n";
 
 			using_history();
 

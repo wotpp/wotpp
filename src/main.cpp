@@ -7,11 +7,10 @@
 #include <cstring>
 #include <ctime>
 
-#include <structures/warnings.hpp>
-#include <visitors/eval.hpp>
-#include <repl.hpp>
+#include <misc/warnings.hpp>
+#include <backend/eval/eval.hpp>
+#include <misc/repl.hpp>
 
-#include <tinge.hpp>
 
 int main(int argc, const char* argv[]) {
 	wpp::warning_t warning_flags =
@@ -28,7 +27,7 @@ int main(int argc, const char* argv[]) {
 		return wpp::run(argv[1], warning_flags);
 
 	else
-		tinge::errorln("usage: wpp [file]");
+		std::cerr << "usage: wpp [file]\n";
 
 	return 1;
 }

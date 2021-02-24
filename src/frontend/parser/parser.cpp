@@ -1,345 +1,16 @@
-#pragma once
-
-#ifndef WOTPP_PARSER
-#define WOTPP_PARSER
-
-#include <vector>
-#include <algorithm>
-#include <limits>
 #include <string>
+#include <vector>
+#include <limits>
+#include <algorithm>
 
-#include <utils/util.hpp>
-#include <structures/ast.hpp>
-#include <structures/token.hpp>
-#include <structures/position.hpp>
-#include <exception.hpp>
-#include <lexer.hpp>
-
-// The meat of wot++, the parser.
-// This is a plain old LL(1) predictive recursive descent parser.
-
-// AST nodes.
-namespace wpp {
-	// A function call.
-	struct FnInvoke {
-		std::string identifier;
-		std::vector<wpp::node_t> arguments;
-		wpp::Position pos;
-
-		FnInvoke(
-			const std::string& identifier_,
-			const std::vector<wpp::node_t>& arguments_,
-			const wpp::Position& pos_
-		):
-			identifier(identifier_),
-			arguments(arguments_),
-			pos(pos_) {}
-
-		FnInvoke(const wpp::Position& pos_): pos(pos_) {}
-
-		FnInvoke() {}
-	};
-
-	struct Intrinsic {
-		wpp::token_type_t type;
-		std::string identifier;
-		std::vector<wpp::node_t> arguments;
-		wpp::Position pos;
-
-		Intrinsic(
-			const wpp::token_type_t type_,
-			const std::string& identifier_,
-			const std::vector<wpp::node_t>& arguments_,
-			const wpp::Position& pos_
-		):
-			type(type_),
-			identifier(identifier_),
-			arguments(arguments_),
-			pos(pos_) {}
-
-		Intrinsic(const wpp::Position& pos_): pos(pos_) {}
-
-		Intrinsic() {}
-	};
-
-	// Function definition.
-	struct Fn {
-		std::string identifier;
-		std::vector<std::string> parameters;
-		wpp::node_t body;
-		wpp::Position pos;
-
-		Fn(
-			const std::string& identifier_,
-			const std::vector<std::string>& parameters_,
-			const wpp::node_t body_,
-			const wpp::Position& pos_
-		):
-			identifier(identifier_),
-			parameters(parameters_),
-			body(body_),
-			pos(pos_) {}
-
-		Fn(const wpp::Position& pos_): pos(pos_) {}
-
-		Fn() {}
-	};
-
-	struct Codeify {
-		wpp::node_t expr;
-		wpp::Position pos;
-
-		Codeify(
-			const wpp::node_t expr_,
-			const wpp::Position& pos_
-		):
-			expr(expr_),
-			pos(pos_) {}
-
-		Codeify(const wpp::Position& pos_): pos(pos_) {}
-
-		Codeify() {}
-	};
-
-	// Variable definition.
-	struct Var {
-		std::string identifier;
-		wpp::node_t body;
-		wpp::Position pos;
-
-		Var(
-			const std::string& identifier_,
-			const wpp::node_t body_,
-			const wpp::Position& pos_
-		):
-			identifier(identifier_),
-			body(body_),
-			pos(pos_) {}
-
-		Var(const wpp::Position& pos_): pos(pos_) {}
-
-		Var() {}
-	};
-
-	struct Drop {
-		wpp::node_t func;
-		wpp::Position pos;
-
-		Drop(const wpp::node_t& func_, const wpp::Position& pos_):
-			func(func_), pos(pos_) {}
-
-		Drop(const wpp::Position& pos_): pos(pos_) {}
-
-		Drop() {}
-	};
-
-	// String literal.
-	struct String {
-		std::string value;
-		wpp::Position pos;
-
-		String(const std::string& value_, const wpp::Position& pos_):
-			value(value_), pos(pos_) {}
-
-		String(const wpp::Position& pos_): pos(pos_) {}
-
-		String() {}
-	};
-
-	// Concatenation operator.
-	struct Concat {
-		wpp::node_t lhs, rhs;
-		wpp::Position pos;
-
-		Concat(wpp::node_t lhs_, wpp::node_t rhs_, const wpp::Position& pos_):
-			lhs(lhs_), rhs(rhs_), pos(pos_) {}
-
-		Concat(const wpp::Position& pos_): pos(pos_) {}
-
-		Concat() {}
-	};
-
-	// Block of zero or more statements and trailing expression.
-	struct Block {
-		std::vector<wpp::node_t> statements;
-		wpp::node_t expr;
-		wpp::Position pos;
-
-		Block(
-			const std::vector<wpp::node_t>& statements_,
-			const wpp::node_t expr_,
-			const wpp::Position& pos_
-		):
-			statements(statements_),
-			expr(expr_),
-			pos(pos_) {}
-
-		Block(const wpp::Position& pos_): pos(pos_) {}
-
-		Block() {}
-	};
-
-	// Namespace that embodies zero or more statements.
-	struct Pre {
-		std::vector<wpp::node_t> exprs;
-		std::vector<wpp::node_t> statements;
-		wpp::Position pos;
-
-		Pre(
-			const std::vector<wpp::node_t>& exprs_,
-			const std::vector<wpp::node_t>& statements_,
-			const wpp::Position& pos_
-		):
-			exprs(exprs_),
-			statements(statements_),
-			pos(pos_) {}
-
-		Pre(const wpp::Position& pos_): pos(pos_) {}
-
-		Pre() {}
-	};
-
-	// Map strings to new strings.
-	struct Map {
-		wpp::node_t expr;
-		std::vector<std::pair<wpp::node_t, wpp::node_t>> cases;
-		wpp::node_t default_case;
-		wpp::Position pos;
-
-		Map(
-			const wpp::node_t expr_,
-			const std::vector<std::pair<wpp::node_t, wpp::node_t>>& cases_,
-			const wpp::node_t default_case_,
-			const wpp::Position& pos_
-		):
-			expr(expr_),
-			cases(cases_),
-			default_case(default_case_),
-			pos(pos_) {}
-
-		Map(const wpp::Position& pos_): pos(pos_) {}
-
-		Map() {}
-	};
-
-	// The root node of a wot++ program.
-	struct Document {
-		std::vector<wpp::node_t> stmts;
-		wpp::Position pos;
-
-		Document(
-			const std::vector<wpp::node_t>& stmts_,
-			const wpp::Position& pos_
-		):
-			stmts(stmts_),
-			pos(pos_) {}
-
-		Document(const wpp::Position& pos_): pos(pos_) {}
-
-		Document() {}
-	};
-
-	// An alias for our AST.
-	using AST = wpp::HeterogenousVector<
-		FnInvoke,
-		Intrinsic,
-		Fn,
-		Var,
-		Codeify,
-		Map,
-		String,
-		Concat,
-		Block,
-		Pre,
-		Document,
-		Drop
-	>;
-}
-
+#include <frontend/parser/parser.hpp>
+#include <misc/util/util.hpp>
+#include <frontend/char.hpp>
+#include <structures/exception.hpp>
+#include <frontend/position.hpp>
+#include <frontend/parser/ast_nodes.hpp>
 
 namespace wpp {
-	inline bool peek_is_intrinsic(const wpp::Token& tok) {
-		return
-			tok == TOKEN_RUN or
-			tok == TOKEN_EVAL or
-			tok == TOKEN_FILE or
-			tok == TOKEN_ASSERT or
-			tok == TOKEN_PIPE or
-			tok == TOKEN_ERROR or
-			tok == TOKEN_SOURCE or
-			tok == TOKEN_SLICE or
-			tok == TOKEN_FIND or
-			tok == TOKEN_LENGTH or
-			tok == TOKEN_ESCAPE or
-			tok == TOKEN_LOG
-		;
-	}
-
-	inline bool peek_is_keyword(const wpp::Token& tok) {
-		return
-			tok == TOKEN_LET or
-			tok == TOKEN_VAR or
-			tok == TOKEN_PREFIX or
-			tok == TOKEN_DROP
-		;
-	}
-
-	// Check if the token is a string.
-	inline bool peek_is_string(const wpp::Token& tok) {
-		return
-			tok == TOKEN_DOUBLEQUOTE or
-			tok == TOKEN_QUOTE or
-
-			tok == TOKEN_EXCLAIM or
-
-			tok == TOKEN_HEX or
-			tok == TOKEN_BIN or
-
-			tok == TOKEN_SMART
-		;
-	}
-
-	inline bool peek_is_reserved_name(const wpp::Token& tok) {
-		return
-			peek_is_intrinsic(tok) or
-			peek_is_keyword(tok)
-		;
-	}
-
-	// Check if the token is an expression.
-	inline bool peek_is_call(const wpp::Token& tok) {
-		return
-			tok == TOKEN_IDENTIFIER or
-			peek_is_intrinsic(tok)
-		;
-	}
-
-	// Check if the token is an expression.
-	inline bool peek_is_expr(const wpp::Token& tok) {
-		return
-			tok == TOKEN_MAP or
-			tok == TOKEN_EQUAL or
-			tok == TOKEN_LBRACE or
-			peek_is_string(tok) or
-			peek_is_call(tok)
-		;
-	}
-
-	// Check if the token is a statement.
-	inline bool peek_is_stmt(const wpp::Token& tok) {
-		return
-			peek_is_keyword(tok) or
-			peek_is_expr(tok)
-		;
-	}
-
-
-
-
-
-
-
-
 	// Consume tokens comprising a string. Handles escape chars.
 	void accumulate_string(const wpp::Token& part, std::string& literal) {
 		// handle escape sequences.
@@ -396,38 +67,8 @@ namespace wpp {
 
 
 
-
-	// Forward declarations.
-
-	inline void normal_string(wpp::Lexer&, std::string&);
-	inline void stringify_string(wpp::Lexer&, std::string&);
-	inline void smart_string(wpp::Lexer&, std::string&);
-	inline void hex_string(wpp::Lexer&, std::string&);
-	inline void bin_string(wpp::Lexer&, std::string&);
-
-	inline void raw_string(std::string&);
-	inline void para_string(std::string&);
-	inline void code_string(std::string&);
-
-	inline wpp::node_t expression(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t map(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t block(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t codeify(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t string(wpp::Lexer&, wpp::AST&);
-
-	inline wpp::node_t statement(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t var(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t drop(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t let(wpp::Lexer&, wpp::AST&);
-	inline wpp::node_t prefix(wpp::Lexer&, wpp::AST&);
-
-	inline wpp::node_t document(wpp::Lexer&, wpp::AST&);
-
-
-
 	// Parses a function.
-	inline wpp::node_t let(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t let(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create `Fn` node ahead of time so we can insert member data
 		// directly instead of copying/moving it into a new node at the end.
 		const wpp::node_t node = tree.add<Fn>(lex.position());
@@ -490,7 +131,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t var(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t var(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create `Var` node ahead of time so we can insert member data
 		// directly instead of copying/moving it into a new node at the end.
 		const wpp::node_t node = tree.add<Var>(lex.position());
@@ -514,7 +155,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree) {
 		lex.advance(); // Skip =.
 
 		if (not peek_is_expr(lex.peek()))
@@ -529,7 +170,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree) {
 		lex.advance(); // Skip `drop`.
 
 		const wpp::node_t node = tree.add<Drop>(lex.position());
@@ -541,7 +182,7 @@ namespace wpp {
 	}
 
 
-	inline void normal_string(wpp::Lexer& lex, std::string& str) {
+	void normal_string(wpp::Lexer& lex, std::string& str) {
 		const auto delim = lex.advance(wpp::modes::string); // Store delimeter.
 
 		// Consume tokens until we reach `delim` or EOF.
@@ -557,7 +198,7 @@ namespace wpp {
 	}
 
 
-	inline void stringify_string(wpp::Lexer& lex, std::string& str) {
+	void stringify_string(wpp::Lexer& lex, std::string& str) {
 		lex.advance(); // skip '`'.
 
 		if (lex.peek() != TOKEN_IDENTIFIER)
@@ -567,12 +208,12 @@ namespace wpp {
 	}
 
 
-	inline void raw_string(std::string&) {
+	void raw_string(std::string&) {
 
 	}
 
 
-	inline void para_string(std::string& str) {
+	void para_string(std::string& str) {
 		// Collapse consecutive runs of whitespace to a single whitespace.
 		str.erase(std::unique(str.begin(), str.end(), [] (char lhs, char rhs) {
 			return wpp::is_whitespace(lhs) and wpp::is_whitespace(rhs);
@@ -594,7 +235,7 @@ namespace wpp {
 	}
 
 
-	inline void code_string(std::string& str) {
+	void code_string(std::string& str) {
 		// Trim trailing whitespace.
 		// Loop from back of string to beginning.
 		for (auto it = str.rbegin(); it != str.rend(); ++it) {
@@ -676,7 +317,7 @@ namespace wpp {
 	}
 
 
-	inline void hex_string(wpp::Lexer& lex, std::string& str) {
+	void hex_string(wpp::Lexer& lex, std::string& str) {
 		const auto& [ptr, len] = lex.advance().view;
 
 		size_t counter = 0; // index into string, doesnt count `_`.
@@ -703,7 +344,7 @@ namespace wpp {
 	}
 
 
-	inline void bin_string(wpp::Lexer& lex, std::string& str) {
+	void bin_string(wpp::Lexer& lex, std::string& str) {
 		const auto& [ptr, len] = lex.advance().view;
 
 		size_t counter = 0; // index into string without tracking `_`.
@@ -730,7 +371,7 @@ namespace wpp {
 	}
 
 
-	inline void smart_string(wpp::Lexer& lex, std::string& str) {
+	void smart_string(wpp::Lexer& lex, std::string& str) {
 		const auto tok = lex.advance(); // Consume the smart string opening token.
 
 		const auto str_type = tok.view.at(0);  // 'r', 'p' or 'c'
@@ -778,7 +419,7 @@ namespace wpp {
 
 	// Parse a string.
 	// `"hey" 'hello' "a\nb\nc\n"`
-	inline wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create our string node.
 		const wpp::node_t node = tree.add<String>(lex.position());
 		auto& [literal, pos] = tree.get<String>(node);
@@ -806,7 +447,7 @@ namespace wpp {
 
 
 	// Parse a function call.
-	inline wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree) {
 		wpp::node_t node = tree.add<FnInvoke>(lex.position());
 		const auto fn_token = lex.advance();
 
@@ -851,7 +492,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t prefix(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t prefix(wpp::Lexer& lex, wpp::AST& tree) {
 		// Create `Pre` node.
 		const wpp::node_t node = tree.add<Pre>(lex.position());
 
@@ -901,7 +542,7 @@ namespace wpp {
 
 
 	// Parse a block.
-	inline wpp::node_t block(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t block(wpp::Lexer& lex, wpp::AST& tree) {
 		const wpp::node_t node = tree.add<Block>(lex.position());
 
 		lex.advance(); // Skip '{'.
@@ -948,7 +589,7 @@ namespace wpp {
 	}
 
 
-	inline wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree) {
 		lex.advance(); // Skip `map`.
 
 		const wpp::node_t node = tree.add<Map>(lex.position());
@@ -1009,7 +650,7 @@ namespace wpp {
 
 
 	// Parse an expression.
-	inline wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree) {
 		// We use lhs to store the resulting expression
 		// from the following cases and if the next token
 		// is concatenation, we make a new Concat node using
@@ -1055,7 +696,7 @@ namespace wpp {
 
 
 	// Parse a statement.
-	inline wpp::node_t statement(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t statement(wpp::Lexer& lex, wpp::AST& tree) {
 		const auto lookahead = lex.peek();
 
 		if (lookahead == TOKEN_LET)
@@ -1079,7 +720,7 @@ namespace wpp {
 
 	// Parse a document.
 	// A document is just a series of zero or more expressions.
-	inline wpp::node_t document(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t document(wpp::Lexer& lex, wpp::AST& tree) {
 		const wpp::node_t node = tree.add<Document>(lex.position());
 
 		// Consume expressions until we encounter eof or an error.
@@ -1091,5 +732,3 @@ namespace wpp {
 		return node;
 	}
 }
-
-#endif

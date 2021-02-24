@@ -4,8 +4,11 @@
 #define WOTPP_ERROR
 
 #include <string>
+#include <iostream>
+
 #include <cstdint>
-#include <utils/util.hpp>
+
+#include <misc/util/util.hpp>
 
 namespace wpp {
 	// Error type.
@@ -23,7 +26,7 @@ namespace wpp {
 		template <typename... Ts>
 		Error(uint32_t code_, Ts&&... args):
 			code(code_),
-			msg(wpp::strcat(args...)) {}
+			msg(wpp::cat(args...)) {}
 
 		Error(uint32_t code_, const std::string& msg_):
 			code(code_),
