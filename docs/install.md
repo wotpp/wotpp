@@ -1,7 +1,8 @@
 # Installation
 
-> # signifies root
-> $ signifies user
+> '\#' signifies root
+
+> '$' signifies user
 
 ### Ubuntu 18.04
 Enable use of PPAs:
