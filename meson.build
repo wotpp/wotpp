@@ -20,8 +20,6 @@ project(
 extra_opts = []
 deps = []
 
-modules_inc = include_directories('modules/')
-
 sources = files(
 	'src/main.cpp',
 
@@ -122,7 +120,7 @@ endif
 exe = executable(
 	'w++',
 	sources,
-	include_directories: [sources_inc, modules_inc],
+	include_directories: [sources_inc],
 	dependencies: deps,
 	install: true,
 	override_options: extra_opts
