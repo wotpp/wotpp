@@ -141,7 +141,7 @@ And everyone else who I may have failed to mention over the years.
 See the timeline [here](docs/history/README.md).
 
 ### License
-This project uses the MPL-2.0 license. (check [LICENSE.md](LICENSE.md))
+This project uses the MPL-2.0 license. (check [LICENSE](LICENSE))
 
 ### Progress & Discussion
 You can join the discord server in order to follow progress and/or contribute to discussion of the project. (https://discord.gg/hQ7yS9dxcp)
