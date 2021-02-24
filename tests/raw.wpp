@@ -20,3 +20,6 @@ r#"
 			raw"#
 
 
+#[expect(\\\"escaped\\\")]
+r#"\"escaped\""#
+

@@ -12,7 +12,12 @@
 
 namespace wpp {
 	// Consume tokens comprising a string. Handles escape chars.
-	void accumulate_string(const wpp::Token& part, std::string& literal) {
+	void accumulate_string(const wpp::Token& part, std::string& literal, bool handle_escapes) {
+		if (not handle_escapes) {
+			literal.append(part.str());
+			return;
+		}
+
 		// handle escape sequences.
 		if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
 			literal.append("\"");
@@ -400,7 +405,9 @@ namespace wpp {
 
 			// If not EOF or '/", consume.
 			else {
-				accumulate_string(lex.advance(wpp::modes::string), str);
+				// We don't handle escape sequences inside a raw string.
+				bool handle_escapes = str_type != 'r';
+				accumulate_string(lex.advance(wpp::modes::string), str, handle_escapes);
 			}
 		}
 

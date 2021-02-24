@@ -92,7 +92,7 @@ namespace wpp {
 
 namespace wpp {
 	// Consume tokens comprising a string. Handles escape chars.
-	void accumulate_string(const wpp::Token& part, std::string& literal);
+	void accumulate_string(const wpp::Token&, std::string&, bool = true);
 
 	// Forward declarations.
 	void normal_string(wpp::Lexer&, std::string&);
