@@ -35,20 +35,23 @@ string ::= <basic_string> | <paragraph_string> | <raw_string> | <code_string> | 
 // `let name "jack"`
 // `name`
 //
-fn_args ::= '(' <identifer> ( ',' <identifer> )* ')' [ ',' ]
+fn_args ::= '(' <identifier> ( ',' <identifier> )* ')' [ ',' ]
 fn ::= 'let' <identifier> [ <fn_args> ] <expression>
 
 fn_intrinsic ::=
 	'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' |
 	'pipe' | 'error' | 'log' | 'slice' | 'find' | 'length'
 
-fn_invoke ::= ( <identifer> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
+fn_invoke ::= ( <identifier> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
 
 // `drop foo(x)`
 drop ::= 'drop' <fn_invoke>
 
 // `var foo "bar"`
-var ::= 'var' <identifer> <expression>
+var ::= 'var' <identifier> <expression>
+
+codeify ::= '=' <expression>
+stringify ::= '!' <identifier>
 
 
 /// Prefixes
@@ -97,7 +100,9 @@ expression ::= (
 		<block> |
 		<concat> |
 		<string> |
-		<map>
+		<map> |
+		<codeify> |
+		<stringify>
 	)
 
 
