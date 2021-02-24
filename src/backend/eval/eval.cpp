@@ -250,21 +250,8 @@ namespace wpp {
 		const auto cmd_str = eval_ast(cmd, env, args);
 		const auto data_str = eval_ast(data, env, args);
 
-		for (const char c: data_str) {
-			switch (c) {
-				case '"':  str += "\\\""; break;
-				case '\'': str += "\\'"; break;
-				case '\n': str += "\\n"; break;
-				case '\t': str += "\\t"; break;
-				case '\r': str += "\\r"; break;
-				default:   str += c; break;
-			}
-		}
-
-		std::string runner = wpp::cat("echo \"", str, "\" | ", cmd_str);
-
 		int rc = 0;
-		std::string out = wpp::exec(runner, rc);
+		std::string out = wpp::exec(cmd_str, data_str, rc);
 
 		// trim trailing newline.
 		if (out.back() == '\n')

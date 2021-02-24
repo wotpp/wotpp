@@ -95,6 +95,10 @@ namespace wpp {
 	std::string exec(const std::string&, int&);
 
 
+	// Pipe string to stdin of a cmd.
+	std::string exec(const std::string&, const std::string&, int&);
+
+
 	// Read a file into a string relatively quickly.
 	std::string read_file(const std::string&);
 }
