@@ -270,7 +270,7 @@ namespace wpp {
 
 
 	template <typename... Ts>
-	inline std::string generate_usage(const char* const name, Ts&&... opts) {
+	inline std::string generate_usage(const char* const name, bool has_positional, Ts&&... opts) {
 		std::string str, long_opts, short_opts = " [ ";
 
 		cat(str, "usage: ", name);
@@ -293,7 +293,12 @@ namespace wpp {
 
 		} (std::forward<Ts>(opts)), ...);
 
-		cat(str, short_opts, "]", long_opts, '\n');
+		cat(str, short_opts, "]", long_opts);
+
+		if (has_positional)
+			cat(str, " [ values... ]");
+
+		str += '\n';
 
 		return str;
 	}
@@ -318,7 +323,7 @@ namespace wpp {
 	inline bool argparser(
 		const Meta& meta,
 		const int argc, const char* argv[],
-		std::vector<const char*>& positional,
+		std::vector<const char*>* positional,
 		Ts&&... opts
 	) {
 		enum {
@@ -338,7 +343,7 @@ namespace wpp {
 
 		// Helper for usage string.
 		const auto usage = [&] {
-			std::cout << generate_usage(bin, help_opt, std::forward<Ts>(opts)...);
+			std::cout << generate_usage(bin, positional, help_opt, std::forward<Ts>(opts)...);
 		};
 
 		// Helper for, well, help.
@@ -354,7 +359,8 @@ namespace wpp {
 			return SHOULD_EXIT;
 		}
 
-		positional.reserve(positional.capacity() + sizeof...(opts));
+		if (positional)
+			positional->reserve(positional->capacity() + sizeof...(opts));
 
 
 		// Loop through argv and try parsing every index
@@ -398,7 +404,9 @@ namespace wpp {
 					// If no errors occured and SHOW_HELP is not set, this must
 					// be a positional argument.
 					else if (flag != SHOW_HELP) {
-						positional.emplace_back(argv[i]);
+						if (positional)
+							positional->emplace_back(argv[i]);
+
 						continue; // Continue here so we don't hit the help message below.
 					}
 

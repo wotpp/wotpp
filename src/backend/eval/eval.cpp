@@ -53,7 +53,7 @@ namespace wpp {
 		const auto fname = eval_ast(expr, env, args);
 
 		try {
-			return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
+			return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}).c_str());
 		}
 
 		catch (...) {
@@ -558,46 +558,4 @@ namespace wpp {
 		return str;
 	}
 }
-
-
-
-
-
-namespace wpp {
-	int run(const std::string& fname, const wpp::warning_t warning_flags) {
-		std::string file;
-
-		try {
-			file = wpp::read_file(fname);
-		}
-
-		catch (const std::filesystem::filesystem_error& e) {
-			std::cerr << "file not found.\n";
-			return 1;
-		}
-
-		// Set current path to path of file.
-		const auto path = std::filesystem::current_path() / std::filesystem::path{fname};
-		std::filesystem::current_path(path.parent_path());
-
-		try {
-			wpp::Lexer lex{std::filesystem::current_path(), file.c_str()};
-			wpp::AST tree;
-			wpp::Environment env{std::filesystem::current_path(), tree, warning_flags};
-
-			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
-
-			auto root = wpp::document(lex, tree);
-			std::cout << wpp::eval_ast(root, env) << std::flush;
-		}
-
-		catch (const wpp::Exception& e) {
-			wpp::error(e.pos, e.what());
-			return 1;
-		}
-
-		return 0;
-	}
-}
-
 

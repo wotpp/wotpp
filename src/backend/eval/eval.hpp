@@ -68,9 +68,5 @@ namespace wpp {
 	std::string intrinsic_pipe(wpp::node_t cmd, wpp::node_t data, const wpp::Position& pos, wpp::Environment& env, wpp::Arguments* args = nullptr);
 }
 
-namespace wpp {
-	int run(const std::string& fname, const wpp::warning_t warning_flags = 0);
-}
-
 #endif
 

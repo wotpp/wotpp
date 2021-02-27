@@ -100,7 +100,9 @@ namespace wpp {
 
 
 	// Read a file into a string relatively quickly.
-	std::string read_file(const std::string&);
+	std::string read_file(std::string_view);
+
+	void write_file(std::string_view, const std::string&);
 }
 
 

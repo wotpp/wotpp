@@ -40,7 +40,7 @@ if __name__ == "__main__":
 	wpp_output = ""
 
 	try:
-		wpp_output = run([binary, "-i", test_file])
+		wpp_output = run([binary, test_file])
 		if len(wpp_output) > 0:
 			if wpp_output[-1] == '\n':
 				wpp_output = wpp_output[:-1]
