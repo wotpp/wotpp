@@ -6,8 +6,6 @@
 #include <frontend/parser/parser.hpp>
 #include <misc/util/util.hpp>
 #include <frontend/char.hpp>
-#include <structures/exception.hpp>
-#include <frontend/position.hpp>
 #include <frontend/parser/ast_nodes.hpp>
 
 namespace wpp {
@@ -73,10 +71,11 @@ namespace wpp {
 
 
 	// Parses a function.
-	wpp::node_t let(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t let(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		// Create `Fn` node ahead of time so we can insert member data
 		// directly instead of copying/moving it into a new node at the end.
-		const wpp::node_t node = tree.add<Fn>(lex.position());
+		const wpp::node_t node = tree.add<Fn>();
+		pos.emplace(node, lex.position());
 
 		// Skip `let` keyword. The statement parser already checked
 		// for it before calling us.
@@ -86,7 +85,7 @@ namespace wpp {
 		// Make sure the next token is an identifier, if it is, set the name
 		// of our `Fn` node to match.
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			throw wpp::Exception{lex.position(), "function declaration does not have a name."};
+			wpp::error(pos.at(node), "function declaration does not have a name.");
 
 		tree.get<Fn>(node).identifier = lex.advance().str();
 
@@ -112,7 +111,7 @@ namespace wpp {
 				// Otherwise it must be ')'?
 				else if (lex.peek() != TOKEN_RPAREN)
 					// If it's not, throw an exception.
-					throw wpp::Exception{lex.position(), "expecting comma to follow parameter name."};
+					wpp::error(pos.at(node), "expecting comma to follow parameter name.");
 			}
 
 			// Check if there's an keyword conflict.
@@ -121,25 +120,27 @@ namespace wpp {
 			// because the loop condition checks for an identifier and so breaks
 			// out if the next token is an intrinsic.
 			if (peek_is_reserved_name(lex.peek()))
-				throw wpp::Exception{lex.position(), "parameter name '", lex.advance().str(), "' conflicts with keyword."};
+				wpp::error(pos.at(node), "parameter name '", lex.advance().str(), "' conflicts with keyword.");
 
-			// Make sure parameter list is terminated by `)`.
+			// // Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "expecting ')' to follow argument list."};
+				wpp::error(pos.at(node), "expecting ')' to follow argument list.");
 		}
 
 		// Parse the function body.
-		const wpp::node_t body = expression(lex, tree);
+		const wpp::node_t body = expression(lex, tree, pos);
 		tree.get<Fn>(node).body = body;
 
 		return node;
 	}
 
 
-	wpp::node_t var(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t var(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		// Create `Var` node ahead of time so we can insert member data
 		// directly instead of copying/moving it into a new node at the end.
-		const wpp::node_t node = tree.add<Var>(lex.position());
+		const wpp::node_t node = tree.add<Var>();
+		pos.emplace(node, lex.position());
+
 
 		// Skip `var` keyword. The statement parser already checked
 		// for it before calling us.
@@ -148,39 +149,43 @@ namespace wpp {
 		// Make sure the next token is an identifier, if it is, set the name
 		// of our `Fn` node to match.
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			throw wpp::Exception{lex.position(), "variable declaration does not have a name."};
+			wpp::error(pos.at(node), "variable declaration does not have a name.");
+
 
 		tree.get<Var>(node).identifier = lex.advance().str();
 
 		// Parse the variable body.
-		const wpp::node_t body = expression(lex, tree);
+		const wpp::node_t body = expression(lex, tree, pos);
 		tree.get<Var>(node).body = body;
 
 		return node;
 	}
 
 
-	wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		lex.advance(); // Skip =.
 
+		wpp::node_t node = tree.add<Codeify>();
+		pos.emplace(node, lex.position());
+
 		if (not peek_is_expr(lex.peek()))
-			throw wpp::Exception{lex.position(), "expecting an expression to follow =."};
+			wpp::error(pos.at(node), "expecting an expression to follow =.");
 
-		wpp::node_t node = tree.add<Codeify>(lex.position());
-
-		const wpp::node_t expr = wpp::expression(lex, tree);
+		const wpp::node_t expr = wpp::expression(lex, tree, pos);
 		tree.get<Codeify>(node).expr = expr;
 
 		return node;
 	}
 
 
-	wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		lex.advance(); // Skip `drop`.
 
-		const wpp::node_t node = tree.add<Drop>(lex.position());
+		const wpp::node_t node = tree.add<Drop>();
+		pos.emplace(node, lex.position());
 
-		const wpp::node_t call_expr = wpp::fninvoke(lex, tree);
+
+		const wpp::node_t call_expr = wpp::fninvoke(lex, tree, pos);
 		tree.get<Drop>(node).func = call_expr;
 
 		return node;
@@ -193,7 +198,7 @@ namespace wpp {
 		// Consume tokens until we reach `delim` or EOF.
 		while (lex.peek(wpp::modes::string) != delim) {
 			if (lex.peek(wpp::modes::string) == TOKEN_EOF)
-				throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
+				wpp::error(lex.position(), "reached EOF while parsing string.");
 
 			// Parse escape characters and append "parts" of the string to `str`.
 			accumulate_string(lex.advance(wpp::modes::string), str);
@@ -207,7 +212,8 @@ namespace wpp {
 		lex.advance(); // skip '`'.
 
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			throw wpp::Exception{lex.position(), "expected an identifier to follow !."};
+			wpp::error(lex.position(), "expected an identifier to follow !.");
+
 
 		str = lex.advance().str();
 	}
@@ -386,12 +392,12 @@ namespace wpp {
 
 		while (true) {
 			if (lex.peek(wpp::modes::string) == TOKEN_EOF)
-				throw wpp::Exception{lex.position(), "reached EOF while parsing string."};
+				wpp::error(lex.position(), "reached EOF while parsing string.");
 
 			// If we encounter ' or ", we check one character ahead to see
 			// if it matches the user defined delimiter, it if does,
 			// we erase the last quote character and break.
-			else if (lex.peek(wpp::modes::string) == quote) {
+			if (lex.peek(wpp::modes::string) == quote) {
 				// Consume this quote because it may actually be part of the
 				// string and not the terminator.
 				accumulate_string(lex.advance(wpp::modes::string), str);
@@ -426,10 +432,11 @@ namespace wpp {
 
 	// Parse a string.
 	// `"hey" 'hello' "a\nb\nc\n"`
-	wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		// Create our string node.
-		const wpp::node_t node = tree.add<String>(lex.position());
-		auto& [literal, pos] = tree.get<String>(node);
+		const wpp::node_t node = tree.add<String>();
+		pos.emplace(node, lex.position());
+		auto& literal = tree.get<String>(node).value;
 
 		// Reserve some space, this is kind of arbitrary.
 		literal.reserve(1024);
@@ -454,8 +461,10 @@ namespace wpp {
 
 
 	// Parse a function call.
-	wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree) {
-		wpp::node_t node = tree.add<FnInvoke>(lex.position());
+	wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
+		wpp::node_t node = tree.add<FnInvoke>();
+		pos.emplace(node, lex.position());
+
 		const auto fn_token = lex.advance();
 
 		// Optional arguments.
@@ -465,7 +474,7 @@ namespace wpp {
 			// While there is an expression there is another parameter.
 			while (peek_is_expr(lex.peek())) {
 				// Parse expr.
-				wpp::node_t expr = expression(lex, tree);
+				wpp::node_t expr = expression(lex, tree, pos);
 				tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 
 				// If the next token is a comma, skip it.
@@ -475,12 +484,12 @@ namespace wpp {
 				// Otherwise it must be ')'?
 				else if (lex.peek() != TOKEN_RPAREN)
 					// If it's not, throw an exception.
-					throw wpp::Exception{lex.position(), "expecting comma to follow parameter name."};
+					wpp::error(pos.at(node), "expecting comma to follow parameter name.");
 			}
 
 			// Make sure parameter list is terminated by `)`.
 			if (lex.advance() != TOKEN_RPAREN)
-				throw wpp::Exception{lex.position(), "expecting ')' to follow argument list."};
+				wpp::error(pos.at(node), "expecting ')' to follow argument list.");
 		}
 
 		// Check if function call is an intrinsic.
@@ -488,8 +497,8 @@ namespace wpp {
 		// If it is an intrinsic, we replace the FnInvoke node type with
 		// the Intrinsic node type and forward the arguments.
 		if (peek_is_intrinsic(fn_token)) {
-			const auto [_, args, pos] = tree.get<FnInvoke>(node);
-			tree.replace<Intrinsic>(node, fn_token.type, fn_token.str(), args, pos);
+			const auto [_, args] = tree.get<FnInvoke>(node);
+			tree.replace<Intrinsic>(node, fn_token.type, fn_token.str(), args);
 		}
 
 		else
@@ -499,9 +508,10 @@ namespace wpp {
 	}
 
 
-	wpp::node_t prefix(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t prefix(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		// Create `Pre` node.
-		const wpp::node_t node = tree.add<Pre>(lex.position());
+		const wpp::node_t node = tree.add<Pre>();
+		pos.emplace(node, lex.position());
 
 
 		// Skip `prefix` token, we already known it's there because
@@ -511,16 +521,16 @@ namespace wpp {
 
 		// Expect identifier.
 		if (not peek_is_expr(lex.peek()))
-			throw wpp::Exception{lex.position(), "prefix does not have a name."};
+			wpp::error(pos.at(node), "prefix does not have a name.");
 
 		// Set name of `Pre`.
-		const wpp::node_t expr = wpp::expression(lex, tree);
+		const wpp::node_t expr = wpp::expression(lex, tree, pos);
 		tree.get<Pre>(node).exprs = {expr};
 
 
 		// Expect opening brace.
 		if (lex.advance() != TOKEN_LBRACE)
-			throw wpp::Exception{lex.position(), "expecting '{' to follow name."};
+			wpp::error(pos.at(node), "expecting '{' to follow name.");
 
 
 		// Loop through body of prefix and collect statements.
@@ -532,7 +542,7 @@ namespace wpp {
 			// and is emplaced, the reference to the `Pre` node in `tree` might
 			// be invalidated.
 			do {
-				const wpp::node_t stmt = statement(lex, tree);
+				const wpp::node_t stmt = statement(lex, tree, pos);
 				tree.get<Pre>(node).statements.emplace_back(stmt);
 			} while (peek_is_stmt(lex.peek()));
 		}
@@ -540,7 +550,7 @@ namespace wpp {
 
 		// Expect closing brace.
 		if (lex.advance() != TOKEN_RBRACE)
-			throw wpp::Exception{lex.position(), "prefix is unterminated."};
+			wpp::error(pos.at(node), "prefix is unterminated.");
 
 
 		// Return index to `Pre` node we created at the top of this function.
@@ -549,8 +559,10 @@ namespace wpp {
 
 
 	// Parse a block.
-	wpp::node_t block(wpp::Lexer& lex, wpp::AST& tree) {
-		const wpp::node_t node = tree.add<Block>(lex.position());
+	wpp::node_t block(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
+		const wpp::node_t node = tree.add<Block>();
+		pos.emplace(node, lex.position());
+
 
 		lex.advance(); // Skip '{'.
 
@@ -566,7 +578,7 @@ namespace wpp {
 			do {
 				last_is_expr = peek_is_expr(lex.peek());
 
-				const wpp::node_t stmt = statement(lex, tree);
+				const wpp::node_t stmt = statement(lex, tree, pos);
 				tree.get<Block>(node).statements.emplace_back(stmt);
 			} while (peek_is_stmt(lex.peek()));
 		}
@@ -580,15 +592,15 @@ namespace wpp {
 		}
 
 		else {
-			throw wpp::Exception{lex.position(), "expecting a trailing expression at the end of a block"};
+			wpp::error(pos.at(node), "expecting a trailing expression at the end of a block.");
 		}
 
 		if (lex.peek() == TOKEN_ARROW)
-			throw wpp::Exception{tree.get<Block>(node).pos, "map is missing test expression."};
+			wpp::error(pos.at(node), "map is missing test expression.");
 
 		// Expect '}'.
 		if (lex.peek() != TOKEN_RBRACE)
-			throw wpp::Exception{lex.position(), "block is unterminated."};
+			wpp::error(pos.at(node), "block is unterminated.");
 
 		lex.advance(); // Skip '}'.
 
@@ -596,35 +608,37 @@ namespace wpp {
 	}
 
 
-	wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		lex.advance(); // Skip `map`.
 
-		const wpp::node_t node = tree.add<Map>(lex.position());
+		const wpp::node_t node = tree.add<Map>();
+		pos.emplace(node, lex.position());
+
 
 		// Check for test expression.
 		if (not peek_is_expr(lex.peek()))
-			throw wpp::Exception{lex.position(), "expected an expression to follow `map` keyword."};
+			wpp::error(pos.at(node), "expected an expression to follow `map` keyword.");
 
 
-		const auto expr = wpp::expression(lex, tree); // Consume test expression.
+		const auto expr = wpp::expression(lex, tree, pos); // Consume test expression.
 		tree.get<Map>(node).expr = expr;
 
 
 		if (lex.advance() != TOKEN_LBRACE)
-			throw wpp::Exception{lex.position(), "expected '{'."};
+			wpp::error(pos.at(node), "expected '{'.");
 
 
 		// Collect all arms of the map.
 		while (peek_is_expr(lex.peek())) {
-			const auto arm = wpp::expression(lex, tree);
+			const auto arm = wpp::expression(lex, tree, pos);
 
 			if (lex.advance() != TOKEN_ARROW)
-				throw wpp::Exception{lex.position(), "expected '->'."};
+				wpp::error(pos.at(node), "expected '->'.");
 
 			if (not peek_is_expr(lex.peek()))
-				throw wpp::Exception{lex.position(), "expected expression."};
+				wpp::error(pos.at(node), "expected expression.");
 
-			const auto hand = wpp::expression(lex, tree);
+			const auto hand = wpp::expression(lex, tree, pos);
 
 			tree.get<Map>(node).cases.emplace_back(std::pair{ arm, hand });
 		}
@@ -635,12 +649,12 @@ namespace wpp {
 			lex.advance();
 
 			if (lex.advance() != TOKEN_ARROW)
-				throw wpp::Exception{lex.position(), "expected '->'."};
+				wpp::error(pos.at(node), "expected '->'.");
 
 			if (not peek_is_expr(lex.peek()))
-				throw wpp::Exception{lex.position(), "expected expression."};
+				wpp::error(pos.at(node), "expected expression.");
 
-			const auto default_case = wpp::expression(lex, tree);
+			const auto default_case = wpp::expression(lex, tree, pos);
 			tree.get<Map>(node).default_case = default_case;
 		}
 
@@ -650,14 +664,14 @@ namespace wpp {
 
 
 		if (lex.advance() != TOKEN_RBRACE)
-			throw wpp::Exception{lex.position(), "expected '}'."};
+			wpp::error(pos.at(node), "expected '}'.");
 
 		return node;
 	}
 
 
 	// Parse an expression.
-	wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		// We use lhs to store the resulting expression
 		// from the following cases and if the next token
 		// is concatenation, we make a new Concat node using
@@ -668,29 +682,30 @@ namespace wpp {
 		const auto lookahead = lex.peek();
 
 		if (peek_is_call(lookahead))
-			lhs = wpp::fninvoke(lex, tree);
+			lhs = wpp::fninvoke(lex, tree, pos);
 
 		else if (peek_is_string(lookahead))
-			lhs = wpp::string(lex, tree);
+			lhs = wpp::string(lex, tree, pos);
 
 		else if (lookahead == TOKEN_LBRACE)
-			lhs = wpp::block(lex, tree);
+			lhs = wpp::block(lex, tree, pos);
 
 		else if (lookahead == TOKEN_MAP)
-			lhs = wpp::map(lex, tree);
+			lhs = wpp::map(lex, tree, pos);
 
 		else if (lookahead == TOKEN_EQUAL)
-			lhs = wpp::codeify(lex, tree);
+			lhs = wpp::codeify(lex, tree, pos);
 
 		else
-			throw wpp::Exception{lex.position(), "expecting an expression."};
+			wpp::error(lex.position(), "expecting an expression.");
 
 		if (lex.peek() == TOKEN_CAT) {
-			const wpp::node_t node = tree.add<Concat>(lex.position());
+			const wpp::node_t node = tree.add<Concat>();
+			pos.emplace(node, lex.position());
 
 			lex.advance(); // Skip `..`.
 
-			const wpp::node_t rhs = expression(lex, tree);
+			const wpp::node_t rhs = expression(lex, tree, pos);
 
 			tree.get<Concat>(node).lhs = lhs;
 			tree.get<Concat>(node).rhs = rhs;
@@ -703,36 +718,36 @@ namespace wpp {
 
 
 	// Parse a statement.
-	wpp::node_t statement(wpp::Lexer& lex, wpp::AST& tree) {
+	wpp::node_t statement(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
 		const auto lookahead = lex.peek();
 
 		if (lookahead == TOKEN_LET)
-			return wpp::let(lex, tree);
+			return wpp::let(lex, tree, pos);
 
 		else if (lookahead == TOKEN_VAR)
-			return wpp::var(lex, tree);
+			return wpp::var(lex, tree, pos);
 
 		else if (lookahead == TOKEN_DROP)
-			return wpp::drop(lex, tree);
+			return wpp::drop(lex, tree, pos);
 
 		else if (lookahead == TOKEN_PREFIX)
-			return wpp::prefix(lex, tree);
+			return wpp::prefix(lex, tree, pos);
 
 		else if (peek_is_expr(lookahead))
-			return wpp::expression(lex, tree);
+			return wpp::expression(lex, tree, pos);
 
-		throw wpp::Exception{lex.position(), "expecting a statement."};
+		wpp::error(lex.position(), "expecting a statement.");
 	}
 
 
 	// Parse a document.
 	// A document is just a series of zero or more expressions.
-	wpp::node_t document(wpp::Lexer& lex, wpp::AST& tree) {
-		const wpp::node_t node = tree.add<Document>(lex.position());
+	wpp::node_t document(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos) {
+		const wpp::node_t node = tree.add<Document>();
 
 		// Consume expressions until we encounter eof or an error.
 		while (lex.peek() != TOKEN_EOF) {
-			const wpp::node_t stmt = statement(lex, tree);
+			const wpp::node_t stmt = statement(lex, tree, pos);
 			tree.get<Document>(node).stmts.emplace_back(stmt);
 		}
 

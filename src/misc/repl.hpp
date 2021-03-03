@@ -12,63 +12,51 @@
 #endif
 
 #include <misc/util/util.hpp>
-#include <structures/exception.hpp>
 
 #include <frontend/lexer/lexer.hpp>
 #include <frontend/parser/parser.hpp>
 
-#include <backend/sexpr/sexpr.hpp>
 #include <backend/eval/eval.hpp>
 
 namespace wpp {
 	inline int repl() {
-		#ifdef WPP_DISABLE_REPL
-			std::cerr << "REPL support is disabled\n";
-			return 1;
+		// #ifdef WPP_DISABLE_REPL
+		// 	std::cerr << "REPL support is disabled\n";
+		// 	return 1;
 
-		#else
-			wpp::AST tree;
-			wpp::Environment env{std::filesystem::current_path(), tree};
+		// #else
+		// 	const auto path = std::filesystem::current_path();
 
-			// Reserve 10MiB
-			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+		// 	wpp::Context ctx{ path, path, "repl", nullptr };
+		// 	wpp::Env env{ ctx, wpp::warning_t{} };
 
-			std::cout << "wot++ repl\n";
+		// 	std::cout << "wot++ repl\n";
 
-			using_history();
+		// 	using_history();
 
-			while (true) {
-				auto input = readline(">>> ");
+		// 	while (true) {
+		// 		auto input = readline(">>> ");
 
-				if (!input) // EOF
-					break;
+		// 		if (!input) // EOF
+		// 			break;
 
-				add_history(input);
+		// 		add_history(input);
 
-				// Create a new lexer.
-				wpp::Lexer lex{"<repl>", input};
+		// 		wpp::Lexer lex{ ctx };
 
-				try {
-					// Parse.
-					auto root = document(lex, tree);
+		// 		std::string out = wpp::evaluate(wpp::parse(lex, env), env);
+		// 		std::cout << out << std::flush;
 
-					// Evaluate.
-					const auto out = wpp::eval_ast(root, env);
-					std::cout << out << std::flush;
+		// 		if (out.size() && out[out.size() - 1] != '\n')
+		// 			std::cout << std::endl;
 
-					if (out.size() && out[out.size() - 1] != '\n')
-						std::cout << std::endl;
-				}
+		// 		std::free(input);
+		// 	}
 
-				catch (const wpp::Exception& e) {
-					wpp::error(e.pos, e.what());
-				}
+		// 	return 0;
+		// #endif
 
-				std::free(input);
-			}
-
-			return 0;
-		#endif
+		return 1;
 	}
 }
 

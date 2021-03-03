@@ -1,5 +1,4 @@
 #include <frontend/lexer/lexer.hpp>
-#include <structures/exception.hpp>
 #include <frontend/char.hpp>
 
 
@@ -64,7 +63,8 @@ namespace wpp {
 
 namespace wpp {
 	void lex_comment(wpp::Lexer& lex, wpp::Token& tok) {
-		auto [start, ptr] = lex.get_ptrs();
+		// auto [start, ptr] = lex.get_ptrs();
+		auto& ptr = lex.str;
 
 		auto& [view, type] = tok;
 		auto& [vptr, vlen] = view;
@@ -87,7 +87,8 @@ namespace wpp {
 		}
 
 		if (*ptr == '\0' and depth != 0)
-			throw wpp::Exception{wpp::position(lex.fname, start, ptr), "unterminated comment."};
+			wpp::error(lex.position(), "unterminated comment.");
+			// throw wpp::Exception{wpp::position(start, ptr), "unterminated comment."};
 
 		// Update view pointer so when the lexer continues, the token starts
 		// at the right location.
@@ -96,15 +97,13 @@ namespace wpp {
 
 
 	void lex_single_comment(wpp::Lexer& lex, wpp::Token& tok) {
-		auto [start, ptr] = lex.get_ptrs();
-
 		auto& [view, type] = tok;
 		auto& [vptr, vlen] = view;
 
 		lex.next();
 		while (lex.next() != '\n');
 
-		vptr = ptr;
+		vptr = lex.str;
 	}
 
 
@@ -164,7 +163,7 @@ namespace wpp {
 
 
 	void lex_identifier(wpp::Lexer& lex, wpp::Token& tok) {
-		auto [start, ptr] = lex.get_ptrs();
+		auto& ptr = lex.str;
 
 		auto& [view, type] = tok;
 		auto& [vptr, vlen] = view;
@@ -205,7 +204,8 @@ namespace wpp {
 
 
 	void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok) {
-		auto [start, ptr] = lex.get_ptrs();
+		// auto [start, ptr] = lex.get_ptrs();
+		auto& ptr = lex.str;
 
 		auto& [view, type] = tok;
 		auto& [vptr, vlen] = view;
@@ -234,7 +234,8 @@ namespace wpp {
 
 			// Check if nibbles are valid digits.
 			if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
-				throw wpp::Exception{wpp::position(lex.fname, start, vptr), "invalid character in hex escape."};
+				wpp::error(lex.position(), "invalid character in hex escape.");
+			// 	throw wpp::Exception{wpp::position(start, vptr), "invalid character in hex escape."};
 		}
 
 		// Bin escape \b00001111.
@@ -247,7 +248,8 @@ namespace wpp {
 			// Consume 8 characters, check if each one is a valid digit.
 			for (; ptr != vptr + 8; lex.next()) {
 				if (not wpp::is_bin(*ptr))
-					throw wpp::Exception{wpp::position(lex.fname, start, vptr), "invalid character in bin escape."};
+					wpp::error(lex.position(), "invalid character in bin escape.");
+				// 	throw wpp::Exception{wpp::position(start, vptr), "invalid character in bin escape."};
 			}
 		}
 

@@ -128,9 +128,9 @@ namespace wpp {
 	}
 
 	// Read a file into a string relatively quickly.
-	std::string read_file(std::string_view fname) {
-		auto filesize = std::filesystem::file_size(fname);
-		std::ifstream is(fname.data());
+	std::string read_file(const std::filesystem::path& path) {
+		auto filesize = std::filesystem::file_size(path.string());
+		std::ifstream is(path.string());
 
 		auto str = std::string(filesize + 1, '\0');
 		is.read(str.data(), static_cast<std::streamsize>(filesize));
@@ -139,8 +139,8 @@ namespace wpp {
 	}
 
 
-	void write_file(std::string_view fname, const std::string& contents) {
-		auto file = std::ofstream(fname.data());
+	void write_file(const std::filesystem::path& path, const std::string& contents) {
+		auto file = std::ofstream(path.string());
 		file << contents;
 		file.close();
 	}

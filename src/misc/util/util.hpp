@@ -9,7 +9,7 @@
 #include <sstream>
 #include <variant>
 
-#include <frontend/position.hpp>
+#include <structures/context.hpp>
 
 namespace wpp {
 	// Concatenate objects with operator<< overload and return string.
@@ -58,15 +58,16 @@ namespace wpp {
 
 	// Print an error with position info.
 	template <typename... Ts>
-	inline void error(const wpp::Position& pos, Ts&&... args) {
+	[[noreturn]] inline void error(const wpp::Pos& pos, Ts&&... args) {
 		([&] () -> std::ostream& {
 			return (std::cerr << "error @ " << pos << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
+		std::exit(1);
 	}
 
 	// Print a warning with position info.
 	template <typename... Ts>
-	inline void warn(const wpp::Position& pos, Ts&&... args) {
+	inline void warn(const wpp::Pos& pos, Ts&&... args) {
 		([&] () -> std::ostream& {
 			return (std::cerr << "warning @ " << pos << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
@@ -100,9 +101,9 @@ namespace wpp {
 
 
 	// Read a file into a string relatively quickly.
-	std::string read_file(std::string_view);
+	std::string read_file(const std::filesystem::path& path);
 
-	void write_file(std::string_view, const std::string&);
+	void write_file(const std::filesystem::path& path, const std::string& contents);
 }
 
 

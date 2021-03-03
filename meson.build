@@ -23,8 +23,9 @@ deps = []
 sources = files(
 	'src/main.cpp',
 
-	'src/structures/exception.hpp',
 	'src/structures/error.hpp',
+	'src/structures/context.hpp',
+	'src/structures/environment.hpp',
 
 	'src/misc/util/util.hpp',
 	'src/misc/util/util.cpp',
@@ -41,20 +42,15 @@ sources = files(
 	'src/frontend/parser/parser.hpp',
 	'src/frontend/parser/parser.cpp',
 
-	'src/frontend/position.hpp',
 	'src/frontend/token.hpp',
 	'src/frontend/view.hpp',
 
 	'src/frontend/char.hpp',
 
+	'src/backend/eval/intrinsics.hpp',
+	'src/backend/eval/intrinsics.cpp',
 	'src/backend/eval/eval.hpp',
 	'src/backend/eval/eval.cpp',
-
-	'src/backend/reconstruct/reconstruct.hpp',
-	'src/backend/reconstruct/reconstruct.cpp',
-
-	'src/backend/sexpr/sexpr.hpp',
-	'src/backend/sexpr/sexpr.cpp',
 )
 
 sources_inc = include_directories('src/')

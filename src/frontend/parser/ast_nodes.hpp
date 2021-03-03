@@ -9,7 +9,6 @@
 #include <vector>
 
 #include <frontend/token.hpp>
-#include <frontend/position.hpp>
 #include <frontend/ast.hpp>
 
 
@@ -19,18 +18,13 @@ namespace wpp {
 	struct FnInvoke {
 		std::string identifier;
 		std::vector<wpp::node_t> arguments;
-		wpp::Position pos;
 
 		FnInvoke(
 			const std::string& identifier_,
-			const std::vector<wpp::node_t>& arguments_,
-			const wpp::Position& pos_
+			const std::vector<wpp::node_t>& arguments_
 		):
 			identifier(identifier_),
-			arguments(arguments_),
-			pos(pos_) {}
-
-		FnInvoke(const wpp::Position& pos_): pos(pos_) {}
+			arguments(arguments_) {}
 
 		FnInvoke() {}
 	};
@@ -39,20 +33,15 @@ namespace wpp {
 		wpp::token_type_t type;
 		std::string identifier;
 		std::vector<wpp::node_t> arguments;
-		wpp::Position pos;
 
 		Intrinsic(
 			const wpp::token_type_t type_,
 			const std::string& identifier_,
-			const std::vector<wpp::node_t>& arguments_,
-			const wpp::Position& pos_
+			const std::vector<wpp::node_t>& arguments_
 		):
 			type(type_),
 			identifier(identifier_),
-			arguments(arguments_),
-			pos(pos_) {}
-
-		Intrinsic(const wpp::Position& pos_): pos(pos_) {}
+			arguments(arguments_) {}
 
 		Intrinsic() {}
 	};
@@ -62,37 +51,23 @@ namespace wpp {
 		std::string identifier;
 		std::vector<std::string> parameters;
 		wpp::node_t body;
-		wpp::Position pos;
 
 		Fn(
 			const std::string& identifier_,
 			const std::vector<std::string>& parameters_,
-			const wpp::node_t body_,
-			const wpp::Position& pos_
+			const wpp::node_t body_
 		):
 			identifier(identifier_),
 			parameters(parameters_),
-			body(body_),
-			pos(pos_) {}
-
-		Fn(const wpp::Position& pos_): pos(pos_) {}
+			body(body_) {}
 
 		Fn() {}
 	};
 
 	struct Codeify {
 		wpp::node_t expr;
-		wpp::Position pos;
 
-		Codeify(
-			const wpp::node_t expr_,
-			const wpp::Position& pos_
-		):
-			expr(expr_),
-			pos(pos_) {}
-
-		Codeify(const wpp::Position& pos_): pos(pos_) {}
-
+		Codeify(const wpp::node_t expr_): expr(expr_) {}
 		Codeify() {}
 	};
 
@@ -100,57 +75,37 @@ namespace wpp {
 	struct Var {
 		std::string identifier;
 		wpp::node_t body;
-		wpp::Position pos;
 
 		Var(
 			const std::string& identifier_,
-			const wpp::node_t body_,
-			const wpp::Position& pos_
+			const wpp::node_t body_
 		):
 			identifier(identifier_),
-			body(body_),
-			pos(pos_) {}
-
-		Var(const wpp::Position& pos_): pos(pos_) {}
+			body(body_) {}
 
 		Var() {}
 	};
 
 	struct Drop {
 		wpp::node_t func;
-		wpp::Position pos;
 
-		Drop(const wpp::node_t& func_, const wpp::Position& pos_):
-			func(func_), pos(pos_) {}
-
-		Drop(const wpp::Position& pos_): pos(pos_) {}
-
+		Drop(const wpp::node_t& func_): func(func_) {}
 		Drop() {}
 	};
 
 	// String literal.
 	struct String {
 		std::string value;
-		wpp::Position pos;
 
-		String(const std::string& value_, const wpp::Position& pos_):
-			value(value_), pos(pos_) {}
-
-		String(const wpp::Position& pos_): pos(pos_) {}
-
+		String(const std::string& value_): value(value_) {}
 		String() {}
 	};
 
 	// Concatenation operator.
 	struct Concat {
 		wpp::node_t lhs, rhs;
-		wpp::Position pos;
 
-		Concat(wpp::node_t lhs_, wpp::node_t rhs_, const wpp::Position& pos_):
-			lhs(lhs_), rhs(rhs_), pos(pos_) {}
-
-		Concat(const wpp::Position& pos_): pos(pos_) {}
-
+		Concat(wpp::node_t lhs_, wpp::node_t rhs_): lhs(lhs_), rhs(rhs_) {}
 		Concat() {}
 	};
 
@@ -158,18 +113,13 @@ namespace wpp {
 	struct Block {
 		std::vector<wpp::node_t> statements;
 		wpp::node_t expr;
-		wpp::Position pos;
 
 		Block(
 			const std::vector<wpp::node_t>& statements_,
-			const wpp::node_t expr_,
-			const wpp::Position& pos_
+			const wpp::node_t expr_
 		):
 			statements(statements_),
-			expr(expr_),
-			pos(pos_) {}
-
-		Block(const wpp::Position& pos_): pos(pos_) {}
+			expr(expr_) {}
 
 		Block() {}
 	};
@@ -178,18 +128,13 @@ namespace wpp {
 	struct Pre {
 		std::vector<wpp::node_t> exprs;
 		std::vector<wpp::node_t> statements;
-		wpp::Position pos;
 
 		Pre(
 			const std::vector<wpp::node_t>& exprs_,
-			const std::vector<wpp::node_t>& statements_,
-			const wpp::Position& pos_
+			const std::vector<wpp::node_t>& statements_
 		):
 			exprs(exprs_),
-			statements(statements_),
-			pos(pos_) {}
-
-		Pre(const wpp::Position& pos_): pos(pos_) {}
+			statements(statements_) {}
 
 		Pre() {}
 	};
@@ -199,20 +144,15 @@ namespace wpp {
 		wpp::node_t expr;
 		std::vector<std::pair<wpp::node_t, wpp::node_t>> cases;
 		wpp::node_t default_case;
-		wpp::Position pos;
 
 		Map(
 			const wpp::node_t expr_,
 			const std::vector<std::pair<wpp::node_t, wpp::node_t>>& cases_,
-			const wpp::node_t default_case_,
-			const wpp::Position& pos_
+			const wpp::node_t default_case_
 		):
 			expr(expr_),
 			cases(cases_),
-			default_case(default_case_),
-			pos(pos_) {}
-
-		Map(const wpp::Position& pos_): pos(pos_) {}
+			default_case(default_case_) {}
 
 		Map() {}
 	};
@@ -220,17 +160,8 @@ namespace wpp {
 	// The root node of a wot++ program.
 	struct Document {
 		std::vector<wpp::node_t> stmts;
-		wpp::Position pos;
 
-		Document(
-			const std::vector<wpp::node_t>& stmts_,
-			const wpp::Position& pos_
-		):
-			stmts(stmts_),
-			pos(pos_) {}
-
-		Document(const wpp::Position& pos_): pos(pos_) {}
-
+		Document(const std::vector<wpp::node_t>& stmts_): stmts(stmts_) {}
 		Document() {}
 	};
 

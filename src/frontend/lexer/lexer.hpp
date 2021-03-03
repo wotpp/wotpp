@@ -6,8 +6,9 @@
 #include <string>
 #include <utility>
 
+#include <structures/context.hpp>
+#include <structures/environment.hpp>
 #include <frontend/token.hpp>
-#include <frontend/position.hpp>
 
 // Token types.
 namespace wpp {
@@ -120,28 +121,24 @@ namespace wpp::modes {
 
 namespace wpp {
 	struct Lexer {
-		std::string fname;
-		const char* const start = nullptr;
+		wpp::Context& ctx;
 		const char* str = nullptr;
 
 		wpp::Token lookahead{};
 		int lookahead_mode = modes::normal;
 
 
-		Lexer(const std::string& fname_, const char* const str_, int mode_ = modes::normal):
-			fname(fname_),
-			start(str_),
-			str(str_),
-			lookahead(),
+		Lexer(
+			wpp::Context& ctx_,
+			int mode_ = modes::normal
+		):
+			ctx(ctx_),
+			str(ctx_.base),
 			lookahead_mode(mode_)
 		{
 			advance(mode_);
 		}
 
-
-		std::pair<decltype(start), decltype(str)&> get_ptrs() {
-			return { start, str };
-		}
 
 		const wpp::Token& peek(int mode = modes::normal) {
 			// If the current mode is different from the lookahead mode
@@ -175,8 +172,8 @@ namespace wpp {
 			return tok;
 		}
 
-		wpp::Position position(int line_offset = 0, int column_offset = 0) const {
-			return wpp::position(fname, start, lookahead.view.ptr, line_offset, column_offset);
+		wpp::Pos position() const {
+			return wpp::Pos{ctx, lookahead.view.ptr};
 		}
 
 		wpp::Token next_token(int mode = modes::normal);

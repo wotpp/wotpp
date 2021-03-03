@@ -20,7 +20,7 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 int main(int argc, const char* argv[]) {
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
-	bool repl = false;
+	bool repl = false, enable_run = true;
 
 
 	std::vector<const char*> positional;
@@ -28,9 +28,10 @@ int main(int argc, const char* argv[]) {
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,  "output file",       "--output",   "-o"},
-		wpp::Opt{repl,     "repl mode",         "--repl",     "-R"},
-		wpp::Opt{warnings, "toggle warnings",   "--warnings", "-W"}
+		wpp::Opt{outputf,    "output file",          "--output",   "-o"},
+		wpp::Opt{warnings,   "toggle warnings",      "--warnings", "-W"},
+		wpp::Opt{repl,       "repl mode",            "--repl",     "-r"},
+		wpp::Opt{enable_run, "toggle run intrinsic", "--run",      "-R"}
 	))
 		return 0;
 
@@ -75,28 +76,20 @@ int main(int argc, const char* argv[]) {
 
 	for (const auto& fname: positional) {
 		try {
-			std::string file = wpp::read_file(fname);
-
 			// Set current path to path of file.
-			const auto path = std::filesystem::current_path() / std::filesystem::path{fname};
+			const auto path = initial_path / std::filesystem::path{fname};
 			std::filesystem::current_path(path.parent_path());
 
-			wpp::Lexer lex{std::filesystem::relative(path, initial_path), file.c_str()};
-			wpp::AST tree;
-			wpp::Environment env{initial_path, tree, warning_flags};
+			const std::string source = wpp::read_file(path);
 
-			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
+			wpp::Context ctx{ initial_path, path, "normal", source.c_str() };
+			wpp::Env env{ ctx, warning_flags };
+			wpp::Lexer lex{ ctx };
 
-			auto root = wpp::document(lex, tree);
-			out += wpp::eval_ast(root, env) + "\n";
+			out += wpp::evaluate(wpp::parse(lex, env), env) + "\n";
 		}
 
-		catch (const wpp::Exception& e) {
-			wpp::error(e.pos, e.what());
-			return 1;
-		}
-
-		catch (const std::filesystem::filesystem_error& e) {
+		catch (const std::filesystem::filesystem_error&) {
 			std::cerr << "file '" << fname << "' not found.\n";
 			return 1;
 		}

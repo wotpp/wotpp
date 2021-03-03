@@ -6,6 +6,7 @@
 #include <string>
 
 #include <frontend/token.hpp>
+#include <structures/environment.hpp>
 #include <frontend/lexer/lexer.hpp>
 #include <frontend/parser/ast_nodes.hpp>
 
@@ -105,20 +106,24 @@ namespace wpp {
 	void para_string(std::string&);
 	void code_string(std::string&);
 
-	wpp::node_t expression(wpp::Lexer&, wpp::AST&);
-	wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&);
-	wpp::node_t map(wpp::Lexer&, wpp::AST&);
-	wpp::node_t block(wpp::Lexer&, wpp::AST&);
-	wpp::node_t codeify(wpp::Lexer&, wpp::AST&);
-	wpp::node_t string(wpp::Lexer&, wpp::AST&);
+	wpp::node_t expression(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t map(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t block(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t codeify(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t string(wpp::Lexer&, wpp::AST&, wpp::Positions&);
 
-	wpp::node_t statement(wpp::Lexer&, wpp::AST&);
-	wpp::node_t var(wpp::Lexer&, wpp::AST&);
-	wpp::node_t drop(wpp::Lexer&, wpp::AST&);
-	wpp::node_t let(wpp::Lexer&, wpp::AST&);
-	wpp::node_t prefix(wpp::Lexer&, wpp::AST&);
+	wpp::node_t statement(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t var(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t drop(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t let(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+	wpp::node_t prefix(wpp::Lexer&, wpp::AST&, wpp::Positions&);
 
-	wpp::node_t document(wpp::Lexer&, wpp::AST&);
+	wpp::node_t document(wpp::Lexer&, wpp::AST&, wpp::Positions&);
+
+	inline wpp::node_t parse(wpp::Lexer& lex, wpp::Env& env) {
+		return wpp::document(lex, env.ast, env.positions);
+	}
 }
 
 #endif
