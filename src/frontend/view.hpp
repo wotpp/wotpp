@@ -4,14 +4,9 @@
 #define WOTPP_VIEW
 
 #include <string>
-#include <iostream>
-
 #include <cstring>
 #include <cstdint>
 
-#include <misc/util/util.hpp>
-
-// A view is a non-owning way to view a string.
 
 namespace wpp {
 	struct View {
@@ -85,20 +80,6 @@ namespace wpp {
 
 		std::string str() const {
 			return std::string{ ptr, static_cast<std::string::size_type>(length) };
-		}
-	};
-
-	inline std::ostream& operator<<(std::ostream& os, const View& v) {
-		const auto& [vptr, vlength] = v;
-		os.write(vptr, vlength);
-		return os;
-	}
-
-	// Hashing function for `View` so that we can insert
-	// it into unordered_map.
-	struct ViewHasher {
-		std::size_t operator()(const View& v) const {
-			return wpp::hash_bytes(v.ptr, v.ptr + v.length);
 		}
 	};
 }

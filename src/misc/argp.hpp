@@ -6,7 +6,7 @@
 #include <string>
 #include <array>
 #include <vector>
-#include <iostream>
+#include <iosfwd>
 #include <utility>
 #include <string_view>
 #include <type_traits>
@@ -225,15 +225,20 @@ namespace wpp {
 		const auto& [ref, desc, lng, shrt] = opt;
 		str.reserve(str.capacity() + padding + std::strlen(desc) + 1);
 
-		// using RefT = std::remove_reference_t<std::remove_cv_t<decltype(ref)>>;
+		using RefT = std::remove_reference_t<std::remove_cv_t<decltype(ref)>>;
 
 		while (padding--)
 			str += ' ';
 
-		// if constexpr(std::is_same_v<RefT, bool>)
-		// 	cat(str, desc, " (default: ", std::array{"false", "true"}[ref], ")\n");
+		if constexpr(std::is_same_v<RefT, bool>) {
+			if (std::strcmp(shrt, "-h") != 0)
+				cat(str, desc, " (default: ", std::array{"false", "true"}[ref], ")\n");
 
-		// else
+			else
+				cat(str, desc, '\n');
+		}
+
+		else
 			cat(str, desc, '\n');
 	}
 

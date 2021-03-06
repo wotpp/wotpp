@@ -1,44 +1,15 @@
 #include <string>
-#include <filesystem>
-#include <fstream>
 #include <array>
-#include <stdexcept>
 
 #include <cstdint>
 #include <cstdio>
 
-
 #if !defined(WPP_DISABLE_RUN)
-	#include <sys/types.h>
 	#include <sys/wait.h>
-	#include <sys/mman.h>
 	#include <unistd.h>
-	#include <fcntl.h>
-	#include <dlfcn.h>
 #endif
 
-
 namespace wpp {
-	// FNV-1a hash.
-	// Calculate a hash of a range of bytes.
-	uint64_t hash_bytes(const char* begin, const char* const end) {
-		uint64_t offset_basis = 0;
-		uint64_t prime = 0;
-
-		offset_basis = 14'695'981'039'346'656'037u;
-		prime = 1'099'511'628'211u;
-
-		uint64_t hash = offset_basis;
-
-		while (begin != end) {
-			hash = (hash ^ static_cast<uint64_t>(*begin)) * prime;
-			begin++;
-		}
-
-		return hash;
-	}
-
-
 	// Execute a shell command, capture its standard output and return it
 	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
 	std::string exec(const std::string& cmd, int& rc) {
@@ -49,7 +20,8 @@ namespace wpp {
 			FILE* pipe = popen(cmd.c_str(), "r");
 
 			if (not pipe) {
-				throw std::runtime_error("popen() failed!");
+				rc = 1;
+				return "";
 			}
 
 			while (not std::feof(pipe)) {
@@ -123,26 +95,9 @@ namespace wpp {
 			(void)cmd;
 			(void)data;
 			(void)rc;
+
 			return "";
 		#endif
-	}
-
-	// Read a file into a string relatively quickly.
-	std::string read_file(const std::filesystem::path& path) {
-		auto filesize = std::filesystem::file_size(path.string());
-		std::ifstream is(path.string());
-
-		auto str = std::string(filesize + 1, '\0');
-		is.read(str.data(), static_cast<std::streamsize>(filesize));
-
-		return str;
-	}
-
-
-	void write_file(const std::filesystem::path& path, const std::string& contents) {
-		auto file = std::ofstream(path.string());
-		file << contents;
-		file.close();
 	}
 }
 

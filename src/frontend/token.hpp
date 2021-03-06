@@ -4,17 +4,12 @@
 #define WOTPP_TOKEN
 
 #include <string>
-#include <iostream>
-
 #include <cstdint>
-
+#include <misc/fwddecl.hpp>
 #include <frontend/view.hpp>
 
-// Token structure that combines a type with a view of it's contents.
 
 namespace wpp {
-	using token_type_t = uint8_t;
-
 	struct Token {
 		View view{};
 		wpp::token_type_t type = 0;
@@ -72,11 +67,6 @@ namespace wpp {
 			return view.str();
 		}
 	};
-
-	inline std::ostream& operator<<(std::ostream& os, const Token& t) {
-		const auto& [view, type] = t;
-		return (os << view);
-	}
 }
 
 #endif

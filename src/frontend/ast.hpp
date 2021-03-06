@@ -6,12 +6,12 @@
 #include <vector>
 #include <variant>
 #include <utility>
-#include <cstdint>
+
+#include <misc/fwddecl.hpp>
 
 // A vector of variants.
 
 namespace wpp {
-	using node_t = int32_t;
 	constexpr node_t NODE_EMPTY = -1;
 
 	template <typename... Ts>

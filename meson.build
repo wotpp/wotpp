@@ -23,8 +23,6 @@ deps = []
 sources = files(
 	'src/main.cpp',
 
-	'src/structures/error.hpp',
-	'src/structures/context.hpp',
 	'src/structures/environment.hpp',
 
 	'src/misc/util/util.hpp',

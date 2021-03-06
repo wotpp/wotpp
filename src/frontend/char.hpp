@@ -3,7 +3,6 @@
 #ifndef WOTPP_CHAR
 #define WOTPP_CHAR
 
-#include <utility>
 #include <cstdint>
 
 // Common character related utilities.

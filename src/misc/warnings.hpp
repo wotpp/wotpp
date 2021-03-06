@@ -4,10 +4,9 @@
 #define WOTPP_WARNINGS
 
 #include <cstdint>
+#include <misc/fwddecl.hpp>
 
 namespace wpp {
-	using warning_t = uint32_t;
-
 	enum: warning_t {
 		WARN_PARAM_SHADOW_FUNC  = 0b00000001,
 		WARN_PARAM_SHADOW_PARAM = 0b00000010,

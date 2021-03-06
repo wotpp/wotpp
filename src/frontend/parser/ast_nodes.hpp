@@ -3,7 +3,6 @@
 #ifndef WOTPP_AST_NODES
 #define WOTPP_AST_NODES
 
-#include <utility>
 #include <variant>
 #include <string>
 #include <vector>

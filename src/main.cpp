@@ -1,16 +1,15 @@
+#include <string_view>
 #include <string>
+#include <vector>
 #include <iostream>
 #include <utility>
 #include <chrono>
 
-#include <cstdint>
-#include <cstring>
-#include <ctime>
-
 #include <misc/warnings.hpp>
-#include <backend/eval/eval.hpp>
+#include <misc/util/util.hpp>
 #include <misc/repl.hpp>
 #include <misc/argp.hpp>
+#include <backend/eval/eval.hpp>
 
 
 constexpr auto ver = "alpha-git";
@@ -18,6 +17,8 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 
 
 int main(int argc, const char* argv[]) {
+	auto t1 = std::chrono::steady_clock::now();
+
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
 	bool repl = false, enable_run = true;
@@ -80,13 +81,16 @@ int main(int argc, const char* argv[]) {
 			const auto path = initial_path / std::filesystem::path{fname};
 			std::filesystem::current_path(path.parent_path());
 
-			const std::string source = wpp::read_file(path);
+			wpp::Env env{ initial_path, warning_flags };
+			env.sources.push(path, wpp::read_file(path), wpp::modes::normal);
 
-			wpp::Context ctx{ initial_path, path, "normal", source.c_str() };
-			wpp::Env env{ ctx, warning_flags };
-			wpp::Lexer lex{ ctx };
+			try {
+				out += wpp::evaluate(wpp::parse(env), env);
+			}
 
-			out += wpp::evaluate(wpp::parse(lex, env), env) + "\n";
+			catch (wpp::Error& e) {
+				return 1;
+			}
 		}
 
 		catch (const std::filesystem::filesystem_error&) {
@@ -103,6 +107,17 @@ int main(int argc, const char* argv[]) {
 	else
 		std::cout << out;
 
+	auto t2 = std::chrono::steady_clock::now();
+
+	std::chrono::duration<double> s = t2 - t1;
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(s);
+	auto us = std::chrono::duration_cast<std::chrono::microseconds>(s);
+
+	std::cerr << "time: " <<
+		s.count() << "s  " <<
+		ms.count() << "ms  " <<
+		us.count() << "us\n"
+	;
 
 	return 0;
 }

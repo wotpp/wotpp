@@ -1,40 +1,27 @@
 #include <string>
 #include <vector>
-#include <unordered_map>
 #include <filesystem>
-#include <array>
-#include <type_traits>
-#include <limits>
-#include <numeric>
-#include <algorithm>
 
 #include <misc/util/util.hpp>
-#include <misc/warnings.hpp>
 #include <frontend/ast.hpp>
 #include <structures/environment.hpp>
-#include <structures/context.hpp>
 #include <frontend/parser/parser.hpp>
-#include <frontend/parser/ast_nodes.hpp>
-
 #include <backend/eval/eval.hpp>
-#include <backend/eval/intrinsics.hpp>
 
 
 namespace wpp {
 	std::string intrinsic_eval(
-		const wpp::node_t node_id,
+		const wpp::node_t,
 		const std::vector<wpp::node_t>& exprs,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [ctx, ast, functions, positions, warnings] = env;
-
 		const std::string source = wpp::evaluate(exprs[0], env, fn_env);
 
-		wpp::Context new_ctx{ ctx.root, ctx.file, "eval", source.c_str() };
-		wpp::Lexer lex{ new_ctx };
+		const auto& [file, base, mode] = env.sources.top();
+		env.sources.push(file, source, modes::eval);
 
-		return wpp::evaluate(wpp::parse(lex, env), env, fn_env);
+		return wpp::evaluate(wpp::parse(env), env, fn_env);
 	}
 
 
@@ -44,10 +31,10 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [root, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(positions.at(node_id), "run not available.");
+			wpp::error(positions[node_id], env, "run not available.");
 		#endif
 
 		const auto cmd = wpp::evaluate(exprs[0], env, fn_env);
@@ -60,7 +47,7 @@ namespace wpp {
 			str.erase(str.end() - 1, str.end());
 
 		if (rc)
-			wpp::error(positions.at(node_id), "subprocess exited with non-zero status.");
+			wpp::error(positions[node_id], env, "subprocess exited with non-zero status.");
 
 		return str;
 	}
@@ -72,10 +59,10 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [root, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(positions.at(node_id), "pipe not available.");
+			wpp::error(positions[node_id], env, "pipe not available.");
 		#endif
 
 		std::string str;
@@ -91,7 +78,7 @@ namespace wpp {
 			out.erase(out.end() - 1, out.end());
 
 		if (rc)
-			wpp::error(positions.at(node_id), "subprocess exited with non-zero status.");
+			wpp::error(positions[node_id], env, "subprocess exited with non-zero status.");
 
 		return out;
 	}
@@ -103,7 +90,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [root, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
 
@@ -112,8 +99,10 @@ namespace wpp {
 		}
 
 		catch (...) {
-			wpp::error(positions.at(node_id), "failed reading file '", fname, "'");
+			wpp::error(positions[node_id], env, "failed reading file '", fname, "'");
 		}
+
+		return "";
 	}
 
 
@@ -123,7 +112,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [ctx, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		std::string str;
 		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
@@ -137,16 +126,14 @@ namespace wpp {
 		try {
 			const std::string source = wpp::read_file(new_path);
 
-			wpp::Context new_ctx{ ctx.root, new_path, "normal", source.c_str() };
-			wpp::Lexer lex{ new_ctx };
-
-			str = wpp::evaluate(wpp::parse(lex, env), env, fn_env);
+			env.sources.push(new_path, source, wpp::modes::source);
+			str = wpp::evaluate(wpp::parse(env), env, fn_env);
 
 			std::filesystem::current_path(old_path);
 		}
 
 		catch (const std::filesystem::filesystem_error& e) {
-			wpp::error(positions.at(node_id), "file '", fname, "' not found.");
+			wpp::error(positions[node_id], env, "file '", fname, "' not found.");
 		}
 
 		return str;
@@ -159,14 +146,14 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [root, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		// Check if strings are equal.
 		const auto str_a = evaluate(exprs[0], env, fn_env);
 		const auto str_b = evaluate(exprs[1], env, fn_env);
 
 		if (str_a != str_b)
-			wpp::error(positions.at(node_id), "assertion failed!");
+			wpp::error(positions[node_id], env, "assertion failed!");
 
 		return "";
 	}
@@ -178,17 +165,17 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [root, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		const auto msg = evaluate(exprs[0], env, fn_env);
-		wpp::error(positions.at(node_id), msg);
+		wpp::error(positions[node_id], env, msg);
 
 		return "";
 	}
 
 
 	std::string intrinsic_log(
-		const wpp::node_t node_id,
+		const wpp::node_t,
 		const std::vector<wpp::node_t>& exprs,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
@@ -199,7 +186,7 @@ namespace wpp {
 
 
 	std::string intrinsic_escape(
-		const wpp::node_t node_id,
+		const wpp::node_t,
 		const std::vector<wpp::node_t>& exprs,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
@@ -230,7 +217,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		auto& [root, ast, functions, positions, warnings] = env;
+		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 
 		// Evaluate arguments
 		const auto string = evaluate(exprs[0], env, fn_env);
@@ -248,7 +235,7 @@ namespace wpp {
 		}
 
 		catch (...) {
-			wpp::error(positions.at(node_id), "slice range must be numerical.");
+			wpp::error(positions[node_id], env, "slice range must be numerical.");
 		}
 
 
@@ -275,13 +262,13 @@ namespace wpp {
 
 		// Make sure the range is valid
 		if (count <= 0)
-			wpp::error(positions.at(node_id), "end of slice cannot be before the start.");
+			wpp::error(positions[node_id], env, "end of slice cannot be before the start.");
 
 		else if (len < begin + count)
-			wpp::error(positions.at(node_id), "slice extends outside of string bounds.");
+			wpp::error(positions[node_id], env, "slice extends outside of string bounds.");
 
 		else if (start < 0 && end >= 0)
-			wpp::error(positions.at(node_id), "start cannot be negative where end is positions.at(node_id)itive.");
+			wpp::error(positions[node_id], env, "start cannot be negative where end is negative.");
 
 
 		// Return the string slice
@@ -290,7 +277,7 @@ namespace wpp {
 
 
 	std::string intrinsic_find(
-		const wpp::node_t node_id,
+		const wpp::node_t,
 		const std::vector<wpp::node_t>& exprs,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
@@ -308,7 +295,7 @@ namespace wpp {
 
 
 	std::string intrinsic_length(
-		const wpp::node_t node_id,
+		const wpp::node_t,
 		const std::vector<wpp::node_t>& exprs,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env

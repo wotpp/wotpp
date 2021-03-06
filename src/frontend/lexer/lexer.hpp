@@ -6,9 +6,9 @@
 #include <string>
 #include <utility>
 
-#include <structures/context.hpp>
-#include <structures/environment.hpp>
+#include <misc/fwddecl.hpp>
 #include <frontend/token.hpp>
+#include <structures/environment.hpp>
 
 // Token types.
 namespace wpp {
@@ -85,67 +85,45 @@ namespace wpp {
 	#undef TOKEN
 
 	#define TOKEN(x) #x,
-		constexpr const char* to_str[] = { TOKEN_TYPES };
+		constexpr const char* token_to_str[] = { TOKEN_TYPES };
 	#undef TOKEN
 
 	#undef TOKEN_TYPES
 }
 
-namespace wpp {
-	struct Lexer;
-
-	void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer&, wpp::Token&);
-	void lex_simple(wpp::token_type_t, int, wpp::Lexer&, wpp::Token&);
-
-	void lex_comment(wpp::Lexer&, wpp::Token&);
-	void lex_single_comment(wpp::Lexer&, wpp::Token&);
-	void lex_whitespace(wpp::Lexer&, wpp::Token&);
-
-	void lex_identifier(wpp::Lexer&, wpp::Token&);
-
-	void lex_smart(wpp::Lexer&, wpp::Token&);
-	void lex_string_escape(wpp::Lexer&, wpp::Token&);
-	void lex_string_other(wpp::Lexer&, wpp::Token&);
-
-	void lex_mode_string(wpp::Lexer&, wpp::Token&);
-	void lex_mode_normal(wpp::Lexer&, wpp::Token&);
-}
-
-namespace wpp::modes {
-	enum {
-		normal,
-		string,
-		character,
-	};
-}
 
 namespace wpp {
 	struct Lexer {
-		wpp::Context& ctx;
-		const char* str = nullptr;
+		const wpp::Env& env;
+		const char* ptr = nullptr;
 
 		wpp::Token lookahead{};
-		int lookahead_mode = modes::normal;
+		wpp::lexer_mode_type_t lookahead_mode = lexer_modes::normal;
 
 
 		Lexer(
-			wpp::Context& ctx_,
-			int mode_ = modes::normal
+			const wpp::Env& env_,
+			wpp::lexer_mode_type_t mode_ = lexer_modes::normal
 		):
-			ctx(ctx_),
-			str(ctx_.base),
+			env(env_),
+			ptr(env_.sources.top().base),
 			lookahead_mode(mode_)
 		{
 			advance(mode_);
 		}
 
 
-		const wpp::Token& peek(int mode = modes::normal) {
+		wpp::Pos position() const {
+			return { env.sources.top(), ptr };
+		}
+
+
+		const wpp::Token& peek(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
 			// If the current mode is different from the lookahead mode
 			// then we update the lookahead token and set the new
 			// lookahead mode.
 			if (mode != lookahead_mode) {
-				str = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
+				ptr = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
 
 				lookahead = next_token(mode);
 				lookahead_mode = mode;
@@ -155,28 +133,18 @@ namespace wpp {
 		}
 
 		char next(int n = 1) {
-			char c = *str;
-			str += n;
+			char c = *ptr;
+			ptr += n;
 			return c;
 		}
 
-		char prev(int n = 1) {
-			char c = *str;
-			str -= n;
-			return c;
-		}
-
-		wpp::Token advance(int mode = modes::normal) {
+		wpp::Token advance(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
 			auto tok = peek(mode);
 			lookahead = next_token(mode);
 			return tok;
 		}
 
-		wpp::Pos position() const {
-			return wpp::Pos{ctx, lookahead.view.ptr};
-		}
-
-		wpp::Token next_token(int mode = modes::normal);
+		wpp::Token next_token(wpp::lexer_mode_type_t mode = lexer_modes::normal);
 	};
 }
 
