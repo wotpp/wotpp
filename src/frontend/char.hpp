@@ -38,7 +38,7 @@ namespace wpp {
 	}
 
 	constexpr bool is_whitespace(char c) {
-		return in_group(c, ' ', '\n', '\t', '\v', '\f', '\r');
+		return c == ' ' or in_range(c, '\t', '\r');
 	}
 
 	constexpr bool is_hex(char c) {

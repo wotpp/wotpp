@@ -1,4 +1,5 @@
 #include <string_view>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -21,7 +22,7 @@ int main(int argc, const char* argv[]) {
 
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
-	bool repl = false, enable_run = true;
+	bool repl = false, enable_run = true, force = false;
 
 
 	std::vector<const char*> positional;
@@ -29,10 +30,11 @@ int main(int argc, const char* argv[]) {
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,    "output file",          "--output",   "-o"},
-		wpp::Opt{warnings,   "toggle warnings",      "--warnings", "-W"},
-		wpp::Opt{repl,       "repl mode",            "--repl",     "-r"},
-		wpp::Opt{enable_run, "toggle run intrinsic", "--run",      "-R"}
+		wpp::Opt{outputf,    "output file",                 "--output",   "-o"},
+		wpp::Opt{warnings,   "toggle warnings",             "--warnings", "-W"},
+		wpp::Opt{repl,       "repl mode",                   "--repl",     "-r"},
+		wpp::Opt{enable_run, "toggle run intrinsic",        "--run",      "-R"},
+		wpp::Opt{force,      "overwrite file if it exists", "--force",    "-f"}
 	))
 		return 0;
 
@@ -101,8 +103,15 @@ int main(int argc, const char* argv[]) {
 		std::filesystem::current_path(initial_path);
 	}
 
-	if (not outputf.empty())
+	if (not outputf.empty()) {
+		std::error_code ec;
+		if (not force and std::filesystem::exists(outputf, ec)) {
+			std::cerr << "file '" << outputf << "' exists.\n";
+			return 1;
+		}
+
 		wpp::write_file(outputf, out);
+	}
 
 	else
 		std::cout << out;
