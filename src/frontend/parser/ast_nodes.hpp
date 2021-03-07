@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <frontend/token.hpp>
+#include <frontend/view.hpp>
 #include <frontend/ast.hpp>
 
 
@@ -15,11 +16,11 @@
 namespace wpp {
 	// A function call.
 	struct FnInvoke {
-		std::string identifier;
+		wpp::View identifier;
 		std::vector<wpp::node_t> arguments;
 
 		FnInvoke(
-			const std::string& identifier_,
+			const wpp::View& identifier_,
 			const std::vector<wpp::node_t>& arguments_
 		):
 			identifier(identifier_),
@@ -30,12 +31,12 @@ namespace wpp {
 
 	struct Intrinsic {
 		wpp::token_type_t type;
-		std::string identifier;
+		wpp::View identifier;
 		std::vector<wpp::node_t> arguments;
 
 		Intrinsic(
 			const wpp::token_type_t type_,
-			const std::string& identifier_,
+			const wpp::View& identifier_,
 			const std::vector<wpp::node_t>& arguments_
 		):
 			type(type_),
@@ -47,13 +48,13 @@ namespace wpp {
 
 	// Function definition.
 	struct Fn {
-		std::string identifier;
-		std::vector<std::string> parameters;
+		wpp::View identifier;
+		std::vector<wpp::View> parameters;
 		wpp::node_t body;
 
 		Fn(
-			const std::string& identifier_,
-			const std::vector<std::string>& parameters_,
+			const wpp::View& identifier_,
+			const std::vector<wpp::View>& parameters_,
 			const wpp::node_t body_
 		):
 			identifier(identifier_),
@@ -72,11 +73,11 @@ namespace wpp {
 
 	// Variable definition.
 	struct Var {
-		std::string identifier;
+		wpp::View identifier;
 		wpp::node_t body;
 
 		Var(
-			const std::string& identifier_,
+			const wpp::View& identifier_,
 			const wpp::node_t body_
 		):
 			identifier(identifier_),

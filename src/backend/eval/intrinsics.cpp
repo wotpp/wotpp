@@ -38,10 +38,8 @@ namespace wpp {
 			wpp::error(positions[node_id], env, "run not available.");
 		#endif
 
-
 		if (flags & wpp::FLAG_DISABLE_RUN)
 			wpp::error(positions[node_id], env, "run not available.");
-
 
 		const auto cmd = wpp::evaluate(exprs[0], env, fn_env);
 
@@ -65,11 +63,14 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+		const auto& [ast, functions, positions, root, flags, sources] = env;
 
 		#if defined(WPP_DISABLE_RUN)
 			wpp::error(positions[node_id], env, "pipe not available.");
 		#endif
+
+		if (flags & wpp::FLAG_DISABLE_RUN)
+			wpp::error(positions[node_id], env, "pipe not available.");
 
 		std::string str;
 

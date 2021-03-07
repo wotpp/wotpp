@@ -203,7 +203,7 @@ namespace wpp {
 			if (lex.peek() != TOKEN_IDENTIFIER)
 				wpp::error(pos.at(node), env, "function declaration does not have a name.");
 
-			tree.get<Fn>(node).identifier = lex.advance().str();
+			tree.get<Fn>(node).identifier = lex.advance().view;
 
 
 			// Collect parameters.
@@ -215,7 +215,7 @@ namespace wpp {
 				// While there is an identifier there is another parameter.
 				while (lex.peek() == TOKEN_IDENTIFIER) {
 					// Advance the lexer and get the identifier.
-					auto id = lex.advance().str();
+					auto id = lex.advance().view;
 
 					// Add the argument
 					tree.get<Fn>(node).parameters.emplace_back(id);
@@ -270,7 +270,7 @@ namespace wpp {
 				wpp::error(pos.at(node), env, "variable declaration does not have a name.");
 
 
-			tree.get<Var>(node).identifier = lex.advance().str();
+			tree.get<Var>(node).identifier = lex.advance().view;
 
 			// Parse the variable body.
 			const wpp::node_t body = expression(lex, tree, pos, env);
@@ -638,11 +638,11 @@ namespace wpp {
 			// the Intrinsic node type and forward the arguments.
 			if (peek_is_intrinsic(fn_token)) {
 				const auto [_, args] = tree.get<FnInvoke>(node);
-				tree.replace<Intrinsic>(node, fn_token.type, fn_token.str(), args);
+				tree.replace<Intrinsic>(node, fn_token.type, fn_token.view, args);
 			}
 
 			else
-				tree.get<FnInvoke>(node).identifier = fn_token.str();
+				tree.get<FnInvoke>(node).identifier = fn_token.view;
 
 			return node;
 		}

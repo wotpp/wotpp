@@ -11,6 +11,7 @@
 #include <filesystem>
 
 #include <structures/environment.hpp>
+#include <frontend/view.hpp>
 #include <misc/fwddecl.hpp>
 
 
@@ -44,6 +45,9 @@ namespace wpp {
 
 				else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
 					return std::string{x};
+
+				else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, wpp::View>)
+					return x.str();
 
 				else
 					return std::to_string(x);

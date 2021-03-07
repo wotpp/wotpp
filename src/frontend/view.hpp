@@ -4,6 +4,7 @@
 #define WOTPP_VIEW
 
 #include <string>
+#include <iostream>
 #include <cstring>
 #include <cstdint>
 
@@ -25,6 +26,11 @@ namespace wpp {
 
 		constexpr char at(int n) const {
 			return *(ptr + n);
+		}
+
+
+		operator std::string() const {
+			return this->str();
 		}
 
 
@@ -82,6 +88,11 @@ namespace wpp {
 			return std::string{ ptr, static_cast<std::string::size_type>(length) };
 		}
 	};
+
+	inline std::ostream& operator<<(std::ostream& os, const View& v) {
+		os.write(v.ptr, v.length);
+		return os;
+	}
 }
 
 #endif
