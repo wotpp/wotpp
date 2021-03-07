@@ -75,18 +75,24 @@ namespace wpp {
 
 
 	template <typename... Ts>
-	inline void print_error(const char* const type, const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
+	inline void print_error(const char* const type, const wpp::Pos& pos, const wpp::Env& env, bool bytes, Ts&&... args) {
 		([&] () -> std::ostream& {
 			const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 			const auto& [source, offset] = pos;
 			const auto& [file, base, mode] = source;
 
-			const auto [line, column] = wpp::calculate_coordinates(base, offset);
-
-			// Print path but only if it's not the same as the root path.
+			// Print path but only if we're not in the REPL.
 			std::string path_str;
-			if (mode != modes::repl)
-				path_str = wpp::cat(" @ [", std::filesystem::relative(file, root).string(), ":", line, ":", column, "]");
+			if (mode != modes::repl) {
+				if (bytes) {
+					path_str = wpp::cat(" @ [", std::filesystem::relative(file, root).string(), ":", offset - base, "(byte)]");
+				}
+
+				else {
+					const auto [line, column] = wpp::calculate_coordinates(base, offset);
+					path_str = wpp::cat(" @ [", std::filesystem::relative(file, root).string(), ":", line, ":", column, "]");
+				}
+			}
 
 			// Print mode if its not modes::normal.
 			std::string mode_str;
@@ -101,7 +107,14 @@ namespace wpp {
 	// Print an error with position info.
 	template <typename... Ts>
 	inline void error(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
-		print_error("error", pos, env, std::forward<Ts>(args)...);
+		print_error("error", pos, env, false, std::forward<Ts>(args)...);
+		throw wpp::Error{};
+	}
+
+
+	template <typename... Ts>
+	inline void error_utf(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
+		print_error("error", pos, env, true, std::forward<Ts>(args)...);
 		throw wpp::Error{};
 	}
 
@@ -109,7 +122,7 @@ namespace wpp {
 	// Print a warning with position info.
 	template <typename... Ts>
 	inline void warn(const wpp::Pos& pos, wpp::Env& env, Ts&&... args) {
-		print_error("warning", pos, env, std::forward<Ts>(args)...);
+		print_error("warning", pos, env, false, std::forward<Ts>(args)...);
 	}
 
 

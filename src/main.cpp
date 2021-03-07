@@ -91,14 +91,11 @@ int main(int argc, const char* argv[]) {
 
 			wpp::Env env{ initial_path, flags };
 			env.sources.push(path, wpp::read_file(path), wpp::modes::normal);
+			out += wpp::evaluate(wpp::parse(env), env);
+		}
 
-			try {
-				out += wpp::evaluate(wpp::parse(env), env);
-			}
-
-			catch (wpp::Error& e) {
-				return 1;
-			}
+		catch (wpp::Error& e) {
+			return 1;
 		}
 
 		catch (const std::filesystem::filesystem_error&) {

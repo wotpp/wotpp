@@ -8,6 +8,7 @@
 
 #include <misc/fwddecl.hpp>
 #include <frontend/token.hpp>
+#include <frontend/char.hpp>
 #include <structures/environment.hpp>
 
 // Token types.
@@ -109,6 +110,10 @@ namespace wpp {
 			ptr(env_.sources.top().base),
 			lookahead_mode(mode_)
 		{
+			const char* p = ptr;
+			if (not wpp::validate_utf8(p))
+				wpp::error_utf(wpp::Pos{env.sources.top(), p}, env, "invalid UTF-8.");
+
 			advance(mode_);
 		}
 
