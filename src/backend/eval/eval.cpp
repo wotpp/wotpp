@@ -59,14 +59,14 @@ namespace wpp {
 				if (fn_env) {
 					auto& args = fn_env->args;
 
-					if (auto it = args.find(caller_mangled_name); it != args.end()) {
+					if (auto it = args.find(caller_name); it != args.end()) {
 						if (caller_args.size() > 0)
 							wpp::error(positions[node_id], env, "calling argument '", caller_name, "' as if it were a function.");
 
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (warning_flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(caller_mangled_name) != functions.end())
+						if (warning_flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(wpp::cat(caller_name.str(), 0)) != functions.end())
 							wpp::warn(positions[node_id], env, "parameter ", caller_name, " is shadowing a function.");
 
 						return;
@@ -97,9 +97,7 @@ namespace wpp {
 				for (int i = 0; i < (int)caller_args.size(); i++) {
 					const auto result = evaluate(caller_args[i], env, fn_env);
 
-					const auto param_mangled_name = wpp::cat(params[i], 0);
-
-					if (auto it = new_fn_env.args.find(param_mangled_name); it != new_fn_env.args.end()) {
+					if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
 						if (warning_flags & wpp::WARN_PARAM_SHADOW_PARAM)
 							wpp::warn(positions[node_id], env,
 								"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope."
@@ -109,7 +107,7 @@ namespace wpp {
 					}
 
 					else
-						new_fn_env.args.insert_or_assign(param_mangled_name, evaluate(caller_args[i], env, fn_env));
+						new_fn_env.args.insert_or_assign(params[i], evaluate(caller_args[i], env, fn_env));
 				}
 
 				// Call function.

@@ -40,7 +40,7 @@ namespace wpp {
 
 
 	using Functions = std::unordered_map<std::string, std::vector<wpp::node_t>>;
-	using Arguments = std::unordered_map<std::string, std::string>;
+	using Arguments = std::unordered_map<wpp::View, std::string>;
 	using Positions = std::vector<wpp::Pos>;
 
 
