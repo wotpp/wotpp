@@ -97,7 +97,9 @@ namespace wpp {
 				for (int i = 0; i < (int)caller_args.size(); i++) {
 					const auto result = evaluate(caller_args[i], env, fn_env);
 
-					if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
+					const auto param_mangled_name = wpp::cat(params[i], 0);
+
+					if (auto it = new_fn_env.args.find(param_mangled_name); it != new_fn_env.args.end()) {
 						if (warning_flags & wpp::WARN_PARAM_SHADOW_PARAM)
 							wpp::warn(positions[node_id], env,
 								"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope."
@@ -107,7 +109,7 @@ namespace wpp {
 					}
 
 					else
-						new_fn_env.args.insert_or_assign(wpp::cat(params[i], 0), evaluate(caller_args[i], env, fn_env));
+						new_fn_env.args.insert_or_assign(param_mangled_name, evaluate(caller_args[i], env, fn_env));
 				}
 
 				// Call function.

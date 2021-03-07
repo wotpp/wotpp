@@ -36,29 +36,23 @@ namespace wpp {
 	struct Error {};
 
 
-	template <typename T, typename... Ts>
-	inline std::string cat(const T& first, Ts&&... args) {
-		if constexpr(sizeof...(Ts) > 0) {
-			const auto tostr = [] (const auto& x) {
-				if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
-					return x;
+	template <typename... Ts>
+	inline std::string cat(Ts&&... args) {
+		const auto tostr = [] (const auto& x) {
+			if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
+				return x;
 
-				else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
-					return std::string{x};
+			else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
+				return std::string{x};
 
-				else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, wpp::View>)
-					return x.str();
+			else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, wpp::View>)
+				return x.str();
 
-				else
-					return std::to_string(x);
-			};
+			else
+				return std::to_string(x);
+		};
 
-			return std::string{first} + (tostr(args) + ...);
-		}
-
-		else {
-			return std::string{first};
-		}
+		return (tostr(args) + ...);
 	}
 
 

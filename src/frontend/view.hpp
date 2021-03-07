@@ -29,11 +29,6 @@ namespace wpp {
 		}
 
 
-		operator std::string() const {
-			return this->str();
-		}
-
-
 		// Comparison operators.
 		// First compares length and then failing that, character by character.
 		friend bool operator==(const View& v, const char* const s) {
