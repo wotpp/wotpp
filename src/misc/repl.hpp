@@ -50,7 +50,7 @@ namespace wpp {
 
 				} catch (const wpp::Error&) {}
 
-				env.sources.pop();
+				// env.sources.pop();
 				std::free(input);
 			}
 
