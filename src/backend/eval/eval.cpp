@@ -188,7 +188,7 @@ namespace wpp {
 					if (not it->second.empty())
 						it->second.pop_back();
 
-					else
+					if (it->second.empty())
 						functions.erase(it);
 				}
 
