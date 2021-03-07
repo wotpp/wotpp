@@ -32,7 +32,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, flags, sources] = env;
 
 		#if defined(WPP_DISABLE_RUN)
 			wpp::error(positions[node_id], env, "run not available.");
@@ -63,7 +63,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, flags, sources] = env;
 
 		#if defined(WPP_DISABLE_RUN)
 			wpp::error(positions[node_id], env, "pipe not available.");
@@ -97,7 +97,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 
 		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
 
@@ -119,7 +119,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 
 		std::string str;
 		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
@@ -153,7 +153,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 
 		// Check if strings are equal.
 		const auto str_a = evaluate(exprs[0], env, fn_env);
@@ -172,7 +172,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 
 		const auto msg = evaluate(exprs[0], env, fn_env);
 		wpp::error(positions[node_id], env, msg);
@@ -224,7 +224,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+		const auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 
 		// Evaluate arguments
 		const auto string = evaluate(exprs[0], env, fn_env);

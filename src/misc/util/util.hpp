@@ -77,7 +77,7 @@ namespace wpp {
 	template <typename... Ts>
 	inline void print_error(const char* const type, const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
 		([&] () -> std::ostream& {
-			const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+			const auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 			const auto& [source, offset] = pos;
 			const auto& [file, base, mode] = source;
 

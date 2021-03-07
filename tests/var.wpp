@@ -2,3 +2,16 @@
 var foo "hey"
 var foo foo .. "hey"
 foo
+
+let defoo(x) {
+    var foo x
+    ""
+}
+
+#[expect(hi)]
+defoo("hi")
+foo
+
+#[expect(bye)]
+defoo("bye")
+foo

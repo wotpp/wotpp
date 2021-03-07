@@ -20,7 +20,7 @@ namespace wpp {
 			[&] (const Intrinsic& fn) {
 				wpp::dbg("(eval) intrinsic");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 				const auto& [type, name, exprs] = fn;
 
 				#define INTRINSIC(n, fn, tok) \
@@ -47,10 +47,16 @@ namespace wpp {
 				#undef INTRINSIC
 			},
 
+			[&] (const Codeify& colby) {
+				wpp::dbg("(eval) codeify");
+
+				str = wpp::intrinsic_eval(node_id, {colby.expr}, env, fn_env);
+			},
+
 			[&] (const FnInvoke& call) {
 				wpp::dbg("(eval) call");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 
 				const auto& [caller_name, caller_args] = call;
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
@@ -74,103 +80,118 @@ namespace wpp {
 				}
 
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
-				auto it = functions.find(caller_mangled_name);
+				auto func_it = functions.find(caller_mangled_name);
 
-				if (it == functions.end())
-					wpp::error(positions[node_id], env, "func not found: ", caller_name, ".");
+				// If it is a function.
+				if (func_it != functions.end()) {
+					if (func_it->second.empty())
+						wpp::error(positions[node_id], env, "func not found: ", caller_name, ".\nhint: this function has already been defined, but has since been dropped.");
 
-				if (it->second.empty())
-					wpp::error(positions[node_id], env, "func not found: ", caller_name, ".");
+					const auto func = ast.get<wpp::Fn>(func_it->second.back());
 
-				const auto func = ast.get<wpp::Fn>(it->second.back());
+					// Retrieve function.
+					const auto& [callee_name, params, body] = func;
 
-				// Retrieve function.
-				const auto& [callee_name, params, body] = func;
+					// Set up Arguments to pass down to function body.
+					wpp::FnEnv new_fn_env;
 
-				// Set up Arguments to pass down to function body.
-				wpp::FnEnv new_fn_env;
+					if (fn_env)
+						new_fn_env.args = fn_env->args;
 
-				if (fn_env)
-					new_fn_env.args = fn_env->args;
+					// Evaluate arguments and store their result.
+					for (int i = 0; i < (int)caller_args.size(); i++) {
+						const auto result = evaluate(caller_args[i], env, fn_env);
 
-				// Evaluate arguments and store their result.
-				for (int i = 0; i < (int)caller_args.size(); i++) {
-					const auto result = evaluate(caller_args[i], env, fn_env);
+						if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
+							if (warning_flags & wpp::WARN_PARAM_SHADOW_PARAM)
+								wpp::warn(positions[node_id], env,
+										  "parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope."
+									);
 
-					if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
-						if (warning_flags & wpp::WARN_PARAM_SHADOW_PARAM)
-							wpp::warn(positions[node_id], env,
-								"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope."
-							);
+							it->second = result;
+						}
 
-						it->second = result;
+						else
+							new_fn_env.args.insert_or_assign(params[i], evaluate(caller_args[i], env, fn_env));
 					}
 
-					else
-						new_fn_env.args.insert_or_assign(params[i], evaluate(caller_args[i], env, fn_env));
+					// Call function.
+					str = evaluate(body, env, &new_fn_env);
 				}
 
-				// Call function.
-				str = evaluate(body, env, &new_fn_env);
+				// Else it might be a variable?
+				else {
+					// If it wasn't a parameter, we fall through to here and check if it's a function.
+					auto var_it = variables.find(caller_mangled_name);
+
+					// It is a variable.
+					if (var_it != variables.end()) {
+						if (var_it->second.empty())
+							wpp::error(positions[node_id], env, "var not found: ", caller_name, ".\nhint: this variable has already been defined, but has since been dropped.");
+
+						// Return the variable's contents.
+						str = var_it->second.back();
+					}
+
+					// Otherwise we give up, this is not the identifier you're looking for.
+					else
+						wpp::error(positions[node_id], env, "func not found: ", caller_name, ".");
+				}
 			},
 
 			[&] (const Fn& func) {
 				wpp::dbg("(eval) func");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 				const auto& [name, params, body] = func;
 
-				auto it = functions.find(wpp::cat(name, params.size()));
+				const auto func_name = wpp::cat(name, params.size());
 
-				if (it != functions.end()) {
+				auto var_it = variables.find(func_name);
+				if (var_it != variables.end())
+					wpp::error(positions[node_id], env, "unable to declare function '", name, "' which is already a variable.");
+
+				auto func_it = functions.find(wpp::cat(name, params.size()));
+				if (func_it != functions.end()) {
 					if (warning_flags & wpp::WARN_FUNC_REDEFINED)
 						wpp::warn(positions[node_id], env, "function '", name, "' redefined.");
 
-					it->second.emplace_back(node_id);
+					func_it->second.emplace_back(node_id);
 				}
 
 				else
 					functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
 			},
 
-			[&] (const Codeify& colby) {
-				wpp::dbg("(eval) codeify");
-
-				str = wpp::intrinsic_eval(node_id, {colby.expr}, env, fn_env);
-			},
-
 			[&] (const Var& var) {
 				wpp::dbg("(eval) var");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 				auto& [name, body] = var;
 
 				const auto func_name = wpp::cat(name, 0);
 				const auto str = evaluate(body, env, fn_env);
 
-				// Replace body with a string of the evaluation result.
-				ast.replace<String>(body, str);
+				auto func_it = functions.find(func_name);
+				if (func_it != functions.end())
+					wpp::error(positions[node_id], env, "unable to declare variable '", name, "' which is already a function.");
 
-				// Replace Var node with Fn node.
-				ast.replace<Fn>(node_id, name, std::vector<wpp::View>{}, body);
-
-				auto it = functions.find(func_name);
-
-				if (it != functions.end()) {
+				auto var_it = variables.find(func_name);
+				if (var_it != variables.end()) {
 					if (warning_flags & wpp::WARN_VARFUNC_REDEFINED)
-						wpp::warn(positions[node_id], env, "function/variable '", name, "' redefined.");
+						wpp::warn(positions[node_id], env, "variable '", name, "' redefined.");
 
-					it->second.emplace_back(node_id);
+					var_it->second.emplace_back(str);
 				}
 
 				else
-					functions.emplace(func_name, std::vector{node_id});
+					variables.emplace(func_name, std::vector{str});
 			},
 
 			[&] (const Drop& drop) {
 				wpp::dbg("(eval) drop");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 				const auto& [func_id] = drop;
 
 				auto* func = std::get_if<FnInvoke>(&ast[func_id]);
@@ -182,18 +203,29 @@ namespace wpp {
 
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
-				auto it = functions.find(caller_mangled_name);
+				auto func_it = functions.find(caller_mangled_name);
 
-				if (it != functions.end()) {
-					if (not it->second.empty())
-						it->second.pop_back();
+				if (func_it != functions.end()) {
+					if (not func_it->second.empty())
+						func_it->second.pop_back();
 
 					else
-						functions.erase(it);
+						functions.erase(func_it);
 				}
 
 				else {
-					wpp::error(positions[node_id], env, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters).");
+					auto var_it = variables.find(caller_mangled_name);
+
+					if (var_it != variables.end()) {
+						if (not var_it->second.empty())
+							var_it->second.pop_back();
+
+						else
+							variables.erase(var_it);
+					}
+
+					else
+						wpp::error(positions[node_id], env, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters).");
 				}
 			},
 
@@ -222,7 +254,7 @@ namespace wpp {
 			[&] (const Map& map) {
 				wpp::dbg("(eval) map");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 				const auto& [test, cases, default_case] = map;
 
 				const auto test_str = evaluate(test, env, fn_env);
@@ -249,7 +281,7 @@ namespace wpp {
 			[&] (const Pre&) {
 				wpp::dbg("(eval) prefix");
 
-				// auto& [ast, functions, positions, root, warning_flags, sources] = env;
+				// auto& [ast, functions, variables, positions, root, warning_flags, sources] = env;
 				// const auto& [exprs, stmts] = pre;
 
 				// for (const wpp::node_t stmt: stmts) {

@@ -40,6 +40,7 @@ namespace wpp {
 
 
 	using Functions = std::unordered_map<std::string, std::vector<wpp::node_t>>;
+	using Variables = std::unordered_map<std::string, std::vector<std::string>>;
 	using Arguments = std::unordered_map<wpp::View, std::string>;
 	using Positions = std::vector<wpp::Pos>;
 
@@ -73,6 +74,7 @@ namespace wpp {
 		wpp::AST ast{};
 
 		wpp::Functions functions{};
+		wpp::Variables variables{};
 		wpp::Positions positions{};
 
 		const std::filesystem::path root{};
