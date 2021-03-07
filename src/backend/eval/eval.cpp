@@ -66,7 +66,7 @@ namespace wpp {
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (warning_flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(wpp::cat(caller_name.str(), 0)) != functions.end())
+						if (warning_flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(caller_mangled_name) != functions.end())
 							wpp::warn(positions[node_id], env, "parameter ", caller_name, " is shadowing a function.");
 
 						return;

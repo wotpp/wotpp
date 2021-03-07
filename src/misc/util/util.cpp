@@ -72,7 +72,7 @@ namespace wpp {
 				close(stdout_pipe[1]);
 				close(stdin_pipe[0]);
 
-				write(stdin_pipe[1], data.c_str(), data.size());
+				(void)write(stdin_pipe[1], data.c_str(), data.size());
 				close(stdin_pipe[1]);
 
 				int wstatus;

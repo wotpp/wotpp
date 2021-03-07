@@ -12,6 +12,7 @@
 #include <misc/repl.hpp>
 #include <misc/argp.hpp>
 #include <backend/eval/eval.hpp>
+#include <frontend/parser/parser.hpp>
 
 
 constexpr auto ver = "alpha-git";
