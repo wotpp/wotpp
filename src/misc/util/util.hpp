@@ -85,15 +85,15 @@ namespace wpp {
 
 			// Print path but only if it's not the same as the root path.
 			std::string path_str;
-			if (file != root)
-				path_str = std::filesystem::relative(file, root).string() + ":";
+			if (mode != modes::repl)
+				path_str = wpp::cat(" @ [", std::filesystem::relative(file, root).string(), ":", line, ":", column, "]");
 
 			// Print mode if its not modes::normal.
 			std::string mode_str;
 			if (mode != modes::normal)
 				mode_str = wpp::cat("(", modes::mode_to_str[mode], ") ");
 
-			return (std::cerr << mode_str << type << " @ [" << path_str << line << ":" << column << "]: ");
+			return (std::cerr << mode_str << type << path_str << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
 	}
 
