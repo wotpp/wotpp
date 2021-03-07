@@ -30,7 +30,7 @@ sources = files(
 	'src/misc/util/util.cpp',
 
 	'src/misc/repl.hpp',
-	'src/misc/warnings.hpp',
+	'src/misc/flags.hpp',
 
 	'src/frontend/ast.hpp',
 

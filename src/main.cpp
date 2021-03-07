@@ -1,4 +1,5 @@
 #include <string_view>
+#include <iomanip>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -6,7 +7,7 @@
 #include <utility>
 #include <chrono>
 
-#include <misc/warnings.hpp>
+#include <misc/flags.hpp>
 #include <misc/util/util.hpp>
 #include <misc/repl.hpp>
 #include <misc/argp.hpp>
@@ -22,7 +23,7 @@ int main(int argc, const char* argv[]) {
 
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
-	bool repl = false, enable_run = true, force = false;
+	bool repl = false, disable_run = false, force = false;
 
 
 	std::vector<const char*> positional;
@@ -30,38 +31,42 @@ int main(int argc, const char* argv[]) {
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,    "output file",                 "--output",   "-o"},
-		wpp::Opt{warnings,   "toggle warnings",             "--warnings", "-W"},
-		wpp::Opt{repl,       "repl mode",                   "--repl",     "-r"},
-		wpp::Opt{enable_run, "toggle run intrinsic",        "--run",      "-R"},
-		wpp::Opt{force,      "overwrite file if it exists", "--force",    "-f"}
+		wpp::Opt{outputf,     "output file",                 "--output",      "-o"},
+		wpp::Opt{warnings,    "toggle warnings",             "--warnings",    "-W"},
+		wpp::Opt{repl,        "repl mode",                   "--repl",        "-r"},
+		wpp::Opt{disable_run, "disable run intrinsic",       "--disable-run", "-R"},
+		wpp::Opt{force,       "overwrite file if it exists", "--force",       "-f"}
 	))
 		return 0;
 
 
-	wpp::warning_t warning_flags = 0;
+	wpp::flags_t flags = 0;
 
 	for (const auto& x: warnings) {
 		if (x == "param-shadow-func")
-			warning_flags |= wpp::WARN_PARAM_SHADOW_FUNC;
+			flags |= wpp::WARN_PARAM_SHADOW_FUNC;
 
 		else if (x == "param-shadow-param")
-			warning_flags |= wpp::WARN_PARAM_SHADOW_PARAM;
+			flags |= wpp::WARN_PARAM_SHADOW_PARAM;
 
 		else if (x == "func-redefined")
-			warning_flags |= wpp::WARN_FUNC_REDEFINED;
+			flags |= wpp::WARN_FUNC_REDEFINED;
 
 		else if (x == "varfunc-redefined")
-			warning_flags |= wpp::WARN_VARFUNC_REDEFINED;
+			flags |= wpp::WARN_VARFUNC_REDEFINED;
 
 		else if (x == "all")
-			warning_flags = wpp::WARN_ALL;
+			flags = wpp::WARN_ALL;
 
 		else {
 			std::cerr << "unrecognized warning: '" << x << "'.\n";
 			return 1;
 		}
 	}
+
+
+	if (disable_run)
+		flags |= wpp::FLAG_DISABLE_RUN;
 
 
 	if (repl)
@@ -83,7 +88,7 @@ int main(int argc, const char* argv[]) {
 			const auto path = initial_path / std::filesystem::path{fname};
 			std::filesystem::current_path(path.parent_path());
 
-			wpp::Env env{ initial_path, warning_flags };
+			wpp::Env env{ initial_path, flags };
 			env.sources.push(path, wpp::read_file(path), wpp::modes::normal);
 
 			try {
@@ -118,15 +123,7 @@ int main(int argc, const char* argv[]) {
 
 	auto t2 = std::chrono::steady_clock::now();
 
-	std::chrono::duration<double> s = t2 - t1;
-	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(s);
-	auto us = std::chrono::duration_cast<std::chrono::microseconds>(s);
-
-	std::cerr << "time: " <<
-		s.count() << "s  " <<
-		ms.count() << "ms  " <<
-		us.count() << "us\n"
-	;
+	std::cerr << "took: " << std::fixed << std::setprecision(4) << std::chrono::duration<double>(t2 - t1).count() << "s\n";
 
 	return 0;
 }

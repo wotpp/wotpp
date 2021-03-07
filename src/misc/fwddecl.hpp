@@ -12,7 +12,7 @@ namespace wpp {
 	struct Pos;
 
 
-	using warning_t = uint32_t;
+	using flags_t = uint32_t;
 	using node_t = int32_t;
 	using token_type_t = uint8_t;
 	using mode_type_t = uint8_t;

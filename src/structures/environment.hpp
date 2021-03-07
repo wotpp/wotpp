@@ -11,7 +11,7 @@
 
 #include <cstdint>
 
-#include <misc/warnings.hpp>
+#include <misc/flags.hpp>
 #include <misc/fwddecl.hpp>
 #include <frontend/parser/ast_nodes.hpp>
 
@@ -76,16 +76,16 @@ namespace wpp {
 		wpp::Positions positions{};
 
 		const std::filesystem::path root{};
-		const wpp::warning_t warning_flags{};
+		const wpp::flags_t flags{};
 
 		wpp::Sources sources{};
 
 		Env(
 			const std::filesystem::path& root_,
-			const wpp::warning_t warning_flags_
+			const wpp::flags_t flags_
 		):
 			root(root_),
-			warning_flags(warning_flags_)
+			flags(flags_)
 		{
 			ast.reserve(ast.capacity() + (1024 * 1024 * 10) / sizeof(decltype(ast)::value_type));
 		}

@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include <misc/util/util.hpp>
-#include <misc/warnings.hpp>
+#include <misc/flags.hpp>
 #include <structures/environment.hpp>
 #include <frontend/lexer/lexer.hpp>
 #include <frontend/parser/ast_nodes.hpp>
