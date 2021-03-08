@@ -12,6 +12,7 @@
 
 #include <structures/environment.hpp>
 #include <frontend/view.hpp>
+#include <frontend/char.hpp>
 #include <misc/fwddecl.hpp>
 
 
@@ -64,7 +65,7 @@ namespace wpp {
 	inline SourceLocation calculate_coordinates(const char* ptr, const char* const end) {
 		int line = 1, column = 1;
 
-		for (; ptr != end; ++ptr) {
+		for (; ptr != end; ptr += wpp::utf_size(ptr)) {
 			const int cmp = (*ptr == '\n');
 			column = (column * not cmp) + 1;
 			line += cmp;

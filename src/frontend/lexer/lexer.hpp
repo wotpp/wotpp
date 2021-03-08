@@ -110,16 +110,17 @@ namespace wpp {
 			ptr(env_.sources.top().base),
 			lookahead_mode(mode_)
 		{
-			const char* p = ptr;
-			if (not wpp::validate_utf8(p))
-				wpp::error_utf(wpp::Pos{env.sources.top(), p}, env, "invalid UTF-8.");
+			if (not wpp::validate_utf8(ptr))
+				wpp::error_utf(wpp::Pos{env.sources.top(), ptr}, env, "invalid UTF-8.");
+
+			ptr = env_.sources.top().base;
 
 			advance(mode_);
 		}
 
 
 		wpp::Pos position() const {
-			return { env.sources.top(), ptr };
+			return { env.sources.top(), lookahead.view.ptr };
 		}
 
 
@@ -139,7 +140,10 @@ namespace wpp {
 
 		char next(int n = 1) {
 			char c = *ptr;
-			ptr += n;
+
+			while (n--)
+				ptr += wpp::utf_size(ptr);
+
 			return c;
 		}
 

@@ -251,12 +251,12 @@ namespace wpp {
 			type = TOKEN_BACKSLASH;
 
 			// Handle basic escapes.
-			if      (*ptr == '\\') { ++ptr; type = TOKEN_ESCAPE_BACKSLASH; }
-			else if (*ptr == '\'') { ++ptr; type = TOKEN_ESCAPE_QUOTE; }
-			else if (*ptr == '"')  { ++ptr; type = TOKEN_ESCAPE_DOUBLEQUOTE; }
-			else if (*ptr == 't')  { ++ptr; type = TOKEN_ESCAPE_TAB; }
-			else if (*ptr == 'n')  { ++ptr; type = TOKEN_ESCAPE_NEWLINE; }
-			else if (*ptr == 'r')  { ++ptr; type = TOKEN_ESCAPE_CARRIAGERETURN; }
+			if      (*ptr == '\\') { lex.next(); type = TOKEN_ESCAPE_BACKSLASH; }
+			else if (*ptr == '\'') { lex.next(); type = TOKEN_ESCAPE_QUOTE; }
+			else if (*ptr == '"')  { lex.next(); type = TOKEN_ESCAPE_DOUBLEQUOTE; }
+			else if (*ptr == 't')  { lex.next(); type = TOKEN_ESCAPE_TAB; }
+			else if (*ptr == 'n')  { lex.next(); type = TOKEN_ESCAPE_NEWLINE; }
+			else if (*ptr == 'r')  { lex.next(); type = TOKEN_ESCAPE_CARRIAGERETURN; }
 
 			// Hex escape \xFF.
 			else if (*ptr == 'x') {
