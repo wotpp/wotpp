@@ -6,7 +6,7 @@
 
 namespace wpp {
 	namespace {
-		void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer&, wpp::Token&);
+		void lex_literal(wpp::token_type_t, bool(*)(const char*), wpp::Lexer&, wpp::Token&);
 		void lex_simple(wpp::token_type_t, int, wpp::Lexer&, wpp::Token&);
 
 		void lex_comment(wpp::Lexer&, wpp::Token&);
@@ -62,7 +62,7 @@ namespace wpp {
 					continue;
 				}
 
-				else if (wpp::is_whitespace(*ptr)) {
+				else if (wpp::is_whitespace(ptr)) {
 					lex_whitespace(*this, tok);
 					continue; // Throw away whitespace and get next token.
 				}
@@ -142,20 +142,20 @@ namespace wpp {
 
 			// Get user delimiter. 'r#"'
 			//                       ^
-			const char user_delim = *lex.ptr;
+			const char* user_delim = lex.ptr;
 			++lex.ptr;
 
 			// Make sure there's a quote here, if there isn't, we've made
 			// a mistake and this is actually an identifier.
 			// We call lex_identifier to perform the correct action.
-			if (not wpp::in_group(*lex.ptr, '\'', '"') or wpp::is_whitespace(user_delim)) {
+			if (not wpp::in_group(lex.ptr, '\'', '"') or wpp::is_whitespace(user_delim)) {
 				lex.ptr = tok.view.ptr; // Reset pointer to where it was before this function.
 				lex_identifier(lex, tok);
 			}
 		}
 
 
-		void lex_literal(wpp::token_type_t type, bool(*predicate)(char), wpp::Lexer& lex, wpp::Token& tok) {
+		void lex_literal(wpp::token_type_t type, bool(*predicate)(const char*), wpp::Lexer& lex, wpp::Token& tok) {
 			wpp::dbg("(lexer) lex_literal");
 
 			lex.next(2);
@@ -165,7 +165,7 @@ namespace wpp {
 			tok.view.ptr = lex.ptr;
 
 			// Consume digits while predicate is satisfied.
-			while (predicate(*lex.ptr) or *lex.ptr == '_')
+			while (predicate(lex.ptr) or *lex.ptr == '_')
 				lex.next();
 
 			// Set token view length to the number of consumed characters.
@@ -188,7 +188,7 @@ namespace wpp {
 			// Consume as much whitespace as we can.
 			do {
 				lex.next();
-			} while (wpp::is_whitespace(*lex.ptr));
+			} while (wpp::is_whitespace(lex.ptr));
 
 			// Update view pointer so when the lexer continues, the token starts
 			// at the right location.
@@ -208,8 +208,8 @@ namespace wpp {
 
 			// Make sure we don't run into a character that belongs to another token.
 			while (
-				not wpp::is_whitespace(*ptr) and
-				not wpp::in_group(*ptr, '(', ')', '{', '}', ',', '\0', '\'', '"') and
+				not wpp::is_whitespace(ptr) and
+				not wpp::in_group(ptr, '(', ')', '{', '}', ',', '\0', '\'', '"') and
 				not (*ptr == '.' and *(ptr + 1) == '.') and
 				not (*ptr == '#' and *(ptr + 1) == '[')
 			)
@@ -266,8 +266,8 @@ namespace wpp {
 				view.ptr = ptr;
 
 				// Get first and second nibble.
-				uint8_t first_nibble = *ptr++;
-				uint8_t second_nibble = *ptr++;
+				const char* first_nibble = ptr++;
+				const char* second_nibble = ptr++;
 
 				// Check if nibbles are valid digits.
 				if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
@@ -283,7 +283,7 @@ namespace wpp {
 
 				// Consume 8 characters, check if each one is a valid digit.
 				for (; ptr != vptr + 8; lex.next()) {
-					if (not wpp::is_bin(*ptr))
+					if (not wpp::is_bin(ptr))
 						wpp::error(lex.position(), lex.env, "invalid character in bin escape.");
 				}
 			}
@@ -299,7 +299,7 @@ namespace wpp {
 			tok.type = TOKEN_STRING;
 
 			// Consume all characters except quotes, escapes and EOF.
-			while (not wpp::in_group(*lex.ptr, '\\', '"', '\'', '\0'))
+			while (not wpp::in_group(lex.ptr, '\\', '"', '\'', '\0'))
 				++lex.ptr;
 
 			// Set view length equal to the number of consumed characters.
@@ -321,7 +321,7 @@ namespace wpp {
 		void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok) {
 			wpp::dbg("(lexer) lex_mode_normal");
 
-			if (wpp::in_group(*lex.ptr, 'p', 'r', 'c'))
+			if (wpp::in_group(lex.ptr, 'p', 'r', 'c'))
 				lex_smart(lex, tok);
 
 			else if (*lex.ptr == '0' and *(lex.ptr + 1) == 'b')

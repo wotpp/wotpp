@@ -355,21 +355,21 @@ namespace wpp {
 
 			// Collapse consecutive runs of whitespace to a single whitespace.
 			str.erase(std::unique(str.begin(), str.end(), [] (char lhs, char rhs) {
-				return wpp::is_whitespace(lhs) and wpp::is_whitespace(rhs);
+				return wpp::is_whitespace(&lhs) and wpp::is_whitespace(&rhs);
 			}), str.end());
 
 			// Replace all whitespace with a literal space.
 			// So, newlines and tabs become spaces.
 			for (char& c: str) {
-				if (wpp::is_whitespace(c))
+				if (wpp::is_whitespace(&c))
 					c = ' ';
 			}
 
 			// Strip leading and trailing whitespace.
-			if (wpp::is_whitespace(str.front()))
+			if (wpp::is_whitespace(&str.front()))
 				str.erase(str.begin(), str.begin() + 1);
 
-			if (wpp::is_whitespace(str.back()))
+			if (wpp::is_whitespace(&str.back()))
 				str.erase(str.end() - 1, str.end());
 		}
 
@@ -382,7 +382,7 @@ namespace wpp {
 			for (auto it = str.rbegin(); it != str.rend(); ++it) {
 				// If we find something that isn't whitespace, erase from the back
 				// of the string to the current position of the iterator.
-				if (not wpp::is_whitespace(*it)) {
+				if (not wpp::is_whitespace(&*it)) {
 					str.erase(it.base(), str.end());
 					break;
 				}
@@ -390,7 +390,7 @@ namespace wpp {
 
 			// Trim leading whitespace.
 			for (auto it = str.begin(); it != str.end();) {
-				if (not wpp::is_whitespace(*it))
+				if (not wpp::is_whitespace(&*it))
 					break;
 
 				else if (*it == '\n') {
@@ -413,7 +413,7 @@ namespace wpp {
 					++it; // Skip newline.
 
 					// Loop until we find something that isn't whitespace.
-					while (wpp::is_whitespace(*it))
+					while (wpp::is_whitespace(&*it))
 						++it, ++indent;
 
 					if (indent < common_indent)
@@ -430,7 +430,7 @@ namespace wpp {
 				const char* start = ptr;
 				int count_whitespace = 0;
 
-				while (wpp::is_whitespace(*ptr) and count_whitespace != common_indent)
+				while (wpp::is_whitespace(ptr) and count_whitespace != common_indent)
 					++ptr, ++count_whitespace;
 
 				str.erase(start - str.c_str(), ptr - start);
@@ -445,7 +445,7 @@ namespace wpp {
 			const char* ptr = str.c_str();
 
 			// Remove whitespace on first line between start of string and first non whitespace character.
-			if (wpp::is_whitespace(*ptr))
+			if (wpp::is_whitespace(ptr))
 				ptr = strip(ptr);
 
 			// Remove the rest of the leading whitespace.

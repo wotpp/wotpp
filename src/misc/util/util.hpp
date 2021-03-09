@@ -65,7 +65,7 @@ namespace wpp {
 	inline SourceLocation calculate_coordinates(const char* ptr, const char* const end) {
 		int line = 1, column = 1;
 
-		for (; ptr != end; ptr += wpp::utf_size(ptr)) {
+		for (; ptr != end; ptr += wpp::size_utf8(ptr)) {
 			const int cmp = (*ptr == '\n');
 			column = (column * not cmp) + 1;
 			line += cmp;
@@ -114,7 +114,7 @@ namespace wpp {
 
 
 	template <typename... Ts>
-	inline void error_utf(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
+	inline void error_utf8(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
 		print_error("error", pos, env, true, std::forward<Ts>(args)...);
 		throw wpp::Error{};
 	}

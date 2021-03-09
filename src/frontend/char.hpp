@@ -8,54 +8,8 @@
 // Common character related utilities.
 
 namespace wpp {
-	template <typename... Ts>
-	constexpr bool in_group(char c, Ts&&... args) {
-		return ((c == args) or ...);
-	}
-
-	constexpr bool in_range(char c, char lower, char upper) {
-		return c >= lower and c <= upper;
-	}
-
-	constexpr bool is_digit(char c) {
-		return in_range(c, '0', '9');
-	}
-
-	constexpr bool is_lower(char c) {
-		return in_range(c, 'a', 'z');
-	}
-
-	constexpr bool is_upper(char c) {
-		return in_range(c, 'A', 'Z');
-	}
-
-	constexpr bool is_alpha(char c) {
-		return is_lower(c) or is_upper(c);
-	}
-
-	constexpr bool is_alphanumeric(char c) {
-		return is_alpha(c) or is_digit(c);
-	}
-
-	constexpr bool is_whitespace(char c) {
-		return c == ' ' or in_range(c, '\t', '\r');
-	}
-
-	constexpr bool is_hex(char c) {
-		return in_range(c, 'A', 'F') or in_range(c, 'a', 'f') or is_digit(c);
-	}
-
-	constexpr bool is_bin(char c) {
-		return in_group(c, '0', '1');
-	}
-
-	constexpr bool is_identifier(char c) {
-		return is_lower(c) or is_upper(c) or is_digit(c) or in_group(c, '_', '.', ':', '/');
-	}
-
-
 	// Get the size of a UTF-8 codepoint.
-	inline uint8_t utf_size(const char* ptr) {
+	inline uint8_t size_utf8(const char* ptr) {
 		uint8_t out = 0;
 
 		const bool vals[] = {
@@ -72,6 +26,20 @@ namespace wpp {
 	}
 
 
+	inline int decode_utf8(const char* const c) {
+		int out = *c;
+
+		switch (wpp::size_utf8(c)) {
+			case 1: return out;
+			case 2: return ((out & 31) << 6) | (c[1] & 63);
+			case 3: return ((out & 15) << 12) | ((c[1] & 63) << 6) | (c[2] & 63);
+			case 4: return ((out & 7) << 18) | ((c[1] & 63) << 12) | ((c[2] & 63) << 6) | (c[3] & 63);
+		}
+
+		return 0;
+	}
+
+
 	// Convert a hex digit to an int.
 	inline uint8_t hex_to_digit(char c) {
 		if (c >= '0' && c <= '9')
@@ -84,6 +52,65 @@ namespace wpp {
 			return c - 'A' + 10;
 
 		return '\0';
+	}
+
+
+	template <typename... Ts>
+	constexpr bool in_group(const char* c, Ts&&... args) {
+		return ((*c == args) or ...);
+	}
+
+	constexpr bool in_range(const char* c, char lower, char upper) {
+		return *c >= lower and *c <= upper;
+	}
+
+	constexpr bool is_digit(const char* c) {
+		return in_range(c, '0', '9');
+	}
+
+	constexpr bool is_lower(const char* c) {
+		return in_range(c, 'a', 'z');
+	}
+
+	constexpr bool is_upper(const char* c) {
+		return in_range(c, 'A', 'Z');
+	}
+
+	constexpr bool is_alpha(const char* c) {
+		return is_lower(c) or is_upper(c);
+	}
+
+	constexpr bool is_alphanumeric(const char* c) {
+		return is_alpha(c) or is_digit(c);
+	}
+
+	inline bool is_whitespace_utf8(int32_t c) {
+		return c == 0x0085
+			or c == 0x00A0
+			or c == 0x1680
+			or (c >= 0x2000 and c <= 0x200A)
+			or c == 0x2028
+			or c == 0x2029
+			or c == 0x202F
+			or c == 0x205F
+			or c == 0x3000
+		;
+	}
+
+	constexpr bool is_whitespace(const char* c) {
+		return *c == ' ' or in_range(c, '\t', '\r') or is_whitespace_utf8(decode_utf8(c));
+	}
+
+	constexpr bool is_hex(const char* c) {
+		return in_range(c, 'A', 'F') or in_range(c, 'a', 'f') or is_digit(c);
+	}
+
+	constexpr bool is_bin(const char* c) {
+		return in_group(c, '0', '1');
+	}
+
+	constexpr bool is_identifier(const char* c) {
+		return is_lower(c) or is_upper(c) or is_digit(c) or in_group(c, '_', '.', ':', '/');
 	}
 
 

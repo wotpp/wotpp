@@ -111,7 +111,7 @@ namespace wpp {
 			lookahead_mode(mode_)
 		{
 			if (not wpp::validate_utf8(ptr))
-				wpp::error_utf(wpp::Pos{env.sources.top(), ptr}, env, "invalid UTF-8.");
+				wpp::error_utf8(wpp::Pos{env.sources.top(), ptr}, env, "invalid UTF-8.");
 
 			ptr = env_.sources.top().base;
 
@@ -142,7 +142,7 @@ namespace wpp {
 			char c = *ptr;
 
 			while (n--)
-				ptr += wpp::utf_size(ptr);
+				ptr += wpp::size_utf8(ptr);
 
 			return c;
 		}
