@@ -275,6 +275,9 @@ namespace wpp {
 			},
 
 			[&] (const Document& doc) {
+				if (env.flags & wpp::INTERNAL_ERROR_STATE)
+					throw wpp::Error{};
+
 				wpp::dbg("(eval) document");
 
 				for (const wpp::node_t node: doc.stmts)

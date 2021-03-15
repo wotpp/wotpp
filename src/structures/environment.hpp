@@ -76,7 +76,7 @@ namespace wpp {
 		wpp::Positions positions{};
 
 		const std::filesystem::path root{};
-		const wpp::flags_t flags{};
+		wpp::flags_t flags{};
 
 		wpp::Sources sources{};
 

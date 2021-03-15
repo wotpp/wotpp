@@ -34,7 +34,18 @@ namespace wpp {
 	#endif
 
 
-	struct Error {};
+	struct Error {
+		std::string msg;
+		const char* ptr = nullptr;
+
+		void show() const {
+			std::cerr << msg;
+		}
+
+		bool operator==(const Error& other) {
+			return ptr == other.ptr;
+		}
+	};
 
 
 	template <typename... Ts>
@@ -76,7 +87,9 @@ namespace wpp {
 
 
 	template <typename... Ts>
-	inline void print_error(const char* const type, const wpp::Pos& pos, const wpp::Env& env, bool bytes, Ts&&... args) {
+	inline std::string print_error(const char* const type, const wpp::Pos& pos, const wpp::Env& env, bool bytes, Ts&&... args) {
+		std::ostringstream ss;
+
 		([&] () -> std::ostream& {
 			const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 			const auto& [source, offset] = pos;
@@ -100,30 +113,30 @@ namespace wpp {
 			if (mode != modes::normal)
 				mode_str = wpp::cat("(", modes::mode_to_str[mode], ") ");
 
-			return (std::cerr << mode_str << type << path_str << ": ");
+			return (ss << mode_str << type << path_str << ": ");
 		} () << ... << std::forward<Ts>(args)) << '\n';
+
+		return ss.str();
 	}
 
 
 	// Print an error with position info.
 	template <typename... Ts>
 	inline void error(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
-		print_error("error", pos, env, false, std::forward<Ts>(args)...);
-		throw wpp::Error{};
+		throw wpp::Error{print_error("error", pos, env, false, std::forward<Ts>(args)...), pos.offset};
 	}
 
 
 	template <typename... Ts>
 	inline void error_utf8(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
-		print_error("error", pos, env, true, std::forward<Ts>(args)...);
-		throw wpp::Error{};
+		throw wpp::Error{print_error("error", pos, env, true, std::forward<Ts>(args)...), pos.offset};
 	}
 
 
 	// Print a warning with position info.
 	template <typename... Ts>
 	inline void warn(const wpp::Pos& pos, wpp::Env& env, Ts&&... args) {
-		print_error("warning", pos, env, false, std::forward<Ts>(args)...);
+		std::cerr << print_error("warning", pos, env, false, std::forward<Ts>(args)...);
 	}
 
 

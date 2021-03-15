@@ -900,10 +900,24 @@ namespace wpp {
 		const wpp::node_t node = tree.add<Document>();
 		pos.emplace_back(lex.position());
 
+		wpp::Error last;
+
 		// Consume expressions until we encounter eof or an error.
 		while (lex.peek() != TOKEN_EOF) {
-			const wpp::node_t stmt = statement(lex, tree, pos, env);
-			tree.get<Document>(node).stmts.emplace_back(stmt);
+			try {
+				const wpp::node_t stmt = statement(lex, tree, pos, env);
+				tree.get<Document>(node).stmts.emplace_back(stmt);
+			}
+
+			catch (const wpp::Error& e) {
+				env.flags |= wpp::INTERNAL_ERROR_STATE;
+
+				if (last == e)
+					throw;
+
+				last = e;
+				e.show();
+			}
 		}
 
 		return node;
