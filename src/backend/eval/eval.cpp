@@ -13,6 +13,11 @@
 namespace wpp {
 	// The core of the evaluator.
 	std::string evaluate(const wpp::node_t node_id, wpp::Env& env, wpp::FnEnv* fn_env) {
+		auto& ast = env.ast;
+		auto& functions = env.functions;
+		auto& positions = env.positions;
+		auto& flags = env.flags;
+
 		const auto& variant = env.ast[node_id];
 		std::string str;
 
@@ -20,7 +25,6 @@ namespace wpp {
 			[&] (const Intrinsic& fn) {
 				wpp::dbg("(eval) intrinsic");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
 				const auto& [type, name, exprs] = fn;
 
 				#define INTRINSIC(n, fn, tok) \
@@ -50,8 +54,6 @@ namespace wpp {
 			[&] (const FnInvoke& call) {
 				wpp::dbg("(eval) call");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
-
 				const auto& [caller_name, caller_args] = call;
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
@@ -66,7 +68,7 @@ namespace wpp {
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
-						if (warning_flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(caller_mangled_name) != functions.end())
+						if (flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(caller_mangled_name) != functions.end())
 							wpp::warn(positions[node_id], env, "parameter ", caller_name, " is shadowing a function.");
 
 						return;
@@ -98,7 +100,7 @@ namespace wpp {
 					const auto result = evaluate(caller_args[i], env, fn_env);
 
 					if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
-						if (warning_flags & wpp::WARN_PARAM_SHADOW_PARAM)
+						if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
 							wpp::warn(positions[node_id], env,
 								"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope."
 							);
@@ -117,13 +119,12 @@ namespace wpp {
 			[&] (const Fn& func) {
 				wpp::dbg("(eval) func");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
 				const auto& [name, params, body] = func;
 
 				auto it = functions.find(wpp::cat(name, params.size()));
 
 				if (it != functions.end()) {
-					if (warning_flags & wpp::WARN_FUNC_REDEFINED)
+					if (flags & wpp::WARN_FUNC_REDEFINED)
 						wpp::warn(positions[node_id], env, "function '", name, "' redefined.");
 
 					it->second.emplace_back(node_id);
@@ -142,7 +143,6 @@ namespace wpp {
 			[&] (const Var& var) {
 				wpp::dbg("(eval) var");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
 				auto& [name, body] = var;
 
 				const auto func_name = wpp::cat(name, 0);
@@ -157,7 +157,7 @@ namespace wpp {
 				auto it = functions.find(func_name);
 
 				if (it != functions.end()) {
-					if (warning_flags & wpp::WARN_VARFUNC_REDEFINED)
+					if (flags & wpp::WARN_VARFUNC_REDEFINED)
 						wpp::warn(positions[node_id], env, "function/variable '", name, "' redefined.");
 
 					it->second.emplace_back(node_id);
@@ -170,7 +170,6 @@ namespace wpp {
 			[&] (const Drop& drop) {
 				wpp::dbg("(eval) drop");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
 				const auto& [func_id] = drop;
 
 				auto* func = std::get_if<FnInvoke>(&ast[func_id]);
@@ -222,7 +221,6 @@ namespace wpp {
 			[&] (const Map& map) {
 				wpp::dbg("(eval) map");
 
-				auto& [ast, functions, positions, root, warning_flags, sources] = env;
 				const auto& [test, cases, default_case] = map;
 
 				const auto test_str = evaluate(test, env, fn_env);
@@ -249,7 +247,6 @@ namespace wpp {
 			[&] (const Pre&) {
 				wpp::dbg("(eval) prefix");
 
-				// auto& [ast, functions, positions, root, warning_flags, sources] = env;
 				// const auto& [exprs, stmts] = pre;
 
 				// for (const wpp::node_t stmt: stmts) {
