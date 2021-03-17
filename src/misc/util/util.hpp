@@ -122,13 +122,13 @@ namespace wpp {
 
 	// Print an error with position info.
 	template <typename... Ts>
-	inline void error(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
+	[[noreturn]] inline void error(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
 		throw wpp::Error{print_error("error", pos, env, false, std::forward<Ts>(args)...), pos.offset};
 	}
 
 
 	template <typename... Ts>
-	inline void error_utf8(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
+	[[noreturn]] inline void error_utf8(const wpp::Pos& pos, const wpp::Env& env, Ts&&... args) {
 		throw wpp::Error{print_error("error", pos, env, true, std::forward<Ts>(args)...), pos.offset};
 	}
 
