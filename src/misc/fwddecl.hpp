@@ -42,7 +42,8 @@ namespace wpp {
 		#define MODES \
 			MODE(normal) \
 			MODE(string) \
-			MODE(chr)
+			MODE(chr) \
+			MODE(string_no_escape)
 
 		#define MODE(x) x,
 			enum: lexer_mode_type_t { MODES };

@@ -42,7 +42,6 @@ namespace wpp {
 				INTRINSIC(1, error,  TOKEN_ERROR);
 				INTRINSIC(1, file,   TOKEN_FILE);
 				INTRINSIC(1, escape, TOKEN_ESCAPE);
-				INTRINSIC(1, eval,   TOKEN_EVAL);
 				INTRINSIC(1, run,    TOKEN_RUN);
 				INTRINSIC(1, source, TOKEN_SOURCE);
 				INTRINSIC(1, length, TOKEN_LENGTH);

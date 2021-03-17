@@ -3,6 +3,7 @@
 #ifndef WOTPP_CHAR
 #define WOTPP_CHAR
 
+#include <algorithm>
 #include <cstdint>
 
 // Common character related utilities.
@@ -23,6 +24,19 @@ namespace wpp {
 			vals[i] && (out = i);
 
 		return out + 1;
+	}
+
+
+	// Find the beginning of the first codepoint iterating backwards
+	// from a given pointer.
+	inline const char* prev_char_utf8(const char* const begin, const char* ptr) {
+		while (
+			--ptr >= begin and
+			((*ptr & 0b10000000) and
+			!(*ptr & 0b01000000))
+		);
+
+		return ptr;
 	}
 
 
@@ -85,15 +99,16 @@ namespace wpp {
 	}
 
 	inline bool is_whitespace_utf8(int32_t c) {
-		return c == 0x0085
-			or c == 0x00A0
-			or c == 0x1680
-			or (c >= 0x2000 and c <= 0x200A)
-			or c == 0x2028
-			or c == 0x2029
-			or c == 0x202F
-			or c == 0x205F
-			or c == 0x3000
+		return
+			c == 0x0085 or
+			c == 0x00A0 or
+			c == 0x1680 or
+			(c >= 0x2000 and c <= 0x200A) or
+			c == 0x2028 or
+			c == 0x2029 or
+			c == 0x202F or
+			c == 0x205F or
+			c == 0x3000
 		;
 	}
 
@@ -109,8 +124,41 @@ namespace wpp {
 		return in_group(c, '0', '1');
 	}
 
+	constexpr bool is_quote(const char* c) {
+		return in_group(c, '"', '\'');
+	}
+
+	constexpr bool is_escape(const char* c) {
+		return in_group(c, '\\', 'n', 'r', 't', 'b', 'x') or is_quote(c);
+	}
+
 	constexpr bool is_identifier(const char* c) {
 		return is_lower(c) or is_upper(c) or is_digit(c) or in_group(c, '_', '.', ':', '/');
+	}
+
+
+	// Collapse consecutive whitespace.
+	inline void collapse_whitespace(std::string& str) {
+		// Replace all whitespace with just ' '.
+		char* const begin = str.data();
+		char* const end = str.data() + str.size();
+
+		for (char* ptr = begin; ptr != end; ptr += wpp::size_utf8(ptr)) {
+			if (wpp::is_whitespace(ptr))
+				*ptr = ' ';
+		}
+
+		// Collapse repeated spaces.
+		str.erase(std::unique(str.begin(), str.end(), [] (char lhs, char rhs) {
+			return lhs == rhs and lhs == ' ';
+		}), str.end());
+
+		// Strip leading and trailing whitespace.
+		if (str.front() == ' ')
+			str.erase(str.begin(), str.begin() + 1);
+
+		if (str.back() == ' ')
+			str.erase(str.end() - 1, str.end());
 	}
 
 

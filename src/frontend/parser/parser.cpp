@@ -13,7 +13,6 @@ namespace {
 	inline bool peek_is_intrinsic(const wpp::Token& tok) {
 		return
 			tok == wpp::TOKEN_RUN or
-			tok == wpp::TOKEN_EVAL or
 			tok == wpp::TOKEN_FILE or
 			tok == wpp::TOKEN_ASSERT or
 			tok == wpp::TOKEN_PIPE or
@@ -32,7 +31,16 @@ namespace {
 			tok == wpp::TOKEN_LET or
 			tok == wpp::TOKEN_VAR or
 			tok == wpp::TOKEN_PREFIX or
-			tok == wpp::TOKEN_DROP
+			tok == wpp::TOKEN_DROP or
+			tok == wpp::TOKEN_MAP
+		;
+	}
+
+	inline bool peek_is_smart_string(const wpp::Token& tok) {
+		return
+			tok == wpp::TOKEN_CODESTR or
+			tok == wpp::TOKEN_RAWSTR or
+			tok == wpp::TOKEN_PARASTR
 		;
 	}
 
@@ -42,12 +50,12 @@ namespace {
 			tok == wpp::TOKEN_DOUBLEQUOTE or
 			tok == wpp::TOKEN_QUOTE or
 
-			tok == wpp::TOKEN_EXCLAIM or
+			tok == wpp::TOKEN_STRINGIFY or
 
 			tok == wpp::TOKEN_HEX or
 			tok == wpp::TOKEN_BIN or
 
-			tok == wpp::TOKEN_SMART
+			peek_is_smart_string(tok)
 		;
 	}
 
@@ -70,7 +78,7 @@ namespace {
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
 			tok == wpp::TOKEN_MAP or
-			tok == wpp::TOKEN_EQUAL or
+			tok == wpp::TOKEN_EVAL or
 			tok == wpp::TOKEN_LBRACE or
 			peek_is_string(tok) or
 			peek_is_call(tok)
@@ -84,24 +92,34 @@ namespace {
 			peek_is_expr(tok)
 		;
 	}
+
+	inline bool peek_is_escape(const wpp::Token& tok) {
+		return
+			tok == wpp::TOKEN_ESCAPE_BACKSLASH or
+			tok == wpp::TOKEN_ESCAPE_CARRIAGERETURN or
+			tok == wpp::TOKEN_ESCAPE_NEWLINE or
+			tok == wpp::TOKEN_ESCAPE_TAB or
+			tok == wpp::TOKEN_ESCAPE_BIN or
+			tok == wpp::TOKEN_ESCAPE_HEX or
+			tok == wpp::TOKEN_ESCAPE_DOUBLEQUOTE or
+			tok == wpp::TOKEN_ESCAPE_QUOTE
+		;
+	}
 }
 
 
 namespace wpp {
 	namespace {
-		// Consume tokens comprising a string. Handles escape chars.
-		void accumulate_string(const wpp::Token&, std::string&, bool = true);
-
 		// Forward declarations.
-		void normal_string(wpp::Lexer&, std::string&, wpp::Env&);
-		void stringify_string(wpp::Lexer&, std::string&, wpp::Env&);
-		void smart_string(wpp::Lexer&, std::string&, wpp::Env&);
-		void hex_string(wpp::Lexer&, std::string&, wpp::Env&);
-		void bin_string(wpp::Lexer&, std::string&, wpp::Env&);
+		wpp::node_t normal_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t stringify_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t smart_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t hex_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t bin_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 
-		void raw_string(std::string&);
-		void para_string(std::string&);
-		void code_string(std::string&);
+		wpp::node_t raw_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t para_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t code_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 
 		wpp::node_t expression(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 		wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
@@ -122,32 +140,29 @@ namespace wpp {
 namespace wpp {
 	namespace {
 		// Consume tokens comprising a string. Handles escape chars.
-		void accumulate_string(const wpp::Token& part, std::string& literal, bool handle_escapes) {
-			wpp::dbg("(parser) accumulate_string");
+		std::string handle_escapes(const wpp::Token& part) {
+			wpp::dbg("(parser) handle_escapes");
 
-			if (not handle_escapes) {
-				literal.append(part.str());
-				return;
-			}
+			std::string str;
 
 			// handle escape sequences.
 			if (part == TOKEN_ESCAPE_DOUBLEQUOTE)
-				literal.append("\"");
+				str = "\"";
 
 			else if (part == TOKEN_ESCAPE_QUOTE)
-				literal.append("'");
+				str = "'";
 
 			else if (part == TOKEN_ESCAPE_BACKSLASH)
-				literal.append("\\");
+				str = "\\";
 
 			else if (part == TOKEN_ESCAPE_NEWLINE)
-				literal.append("\n");
+				str = "\n";
 
 			else if (part == TOKEN_ESCAPE_TAB)
-				literal.append("\t");
+				str = "\t";
 
 			else if (part == TOKEN_ESCAPE_CARRIAGERETURN)
-				literal.append("\r");
+				str = "\r";
 
 			else if (part == TOKEN_ESCAPE_HEX) {
 				// Get first and second nibble.
@@ -157,7 +172,7 @@ namespace wpp {
 				// Shift the first nibble to the left by 4 and then OR it with
 				// the second nibble so the first nibble is the first 4 bits
 				// and the second nibble is the last 4 bits.
-				literal += static_cast<uint8_t>(
+				str = static_cast<uint8_t>(
 					wpp::hex_to_digit(first_nibble) << 4 |
 					wpp::hex_to_digit(second_nibble)
 				);
@@ -174,14 +189,397 @@ namespace wpp {
 					value |= ptr[i] - '0';
 				}
 
-				literal += value;
+				str = value;
 			}
 
-			else
-				literal.append(part.str());
+			return str;
 		}
 
 
+		wpp::node_t normal_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) normal_string");
+
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+
+			auto& str = tree.get<String>(node).value;
+
+			const auto delim = lex.advance(wpp::lexer_modes::string); // Store delimeter.
+
+			// Consume tokens until we reach `delim` or EOF.
+			while (lex.peek(wpp::lexer_modes::string) != delim) {
+				if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
+					wpp::error(pos[node], env, "reached EOF while parsing string.");
+
+				// Parse escape characters and append "parts" of the string to `str`.
+				if (peek_is_escape(lex.peek(wpp::lexer_modes::string)))
+					str += wpp::handle_escapes(lex.advance(wpp::lexer_modes::string));
+
+				else
+					str += lex.advance(wpp::lexer_modes::string).str();
+			}
+
+			lex.advance(); // Skip terminating quote.
+
+			return node;
+		}
+
+
+		wpp::node_t stringify(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) stringify_string");
+
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+
+			lex.advance(); // skip '`'.
+
+			if (lex.peek() != TOKEN_IDENTIFIER)
+				wpp::error(lex.position(), env, "expected an identifier to follow !.");
+
+			tree.get<String>(node).value = lex.advance().str();
+
+			return node;
+		}
+
+
+		wpp::node_t raw_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) raw_string");
+
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+			auto& str = tree.get<String>(node).value;
+
+			const auto delim = lex.advance().view.at(1);  // User defined delimiter.
+			const auto quote = lex.advance(wpp::lexer_modes::string_no_escape); // ' or "
+
+			while (true) {
+				if (lex.peek(wpp::lexer_modes::string_no_escape) == TOKEN_EOF)
+					wpp::error(pos[node], env, "reached EOF while parsing string.");
+
+				// If we encounter ' or ", we check one character ahead to see
+				// if it matches the user defined delimiter, it if does,
+				// we erase the last quote character and break.
+				if (lex.peek(wpp::lexer_modes::string_no_escape) == quote) {
+					// Store this quote, it may not actually be a part
+					// of the string terminator. We append it to the string
+					// if the next `if` block tests false.
+					const auto tmp = lex.advance(wpp::lexer_modes::string_no_escape);
+
+					if (lex.peek(wpp::lexer_modes::chr).view == delim) {
+						lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
+						break;  // Exit the loop, string is fully consumed.
+					}
+
+					str += tmp.str();
+				}
+
+				// If not EOF or '/", consume.
+				else {
+					str += lex.advance(wpp::lexer_modes::string_no_escape).str();
+				}
+			}
+
+			return node;
+		}
+
+
+		wpp::node_t para_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) para_string");
+
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+			auto& str = tree.get<String>(node).value;
+
+			const auto delim = lex.advance().view.at(1);  // User defined delimiter.
+			const auto quote = lex.advance(wpp::lexer_modes::string); // ' or "
+
+			std::vector<std::pair<std::string, bool>> chunks;
+
+			while (true) {
+				if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
+					wpp::error(pos[node], env, "reached EOF while parsing string.");
+
+				// If we encounter ' or ", we check one character ahead to see
+				// if it matches the user defined delimiter, it if does,
+				// we erase the last quote character and break.
+				if (lex.peek(wpp::lexer_modes::string) == quote) {
+					// Store this quote, it may not actually be a part
+					// of the string terminator. We append it to the string
+					// if the next `if` block tests false.
+					const auto tmp = lex.advance(wpp::lexer_modes::string);
+
+					if (lex.peek(wpp::lexer_modes::chr).view == delim) {
+						lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
+						break;  // Exit the loop, string is fully consumed.
+					}
+
+					chunks.emplace_back(tmp.str(), false);
+				}
+
+				// If not EOF or '/", consume.
+				else {
+					// Parse escape characters and append "parts" of the string to `str`.
+					if (peek_is_escape(lex.peek(wpp::lexer_modes::string)))
+						chunks.emplace_back(wpp::handle_escapes(lex.advance(wpp::lexer_modes::string)), true);
+
+					else {
+						std::string tmp = lex.advance(wpp::lexer_modes::string).str();
+						wpp::collapse_whitespace(tmp);
+						chunks.emplace_back(tmp, false);
+					}
+				}
+			}
+
+			for (int i = 0; i < chunks.size() - 1; ++i) {
+				auto& [x1, all_whitespace1] = chunks[i];
+				auto& [x2, all_whitespace2] = chunks[i + 1];
+
+				if (all_whitespace1 or all_whitespace2)
+					str += x1;
+
+				else
+					str += x1 + ' ';
+			}
+
+			str += chunks.back().first;
+
+			return node;
+		}
+
+
+		wpp::node_t code_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) code_string");
+
+			// Trim trailing whitespace.
+			// Loop from back of string to beginning.
+			// for (auto it = str.rbegin(); it != str.rend(); ++it) {
+			// 	// If we find something that isn't whitespace, erase from the back
+			// 	// of the string to the current position of the iterator.
+			// 	if (not wpp::is_whitespace(&*it)) {
+			// 		str.erase(it.base(), str.end());
+			// 		break;
+			// 	}
+			// }
+
+			// // Trim leading whitespace.
+			// for (auto it = str.begin(); it != str.end();) {
+			// 	if (not wpp::is_whitespace(&*it))
+			// 		break;
+
+			// 	else if (*it == '\n') {
+			// 		str.erase(str.begin(), it + 1);
+			// 		it = str.begin();
+			// 		continue;  // Skip the increment of the iterator.
+			// 	}
+
+			// 	++it;
+			// }
+
+
+			// // Discover tab depth.
+			// int common_indent = std::numeric_limits<int>::max();
+
+			// for (auto it = str.begin(); *it; ++it) {
+			// 	if (*it == '\n') {
+			// 		int indent = 0;
+
+			// 		++it; // Skip newline.
+
+			// 		// Loop until we find something that isn't whitespace.
+			// 		while (wpp::is_whitespace(&*it))
+			// 			++it, ++indent;
+
+			// 		if (indent < common_indent)
+			// 			common_indent = indent;
+			// 	}
+			// }
+
+
+			// // Remove leading indentation on each line up to common_indent amount.
+
+			// // Strips whitespace until we hit either a non whitespace character
+			// // or reach the maximum amount of indentation to strip.
+			// const auto strip = [&] (const char* ptr) {
+			// 	const char* start = ptr;
+			// 	int count_whitespace = 0;
+
+			// 	while (wpp::is_whitespace(ptr) and count_whitespace != common_indent)
+			// 		++ptr, ++count_whitespace;
+
+			// 	str.erase(start - str.c_str(), ptr - start);
+
+			// 	// Set pointer back to beginning of removed range because
+			// 	// we are iterating while altering the string.
+			// 	ptr = start;
+
+			// 	return ptr;
+			// };
+
+			// const char* ptr = str.c_str();
+
+			// // Remove whitespace on first line between start of string and first non whitespace character.
+			// if (wpp::is_whitespace(ptr))
+			// 	ptr = strip(ptr);
+
+			// // Remove the rest of the leading whitespace.
+			// while (*ptr) {
+			// 	if (*ptr == '\n')
+			// 		ptr = strip(++ptr);
+
+			// 	++ptr;
+			// }
+		}
+
+
+		wpp::node_t smart_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) smart_string");
+
+			// const auto delim = lex.advance().view.at(1);  // User defined delimiter.
+			// const auto quote = lex.advance(wpp::lexer_modes::string); // ' or "
+
+			// while (true) {
+			// 	if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
+			// 		wpp::error(lex.position(), env, "reached EOF while parsing string.");
+
+			// 	// If we encounter ' or ", we check one character ahead to see
+			// 	// if it matches the user defined delimiter, it if does,
+			// 	// we erase the last quote character and break.
+			// 	if (lex.peek(wpp::lexer_modes::string) == quote) {
+			// 		// Consume this quote because it may actually be part of the
+			// 		// string and not the terminator.
+			// 		accumulate_string(lex.advance(wpp::lexer_modes::string), str);
+
+			// 		if (lex.peek(wpp::lexer_modes::chr).view == delim) {
+			// 			lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
+			// 			str.erase(str.end() - 1, str.end()); // Remove last quote.
+			// 			break;  // Exit the loop, string is fully consumed.
+			// 		}
+			// 	}
+
+			// 	// If not EOF or '/", consume.
+			// 	// else {
+			// 		// accumulate_string(lex.advance(wpp::lexer_modes::string), str, handle_escapes);
+			// 	// }
+			// }
+
+			// From here, the different string types just make adjustments to the
+			// contents of the parsed string.
+			// if (str_type == 'r')
+			// 	raw_string(str);
+
+			// else if (str_type == 'c')
+			// 	code_string(str);
+
+			// else if (str_type == 'p')
+			// 	para_string(str);
+		}
+
+
+		wpp::node_t hex_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) hex_string");
+
+			const auto& [ptr, len] = lex.advance().view;
+
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+			auto& str = tree.get<String>(node).value;
+
+			size_t counter = 0; // index into string, doesnt count `_`.
+
+			for (size_t i = len; i > 0; i--) {
+				const char c = ptr[i - 1];
+
+				// Skip underscores.
+				if (c == '_')
+					continue;
+
+				// Odd index, shift digit by 4 and or it with last character.
+				if (counter & 1)
+					str.back() |= wpp::hex_to_digit(c) << 4;
+
+				// Even index, push back digit.
+				else
+					str.push_back(wpp::hex_to_digit(c));
+
+				counter++;
+			}
+
+			std::reverse(str.begin(), str.end());
+
+			return node;
+		}
+
+
+		wpp::node_t bin_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) bin_string");
+
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+			auto& str = tree.get<String>(node).value;
+
+			const auto& [ptr, len] = lex.advance().view;
+
+			// Reserve some space, this is kind of arbitrary.
+			str.reserve(len);
+
+			size_t counter = 0; // index into string without tracking `_`.
+
+			for (size_t i = len; i > 0; i--) {
+				const char c = ptr[i - 1];
+
+				// Skip underscores.
+				if (c == '_')
+					continue;
+
+				// We shift and or every character encounter.
+				if (counter & 7)
+					str.back() |= (c - '0') << (counter & 7);
+
+				// When we get to a multiple of 8, we push back the character.
+				else
+					str.push_back(c - '0');
+
+				counter++;
+			}
+
+			std::reverse(str.begin(), str.end());
+
+			return node;
+		}
+
+
+		// Parse a string.
+		// `"hey" 'hello' "a\nb\nc\n"`
+		wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			wpp::dbg("(parser) string");
+
+			wpp::node_t node = wpp::NODE_EMPTY;
+
+
+			if (lex.peek() == TOKEN_QUOTE or lex.peek() == TOKEN_DOUBLEQUOTE)
+				node = normal_string(lex, tree, pos, env);
+
+			else if (lex.peek() == TOKEN_STRINGIFY)
+				node = stringify(lex, tree, pos, env);
+
+			else if (lex.peek() == TOKEN_RAWSTR)
+				node = raw_string(lex, tree, pos, env);
+
+			else if (lex.peek() == TOKEN_CODESTR)
+				node = code_string(lex, tree, pos, env);
+
+			else if (lex.peek() == TOKEN_PARASTR)
+				node = para_string(lex, tree, pos, env);
+
+			else if (lex.peek() == TOKEN_HEX)
+				node = hex_string(lex, tree, pos, env);
+
+			else if (lex.peek() == TOKEN_BIN)
+				node = bin_string(lex, tree, pos, env);
+
+
+			return node;
+		}
 
 
 		// Parses a function.
@@ -230,7 +628,7 @@ namespace wpp {
 						wpp::error(pos.at(node), env, "expecting comma to follow parameter name.");
 				}
 
-				// Check if there's an keyword conflict.
+				// Check if there's a keyword conflict.
 				// We check if the next token is a reserved name and throw an error
 				// if it is. The reason we don't check this in the while loop body is
 				// because the loop condition checks for an identifier and so breaks
@@ -238,9 +636,9 @@ namespace wpp {
 				if (peek_is_reserved_name(lex.peek()))
 					wpp::error(pos.at(node), env, "parameter name '", lex.advance().str(), "' conflicts with keyword.");
 
-				// // Make sure parameter list is terminated by `)`.
+				// Make sure parameter list is terminated by `)`.
 				if (lex.advance() != TOKEN_RPAREN)
-					wpp::error(pos.at(node), env, "expecting ')' to follow argument list.");
+					wpp::error(pos.at(node), env, "expecting end of parameter list.");
 			}
 
 			// Parse the function body.
@@ -314,290 +712,6 @@ namespace wpp {
 		}
 
 
-		void normal_string(wpp::Lexer& lex, std::string& str, wpp::Env& env) {
-			wpp::dbg("(parser) normal_string");
-
-			const auto delim = lex.advance(wpp::lexer_modes::string); // Store delimeter.
-
-			// Consume tokens until we reach `delim` or EOF.
-			while (lex.peek(wpp::lexer_modes::string) != delim) {
-				if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
-					wpp::error(lex.position(), env, "reached EOF while parsing string.");
-
-				// Parse escape characters and append "parts" of the string to `str`.
-				accumulate_string(lex.advance(wpp::lexer_modes::string), str);
-			}
-
-			lex.advance(); // Skip terminating quote.
-		}
-
-
-		void stringify_string(wpp::Lexer& lex, std::string& str, wpp::Env& env) {
-			wpp::dbg("(parser) stringify_string");
-
-			lex.advance(); // skip '`'.
-
-			if (lex.peek() != TOKEN_IDENTIFIER)
-				wpp::error(lex.position(), env, "expected an identifier to follow !.");
-
-
-			str = lex.advance().str();
-		}
-
-
-		void raw_string(std::string&) {
-			wpp::dbg("(parser) raw_string");
-		}
-
-
-		void para_string(std::string& str) {
-			wpp::dbg("(parser) para_string");
-
-			// Collapse consecutive runs of whitespace to a single whitespace.
-			str.erase(std::unique(str.begin(), str.end(), [] (char lhs, char rhs) {
-				return wpp::is_whitespace(&lhs) and wpp::is_whitespace(&rhs);
-			}), str.end());
-
-			// Replace all whitespace with a literal space.
-			// So, newlines and tabs become spaces.
-			for (char& c: str) {
-				if (wpp::is_whitespace(&c))
-					c = ' ';
-			}
-
-			// Strip leading and trailing whitespace.
-			if (wpp::is_whitespace(&str.front()))
-				str.erase(str.begin(), str.begin() + 1);
-
-			if (wpp::is_whitespace(&str.back()))
-				str.erase(str.end() - 1, str.end());
-		}
-
-
-		void code_string(std::string& str) {
-			wpp::dbg("(parser) code_string");
-
-			// Trim trailing whitespace.
-			// Loop from back of string to beginning.
-			for (auto it = str.rbegin(); it != str.rend(); ++it) {
-				// If we find something that isn't whitespace, erase from the back
-				// of the string to the current position of the iterator.
-				if (not wpp::is_whitespace(&*it)) {
-					str.erase(it.base(), str.end());
-					break;
-				}
-			}
-
-			// Trim leading whitespace.
-			for (auto it = str.begin(); it != str.end();) {
-				if (not wpp::is_whitespace(&*it))
-					break;
-
-				else if (*it == '\n') {
-					str.erase(str.begin(), it + 1);
-					it = str.begin();
-					continue;  // Skip the increment of the iterator.
-				}
-
-				++it;
-			}
-
-
-			// Discover tab depth.
-			int common_indent = std::numeric_limits<int>::max();
-
-			for (auto it = str.begin(); *it; ++it) {
-				if (*it == '\n') {
-					int indent = 0;
-
-					++it; // Skip newline.
-
-					// Loop until we find something that isn't whitespace.
-					while (wpp::is_whitespace(&*it))
-						++it, ++indent;
-
-					if (indent < common_indent)
-						common_indent = indent;
-				}
-			}
-
-
-			// Remove leading indentation on each line up to common_indent amount.
-
-			// Strips whitespace until we hit either a non whitespace character
-			// or reach the maximum amount of indentation to strip.
-			const auto strip = [&] (const char* ptr) {
-				const char* start = ptr;
-				int count_whitespace = 0;
-
-				while (wpp::is_whitespace(ptr) and count_whitespace != common_indent)
-					++ptr, ++count_whitespace;
-
-				str.erase(start - str.c_str(), ptr - start);
-
-				// Set pointer back to beginning of removed range because
-				// we are iterating while altering the string.
-				ptr = start;
-
-				return ptr;
-			};
-
-			const char* ptr = str.c_str();
-
-			// Remove whitespace on first line between start of string and first non whitespace character.
-			if (wpp::is_whitespace(ptr))
-				ptr = strip(ptr);
-
-			// Remove the rest of the leading whitespace.
-			while (*ptr) {
-				if (*ptr == '\n')
-					ptr = strip(++ptr);
-
-				++ptr;
-			}
-		}
-
-
-		void hex_string(wpp::Lexer& lex, std::string& str, wpp::Env&) {
-			wpp::dbg("(parser) hex_string");
-
-			const auto& [ptr, len] = lex.advance().view;
-
-			size_t counter = 0; // index into string, doesnt count `_`.
-
-			for (size_t i = len; i > 0; i--) {
-				const char c = ptr[i - 1];
-
-				// Skip underscores.
-				if (c == '_')
-					continue;
-
-				// Odd index, shift digit by 4 and or it with last character.
-				if (counter & 1)
-					str.back() |= wpp::hex_to_digit(c) << 4;
-
-				// Even index, push back digit.
-				else
-					str.push_back(wpp::hex_to_digit(c));
-
-				counter++;
-			}
-
-			std::reverse(str.begin(), str.end());
-		}
-
-
-		void bin_string(wpp::Lexer& lex, std::string& str, wpp::Env&) {
-			wpp::dbg("(parser) bin_string");
-
-			const auto& [ptr, len] = lex.advance().view;
-
-			size_t counter = 0; // index into string without tracking `_`.
-
-			for (size_t i = len; i > 0; i--) {
-				const char c = ptr[i - 1];
-
-				// Skip underscores.
-				if (c == '_')
-					continue;
-
-				// We shift and or every character encounter.
-				if (counter & 7)
-					str.back() |= (c - '0') << (counter & 7);
-
-				// When we get to a multiple of 8, we push back the character.
-				else
-					str.push_back(c - '0');
-
-				counter++;
-			}
-
-			std::reverse(str.begin(), str.end());
-		}
-
-
-		void smart_string(wpp::Lexer& lex, std::string& str, wpp::Env& env) {
-			wpp::dbg("(parser) smart_string");
-
-			const auto tok = lex.advance(); // Consume the smart string opening token.
-
-			const auto str_type = tok.view.at(0);  // 'r', 'p' or 'c'
-			const auto delim = tok.view.at(1);  // User defined delimiter.
-
-			const auto quote = lex.advance(wpp::lexer_modes::string); // ' or "
-
-			while (true) {
-				if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
-					wpp::error(lex.position(), env, "reached EOF while parsing string.");
-
-				// If we encounter ' or ", we check one character ahead to see
-				// if it matches the user defined delimiter, it if does,
-				// we erase the last quote character and break.
-				if (lex.peek(wpp::lexer_modes::string) == quote) {
-					// Consume this quote because it may actually be part of the
-					// string and not the terminator.
-					accumulate_string(lex.advance(wpp::lexer_modes::string), str);
-
-					if (lex.peek(wpp::lexer_modes::chr).view == delim) {
-						lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
-						str.erase(str.end() - 1, str.end()); // Remove last quote.
-						break;  // Exit the loop, string is fully consumed.
-					}
-				}
-
-				// If not EOF or '/", consume.
-				else {
-					// We don't handle escape sequences inside a raw string.
-					bool handle_escapes = str_type != 'r';
-					accumulate_string(lex.advance(wpp::lexer_modes::string), str, handle_escapes);
-				}
-			}
-
-			// From here, the different string types just make adjustments to the
-			// contents of the parsed string.
-			if (str_type == 'r')
-				raw_string(str);
-
-			else if (str_type == 'c')
-				code_string(str);
-
-			else if (str_type == 'p')
-				para_string(str);
-		}
-
-
-		// Parse a string.
-		// `"hey" 'hello' "a\nb\nc\n"`
-		wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
-			wpp::dbg("(parser) string");
-
-			// Create our string node.
-			const wpp::node_t node = tree.add<String>();
-			pos.emplace_back(lex.position());
-			auto& literal = tree.get<String>(node).value;
-
-			// Reserve some space, this is kind of arbitrary.
-			literal.reserve(1024);
-
-			if (lex.peek() == TOKEN_HEX)
-				hex_string(lex, literal, env);
-
-			else if (lex.peek() == TOKEN_BIN)
-				bin_string(lex, literal, env);
-
-			else if (lex.peek() == TOKEN_SMART)
-				smart_string(lex, literal, env);
-
-			else if (lex.peek() == TOKEN_EXCLAIM)
-				stringify_string(lex, literal, env);
-
-			else if (lex.peek() == TOKEN_QUOTE or lex.peek() == TOKEN_DOUBLEQUOTE)
-				normal_string(lex, literal, env);
-
-			return node;
-		}
-
-
 		// Parse a function call.
 		wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
 			wpp::dbg("(parser) fninvoke");
@@ -624,12 +738,12 @@ namespace wpp {
 					// Otherwise it must be ')'?
 					else if (lex.peek() != TOKEN_RPAREN)
 						// If it's not, throw an exception.
-						wpp::error(pos.at(node), env, "expecting comma to follow parameter name.");
+						wpp::error(pos.at(node), env, "expecting end of argument list.");
 				}
 
 				// Make sure parameter list is terminated by `)`.
 				if (lex.advance() != TOKEN_RPAREN)
-					wpp::error(pos.at(node), env, "expecting ')' to follow argument list.");
+					wpp::error(pos.at(node), env, "expecting end of argument list.");
 			}
 
 			// Check if function call is an intrinsic.
@@ -841,7 +955,7 @@ namespace wpp {
 			else if (lookahead == TOKEN_MAP)
 				lhs = wpp::map(lex, tree, pos, env);
 
-			else if (lookahead == TOKEN_EQUAL)
+			else if (lookahead == TOKEN_EVAL)
 				lhs = wpp::codeify(lex, tree, pos, env);
 
 			else
