@@ -17,6 +17,28 @@ project(
 	]
 )
 
+extra_cxx_opts = [
+	'-pedantic',
+	'-Wextra',
+	'-Wnull-dereference',
+	'-Wshadow',
+	'-Wno-unused',
+	'-Wdisabled-optimization',
+	'-Wundef',
+]
+
+if meson.get_compiler('cpp').has_argument('-Wlogical-op')
+	extra_cxx_opts += '-Wlogical-op'
+endif
+
+if meson.get_compiler('cpp').has_argument('-Wduplicated-branches')
+	extra_cxx_opts += '-Wduplicated-branches'
+endif
+
+if meson.get_compiler('cpp').has_argument('-Wduplicated-cond')
+	extra_cxx_opts += '-Wduplicated-cond'
+endif
+
 extra_opts = []
 deps = []
 
@@ -118,7 +140,8 @@ exe = executable(
 	include_directories: [sources_inc],
 	dependencies: deps,
 	install: true,
-	override_options: extra_opts
+	override_options: extra_opts,
+	cpp_args: extra_cxx_opts
 )
 
 # Test cases
