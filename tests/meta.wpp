@@ -1,7 +1,7 @@
 #[metaprogramming]
 
 let new_tag(name, pre, suf)
-	eval("let " .. name .. "(value) '" .. pre .. "' .. value .. '" .. suf .. "' .. '\n'")
+	!"let " .. name .. "(value) '" .. pre .. "' .. value .. '" .. suf .. "' .. '\n'"
 
 new_tag("h1", "<h1>", "</h1>")
 new_tag("h2", "<h2>", "</h2>")

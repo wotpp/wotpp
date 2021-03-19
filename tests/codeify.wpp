@@ -4,4 +4,4 @@ let foo(x)
 
 let hello "hello"
 
-foo(!hello)
+foo(\hello)
