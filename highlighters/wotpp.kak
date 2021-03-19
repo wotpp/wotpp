@@ -10,14 +10,16 @@ provide-module -override wpp %{
 	add-highlighter shared/wpp/single-comment region '#' '$' group
 	add-highlighter shared/wpp/single-comment/ fill comment
 
-	add-highlighter shared/wpp/other/ regex %{\b(0x[_0-9a-fA-F]+|0b[_01]+)\b} 0:value
+	add-highlighter shared/wpp/other/ regex %{\b(0x[_0-9a-fA-F]+|0b[_01]+)} 0:value
 
-	add-highlighter shared/wpp/other/ regex "\b(drop|var|map|let|run|file|eval|assert|prefix|pipe|escape|error|log|slice|find|length)\b" 0:keyword
-	add-highlighter shared/wpp/other/ regex "=|!|\.\.|->" 0:operator
+	add-highlighter shared/wpp/other/ regex "\b(source|drop|map|let|run|file|assert|pipe|escape|error|log|slice|find|length)\b" 0:keyword
+	add-highlighter shared/wpp/other/ regex "\B(!|\*|\.\.|->)" 0:operator
 
-	add-highlighter shared/wpp/raw_string region -match-capture %{r([^\s])"} %{"([^\s])} fill string
-	add-highlighter shared/wpp/code_string region -match-capture %{c([^\s])"} %{"([^\s])} group
-	add-highlighter shared/wpp/para_string region -match-capture %{p([^\s])"} %{"([^\s])} group
+	add-highlighter shared/wpp/other/ regex "\B\\\w+" 0:string
+
+	add-highlighter shared/wpp/raw_string region -match-capture %{\br([^\s])"} %{"([^\s])} fill string
+	add-highlighter shared/wpp/code_string region -match-capture %{\bc([^\s])"} %{"([^\s])} group
+	add-highlighter shared/wpp/para_string region -match-capture %{\bp([^\s])"} %{"([^\s])} group
 
 	add-highlighter shared/wpp/code_string/ fill string
 	add-highlighter shared/wpp/para_string/ fill string

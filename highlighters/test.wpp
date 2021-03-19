@@ -1,0 +1,49 @@
+error("foo")
+drop foo
+let bar "bar"
+run("echo hello world")
+file("foo.txt")
+source("src.wpp")
+pipe("echo", "hello world")
+escape("'foo'")
+log("hello")
+
+0xFF
+0b1111
+
+"\xFF"
+"\b11111111"
+
+!foo
+\foo
+a .. b
+
+map t {
+	x -> 'a'
+	y -> 'b'
+	* -> 'c'
+}
+
+# comment
+#[comment]
+#[#[comment]]
+
+'
+	foo\n
+'
+
+"
+	foo\n
+"
+
+r#"
+	foo\n
+"#
+
+p#"
+	foo\n
+"#
+
+c#"
+	foo\n
+"#
