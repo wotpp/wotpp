@@ -17,6 +17,15 @@
 
 
 namespace wpp {
+	template <typename T, typename... Ts> constexpr bool eq_any(T&& first, Ts&&... rest) {
+		return ((first == rest) or ...);
+	}
+
+	template <typename T, typename... Ts> constexpr bool eq_all(T&& first, Ts&&... rest) {
+		return ((first == rest) and ...);
+	}
+
+
 	#ifndef NDEBUG
 		template <typename... Ts>
 		inline std::ostream& dbg(Ts&&... args) {
@@ -91,7 +100,7 @@ namespace wpp {
 		std::ostringstream ss;
 
 		([&] () -> std::ostream& {
-			const auto& [ast, functions, positions, root, warning_flags, sources] = env;
+			// const auto& [ast, functions, positions, root, warning_flags, sources] = env;
 			const auto& [source, offset] = pos;
 			const auto& [file, base, mode] = source;
 
@@ -99,12 +108,12 @@ namespace wpp {
 			std::string path_str;
 			if (mode != modes::repl) {
 				if (bytes) {
-					path_str = wpp::cat(" @ [", std::filesystem::relative(file, root).string(), ":", offset - base, "(byte)]");
+					path_str = wpp::cat(" @ [", std::filesystem::relative(file, env.root).string(), ":", offset - base, "(byte)]");
 				}
 
 				else {
 					const auto [line, column] = wpp::calculate_coordinates(base, offset);
-					path_str = wpp::cat(" @ [", std::filesystem::relative(file, root).string(), ":", line, ":", column, "]");
+					path_str = wpp::cat(" @ [", std::filesystem::relative(file, env.root).string(), ":", line, ":", column, "]");
 				}
 			}
 

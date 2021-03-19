@@ -75,10 +75,13 @@ namespace wpp {
 		wpp::Functions functions{};
 		wpp::Positions positions{};
 
-		const std::filesystem::path root{};
-		wpp::flags_t flags{};
-
 		wpp::Sources sources{};
+
+		const std::filesystem::path root{};
+		const wpp::flags_t flags{};
+
+		wpp::flags_t state{};
+
 
 		Env(
 			const std::filesystem::path& root_,
