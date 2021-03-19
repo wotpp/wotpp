@@ -15,12 +15,11 @@
 #include <frontend/parser/parser.hpp>
 
 
-constexpr auto ver = "alpha-git";
-constexpr auto desc = "A small macro language for producing and manipulating strings.";
-
-
 int main(int argc, const char* argv[]) {
 	auto t1 = std::chrono::steady_clock::now();
+
+constexpr auto ver = "alpha-git";
+constexpr auto desc = "A small macro language for producing and manipulating strings.";
 
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
@@ -95,6 +94,7 @@ int main(int argc, const char* argv[]) {
 		}
 
 		catch (wpp::Error& e) {
+			e.show();
 			return 1;
 		}
 

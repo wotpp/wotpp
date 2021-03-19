@@ -16,49 +16,49 @@
 namespace wpp {
 	// A function call.
 	struct FnInvoke {
-		wpp::View identifier;
 		std::vector<wpp::node_t> arguments;
+		wpp::View identifier;
 
 		FnInvoke(
-			const wpp::View& identifier_,
-			const std::vector<wpp::node_t>& arguments_
+			const std::vector<wpp::node_t>& arguments_,
+			const wpp::View& identifier_
 		):
-			identifier(identifier_),
-			arguments(arguments_) {}
+			arguments(arguments_),
+			identifier(identifier_) {}
 
 		FnInvoke() {}
 	};
 
 	struct Intrinsic {
-		wpp::token_type_t type;
-		wpp::View identifier;
 		std::vector<wpp::node_t> arguments;
+		wpp::View identifier;
+		wpp::token_type_t type;
 
 		Intrinsic(
-			const wpp::token_type_t type_,
+			const std::vector<wpp::node_t>& arguments_,
 			const wpp::View& identifier_,
-			const std::vector<wpp::node_t>& arguments_
+			const wpp::token_type_t type_
 		):
-			type(type_),
+			arguments(arguments_),
 			identifier(identifier_),
-			arguments(arguments_) {}
+			type(type_) {}
 
 		Intrinsic() {}
 	};
 
 	// Function definition.
 	struct Fn {
-		wpp::View identifier;
 		std::vector<wpp::View> parameters;
+		wpp::View identifier;
 		wpp::node_t body;
 
 		Fn(
-			const wpp::View& identifier_,
 			const std::vector<wpp::View>& parameters_,
+			const wpp::View& identifier_,
 			const wpp::node_t body_
 		):
-			identifier(identifier_),
 			parameters(parameters_),
+			identifier(identifier_),
 			body(body_) {}
 
 		Fn() {}
@@ -141,17 +141,17 @@ namespace wpp {
 
 	// Map strings to new strings.
 	struct Map {
-		wpp::node_t expr;
 		std::vector<std::pair<wpp::node_t, wpp::node_t>> cases;
+		wpp::node_t expr;
 		wpp::node_t default_case;
 
 		Map(
-			const wpp::node_t expr_,
 			const std::vector<std::pair<wpp::node_t, wpp::node_t>>& cases_,
+			const wpp::node_t expr_,
 			const wpp::node_t default_case_
 		):
-			expr(expr_),
 			cases(cases_),
+			expr(expr_),
 			default_case(default_case_) {}
 
 		Map() {}
@@ -159,9 +159,9 @@ namespace wpp {
 
 	// The root node of a wot++ program.
 	struct Document {
-		std::vector<wpp::node_t> stmts;
+		std::vector<wpp::node_t> statements;
 
-		Document(const std::vector<wpp::node_t>& stmts_): stmts(stmts_) {}
+		Document(const std::vector<wpp::node_t>& statements_): statements(statements_) {}
 		Document() {}
 	};
 

@@ -113,7 +113,6 @@ namespace wpp {
 		// Forward declarations.
 		wpp::node_t normal_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 		wpp::node_t stringify_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-		wpp::node_t smart_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 		wpp::node_t hex_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 		wpp::node_t bin_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 
@@ -234,7 +233,7 @@ namespace wpp {
 			lex.advance(); // skip '`'.
 
 			if (lex.peek() != TOKEN_IDENTIFIER)
-				wpp::error(lex.position(), env, "expected an identifier to follow !.");
+				wpp::error(lex.position(), env, "expected an identifier to follow `\`.");
 
 			tree.get<String>(node).value = lex.advance().str();
 
@@ -330,7 +329,7 @@ namespace wpp {
 				}
 			}
 
-			for (int i = 0; i < chunks.size() - 1; ++i) {
+			for (size_t i = 0; i < chunks.size() - 1; ++i) {
 				auto& [x1, all_whitespace1] = chunks[i];
 				auto& [x2, all_whitespace2] = chunks[i + 1];
 
@@ -347,7 +346,7 @@ namespace wpp {
 		}
 
 
-		wpp::node_t code_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+		wpp::node_t code_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&) {
 			wpp::dbg("(parser) code_string");
 
 			// Trim trailing whitespace.
@@ -428,54 +427,12 @@ namespace wpp {
 
 			// 	++ptr;
 			// }
+
+			return wpp::NODE_EMPTY;
 		}
 
 
-		wpp::node_t smart_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
-			wpp::dbg("(parser) smart_string");
-
-			// const auto delim = lex.advance().view.at(1);  // User defined delimiter.
-			// const auto quote = lex.advance(wpp::lexer_modes::string); // ' or "
-
-			// while (true) {
-			// 	if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
-			// 		wpp::error(lex.position(), env, "reached EOF while parsing string.");
-
-			// 	// If we encounter ' or ", we check one character ahead to see
-			// 	// if it matches the user defined delimiter, it if does,
-			// 	// we erase the last quote character and break.
-			// 	if (lex.peek(wpp::lexer_modes::string) == quote) {
-			// 		// Consume this quote because it may actually be part of the
-			// 		// string and not the terminator.
-			// 		accumulate_string(lex.advance(wpp::lexer_modes::string), str);
-
-			// 		if (lex.peek(wpp::lexer_modes::chr).view == delim) {
-			// 			lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
-			// 			str.erase(str.end() - 1, str.end()); // Remove last quote.
-			// 			break;  // Exit the loop, string is fully consumed.
-			// 		}
-			// 	}
-
-			// 	// If not EOF or '/", consume.
-			// 	// else {
-			// 		// accumulate_string(lex.advance(wpp::lexer_modes::string), str, handle_escapes);
-			// 	// }
-			// }
-
-			// From here, the different string types just make adjustments to the
-			// contents of the parsed string.
-			// if (str_type == 'r')
-			// 	raw_string(str);
-
-			// else if (str_type == 'c')
-			// 	code_string(str);
-
-			// else if (str_type == 'p')
-			// 	para_string(str);
-		}
-
-
-		wpp::node_t hex_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+		wpp::node_t hex_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env&) {
 			wpp::dbg("(parser) hex_string");
 
 			const auto& [ptr, len] = lex.advance().view;
@@ -510,7 +467,7 @@ namespace wpp {
 		}
 
 
-		wpp::node_t bin_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+		wpp::node_t bin_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env&) {
 			wpp::dbg("(parser) bin_string");
 
 			const wpp::node_t node = tree.add<String>();
@@ -751,8 +708,10 @@ namespace wpp {
 			// If it is an intrinsic, we replace the FnInvoke node type with
 			// the Intrinsic node type and forward the arguments.
 			if (peek_is_intrinsic(fn_token)) {
-				const auto [_, args] = tree.get<FnInvoke>(node);
-				tree.replace<Intrinsic>(node, fn_token.type, fn_token.view, args);
+				const auto args = tree.get<FnInvoke>(node).arguments;
+				const auto identifier = tree.get<FnInvoke>(node).identifier;
+
+				tree.replace<Intrinsic>(node, args, identifier, fn_token.type);
 			}
 
 			else
@@ -1014,23 +973,26 @@ namespace wpp {
 		const wpp::node_t node = tree.add<Document>();
 		pos.emplace_back(lex.position());
 
-		wpp::Error last;
-
 		// Consume expressions until we encounter eof or an error.
 		while (lex.peek() != TOKEN_EOF) {
 			try {
 				const wpp::node_t stmt = statement(lex, tree, pos, env);
-				tree.get<Document>(node).stmts.emplace_back(stmt);
+				tree.get<Document>(node).statements.emplace_back(stmt);
 			}
 
 			catch (const wpp::Error& e) {
-				env.flags |= wpp::INTERNAL_ERROR_STATE;
-
-				if (last == e)
-					throw;
-
-				last = e;
 				e.show();
+				env.state |= wpp::INTERNAL_ERROR_STATE;
+
+				while (
+					not wpp::eq_any(lex.peek(),
+						TOKEN_EOF,
+						TOKEN_VAR,
+						TOKEN_LET,
+						TOKEN_LBRACE
+					)
+				)
+					lex.advance();
 			}
 		}
 
