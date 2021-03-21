@@ -91,14 +91,16 @@ namespace wpp {
 namespace wpp {
 	namespace {
 		void lex_comment(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_comment");
+			DBG();
 
 			auto& ptr = lex.ptr;
 
 			auto& [view, type] = tok;
 			auto& [vptr, vlen] = view;
 
-			lex.next(2);
+			const wpp::Pos start_pos = lex.position();
+
+			lex.next(2); // skip `#[`
 
 			// Track matching opening and closing tokens for comments
 			// and skip comment contents.
@@ -116,7 +118,7 @@ namespace wpp {
 			}
 
 			if (*ptr == '\0' and depth != 0)
-				wpp::error(lex.position(), lex.env, "unterminated comment.");
+				wpp::error(start_pos, lex.env, "unterminated comment", "reached EOF while parsing multiline comment that begins here");
 
 			// Update view pointer so when the lexer continues, the token starts
 			// at the right location.
@@ -125,7 +127,7 @@ namespace wpp {
 
 
 		void lex_single_comment(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_single_comment");
+			DBG();
 
 			auto& [view, type] = tok;
 			auto& [vptr, vlen] = view;
@@ -138,8 +140,6 @@ namespace wpp {
 
 
 		void lex_smart(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_smart");
-
 			auto& ptr = lex.ptr;
 
 			auto& [view, type] = tok;
@@ -168,12 +168,12 @@ namespace wpp {
 				lex.ptr = vptr; // Reset pointer to where it was before this function.
 				lex_identifier(lex, tok);
 			}
+
+			DBG(token_to_str[type], ": '", wpp::View(vptr, ptr - vptr), "'");
 		}
 
 
 		void lex_literal(wpp::token_type_t type, bool(*predicate)(const char*), wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_literal");
-
 			lex.next(2);
 			tok.type = type;
 
@@ -186,21 +186,20 @@ namespace wpp {
 
 			// Set token view length to the number of consumed characters.
 			tok.view.length = lex.ptr - tok.view.ptr;
+
+			DBG(token_to_str[type], ": '", wpp::View(tok.view.ptr, lex.ptr - tok.view.ptr), "'");
 		}
 
 
 		// Handle simple tokens which are just a couple of characters.
 		void lex_simple(wpp::token_type_t type, int n, wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_simple: ", wpp::token_to_str[type]);
-
 			lex.next(n);
 			tok.type = type;
+			DBG(token_to_str[type], ": '", wpp::View(tok.view.ptr, lex.ptr - tok.view.ptr), "'");
 		}
 
 
 		void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_whitespace");
-
 			// Consume as much whitespace as we can.
 			do {
 				lex.next();
@@ -213,8 +212,6 @@ namespace wpp {
 
 
 		void lex_identifier(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_identifier");
-
 			auto& ptr = lex.ptr;
 
 			auto& [view, type] = tok;
@@ -252,12 +249,12 @@ namespace wpp {
 			else if (view == "log")       type = TOKEN_LOG;
 			else if (view == "drop")      type = TOKEN_DROP;
 			else if (view == "var")       type = TOKEN_VAR;
+
+			DBG(token_to_str[type], ": '", view, "'");
 		}
 
 
 		void lex_string_escape(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_string_escape");
-
 			auto& ptr = lex.ptr;
 
 			auto& [view, type] = tok;
@@ -287,7 +284,7 @@ namespace wpp {
 
 				// Check if nibbles are valid digits.
 				if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
-					wpp::error(lex.position(), lex.env, "invalid character in hex escape.");
+					wpp::error(lex.position(), lex.env, "invalid character", "invalud character in hex escape character");
 			}
 
 			// Bin escape \b00001111.
@@ -300,18 +297,17 @@ namespace wpp {
 				// Consume 8 characters, check if each one is a valid digit.
 				for (; ptr != vptr + 8; lex.next()) {
 					if (not wpp::is_bin(ptr))
-						wpp::error(lex.position(), lex.env, "invalid character in bin escape.");
+						wpp::error(lex.position(), lex.env, "invalid character", "invalud character in binary escape character");
 				}
 			}
 
 			// Set view length to the number of consumed characters.
 			vlen = ptr - vptr;
+			DBG(token_to_str[type], ": '", view, "'");
 		}
 
 
 		void lex_string_other(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_string_other");
-
 			tok.type = TOKEN_STRING;
 
 			// Consume all characters except quotes, escapes and EOF.
@@ -320,31 +316,29 @@ namespace wpp {
 
 			// Set view length equal to the number of consumed characters.
 			tok.view.length = lex.ptr - tok.view.ptr;
+
+			DBG(token_to_str[tok.type], ": '", tok.view, "'");
 		}
 
 
 		void lex_string_raw(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_string_raw");
-
 			tok.type = TOKEN_STRING;
 
 			while (not wpp::in_group(lex.ptr, '"', '\'', '\0'))
 				lex.next();
 
 			tok.view.length = lex.ptr - tok.view.ptr;
+
+			DBG(token_to_str[tok.type], ": '", tok.view, "'");
 		}
 
 
 		void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok, bool handle_escapes) {
-			wpp::dbg("(lexer) lex_mode_string");
-
-			if (handle_escapes and *lex.ptr == '\\') {
+			if (handle_escapes and *lex.ptr == '\\')
 				lex_string_escape(lex, tok);
-			}
 
-			else if (not handle_escapes and *lex.ptr == '\\') {
+			else if (not handle_escapes and *lex.ptr == '\\')
 				lex_string_raw(lex, tok);
-			}
 
 			else
 				lex_string_other(lex, tok);
@@ -352,8 +346,6 @@ namespace wpp {
 
 
 		void lex_mode_normal(wpp::Lexer& lex, wpp::Token& tok) {
-			wpp::dbg("(lexer) lex_mode_normal");
-
 			if (wpp::in_group(lex.ptr, 'p', 'r', 'c'))
 				lex_smart(lex, tok);
 

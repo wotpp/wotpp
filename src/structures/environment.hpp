@@ -35,7 +35,7 @@ namespace wpp {
 
 	struct Pos {
 		const wpp::Source& source;           // Source associated with this position.
-		const char* const offset = nullptr;  // Offset into the source.
+		wpp::View view;
 	};
 
 

@@ -33,11 +33,11 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(env.positions[node_id], env, "run not available.");
+			wpp::error(node_id, env, "run not available");
 		#endif
 
 		if (env.flags & wpp::FLAG_DISABLE_RUN)
-			wpp::error(env.positions[node_id], env, "run not available.");
+			wpp::error(node_id, env, "run not available");
 
 		const auto cmd = wpp::evaluate(exprs[0], env, fn_env);
 
@@ -49,7 +49,7 @@ namespace wpp {
 			str.erase(str.end() - 1, str.end());
 
 		if (rc)
-			wpp::error(env.positions[node_id], env, "subprocess exited with non-zero status.");
+			wpp::error(node_id, env, "subprocess exited with non-zero status");
 
 		return str;
 	}
@@ -62,11 +62,11 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(env.positions[node_id], env, "pipe not available.");
+			wpp::error(node_id, env, "pipe not available");
 		#endif
 
 		if (env.flags & wpp::FLAG_DISABLE_RUN)
-			wpp::error(env.positions[node_id], env, "pipe not available.");
+			wpp::error(node_id, env, "pipe not available");
 
 		std::string str;
 
@@ -81,7 +81,7 @@ namespace wpp {
 			out.erase(out.end() - 1, out.end());
 
 		if (rc)
-			wpp::error(env.positions[node_id], env, "subprocess exited with non-zero status.");
+			wpp::error(node_id, env, "subprocess exited with non-zero status");
 
 		return out;
 	}
@@ -100,7 +100,7 @@ namespace wpp {
 		}
 
 		catch (...) {
-			wpp::error(env.positions[node_id], env, "failed reading file '", fname, "'");
+			wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 		}
 
 		return "";
@@ -132,7 +132,7 @@ namespace wpp {
 		}
 
 		catch (const std::filesystem::filesystem_error& e) {
-			wpp::error(env.positions[node_id], env, "file '", fname, "' not found.");
+			wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 		}
 
 		return str;
@@ -150,7 +150,7 @@ namespace wpp {
 		const auto str_b = evaluate(exprs[1], env, fn_env);
 
 		if (str_a != str_b)
-			wpp::error(env.positions[node_id], env, "assertion failed!");
+			wpp::error(node_id, env, "assertion failed", wpp::cat("lhs='", str_a, "', rhs='", str_b, "'"));
 
 		return "";
 	}
@@ -163,7 +163,7 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		const auto msg = evaluate(exprs[0], env, fn_env);
-		wpp::error(env.positions[node_id], env, msg);
+		wpp::error(node_id, env, msg);
 
 		return "";
 	}
@@ -228,7 +228,7 @@ namespace wpp {
 		}
 
 		catch (...) {
-			wpp::error(env.positions[node_id], env, "slice range must be numerical.");
+			wpp::error(node_id, env, "slice range must be numerical");
 		}
 
 
@@ -255,13 +255,13 @@ namespace wpp {
 
 		// Make sure the range is valid
 		if (count <= 0)
-			wpp::error(env.positions[node_id], env, "end of slice cannot be before the start.");
+			wpp::error(node_id, env, "end of slice cannot be before the start");
 
 		else if (len < begin + count)
-			wpp::error(env.positions[node_id], env, "slice extends outside of string bounds.");
+			wpp::error(node_id, env, "slice extends outside of string bounds");
 
 		else if (start < 0 && end >= 0)
-			wpp::error(env.positions[node_id], env, "start cannot be negative where end is negative.");
+			wpp::error(node_id, env, "start cannot be negative where end is negative");
 
 
 		// Return the string slice

@@ -23,7 +23,7 @@ namespace wpp {
 
 		wpp::visit(variant,
 			[&] (const Intrinsic& fn) {
-				wpp::dbg("(eval) intrinsic");
+				DBG("intrinsic");
 
 				const auto& type = fn.type;
 				const auto& name = fn.identifier;
@@ -32,7 +32,7 @@ namespace wpp {
 				#define INTRINSIC(n, fn, tok) \
 					if (type == tok) { \
 						if (n != exprs.size()) \
-							wpp::error(positions[node_id], env, name, " takes exactly ", n, " arguments."); \
+							wpp::error(node_id, env, "incorrect argument count", wpp::cat("intrinsic '", name, "' takes exactly ", n, " arguments")); \
 						str = wpp::intrinsic_##fn(node_id, exprs, env, fn_env); \
 						return; \
 					}
@@ -53,7 +53,7 @@ namespace wpp {
 			},
 
 			[&] (const FnInvoke& call) {
-				wpp::dbg("(eval) call");
+				DBG("fninvoke");
 
 				const auto& caller_name = call.identifier;
 				const auto& caller_args = call.arguments;
@@ -66,13 +66,21 @@ namespace wpp {
 
 					if (auto it = args.find(caller_name); it != args.end()) {
 						if (caller_args.size() > 0)
-							wpp::error(positions[node_id], env, "calling argument '", caller_name, "' as if it were a function.");
+							wpp::error(
+								node_id, env,
+								"attempting to invoke parameter",
+								wpp::cat("attempting to invoke parameter '", caller_name, "' as if it were a function")
+							);
 
 						str = it->second;
 
 						// Check if it's shadowing a function (even this one).
 						if (flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(caller_mangled_name) != functions.end())
-							wpp::warn(positions[node_id], env, "parameter ", caller_name, " is shadowing a function.");
+							wpp::warn(
+								node_id, env,
+								"parameter shadows function",
+								wpp::cat("parameter '", caller_name, "' is shadowing a function")
+							);
 
 						return;
 					}
@@ -81,14 +89,15 @@ namespace wpp {
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
 				auto func_it = functions.find(caller_mangled_name);
 
-				if (func_it == functions.end())
-					wpp::error(positions[node_id], env, "func not found: ", caller_name, ".");
-
-				if (func_it->second.empty())
-					wpp::error(positions[node_id], env, "func not found: ", caller_name, ".");
+				if (func_it == functions.end() or func_it->second.empty())
+					wpp::error(
+						node_id, env,
+						"function not found",
+						wpp::cat("attempting to invoke function '", caller_name, "' which is undefined"),
+						"are you passing the correct number of arguments?"
+					);
 
 				const auto func = ast.get<wpp::Fn>(func_it->second.back());
-
 
 				// Retrieve function.
 				const auto& callee_name = func.identifier;
@@ -107,8 +116,12 @@ namespace wpp {
 
 					if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
 						if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
-							wpp::warn(positions[node_id], env,
-								"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from parent scope."
+							wpp::warn(
+								node_id, env,
+								"parameter shadows parameter",
+								wpp::cat(
+									"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from enclosing function"
+								)
 							);
 
 						it->second = result;
@@ -123,7 +136,7 @@ namespace wpp {
 			},
 
 			[&] (const Fn& func) {
-				wpp::dbg("(eval) func");
+				DBG("fn");
 
 				const auto& name = func.identifier;
 				const auto& params = func.parameters;
@@ -133,7 +146,11 @@ namespace wpp {
 
 				if (it != functions.end()) {
 					if (flags & wpp::WARN_FUNC_REDEFINED)
-						wpp::warn(positions[node_id], env, "function '", name, "' redefined.");
+						wpp::warn(
+							node_id, env,
+							"function redefined",
+							wpp::cat("function '", name, "' redefined")
+						);
 
 					it->second.emplace_back(node_id);
 				}
@@ -143,13 +160,13 @@ namespace wpp {
 			},
 
 			[&] (const Codeify& colby) {
-				wpp::dbg("(eval) codeify");
+				DBG("codeify");
 
 				str = wpp::intrinsic_eval(node_id, {colby.expr}, env, fn_env);
 			},
 
 			[&] (const Var&) {
-				// wpp::dbg("(eval) var");
+				// DBG();
 
 				// auto& [name, body] = var;
 
@@ -176,14 +193,18 @@ namespace wpp {
 			},
 
 			[&] (const Drop& drop) {
-				wpp::dbg("(eval) drop");
+				DBG("drop");
 
 				const auto& func_id = drop.func;
 
 				auto* func = std::get_if<FnInvoke>(&ast[func_id]);
 
 				if (not func)
-					wpp::error(positions[node_id], env, "invalid function passed to drop.");
+					wpp::error(
+						node_id, env,
+						"expected function invocation",
+						"expecting a function invocation after `drop`"
+					);
 
 				const auto& caller_name = func->identifier;
 				const auto& caller_args = func->arguments;
@@ -201,22 +222,27 @@ namespace wpp {
 				}
 
 				else {
-					wpp::error(positions[node_id], env, "cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters).");
+					wpp::error(
+						node_id, env,
+						"undefined function",
+						wpp::cat("cannot drop undefined function '", caller_name, "' (", caller_args.size(), " parameters)"),
+						"are you passing the correct number of arguments?"
+					);
 				}
 			},
 
 			[&] (const String& x) {
-				wpp::dbg("(eval) string");
+				DBG("string");
 				str = x.value;
 			},
 
 			[&] (const Concat& cat) {
-				wpp::dbg("(eval) cat");
+				DBG("cat");
 				str = evaluate(cat.lhs, env, fn_env) + evaluate(cat.rhs, env, fn_env);
 			},
 
 			[&] (const Block& block) {
-				wpp::dbg("(eval) block");
+				DBG("block");
 
 				for (const wpp::node_t node: block.statements)
 					str += evaluate(node, env, fn_env);
@@ -225,7 +251,7 @@ namespace wpp {
 			},
 
 			[&] (const Map& map) {
-				wpp::dbg("(eval) map");
+				DBG("map");
 
 				const auto& test = map.expr;
 				const auto& cases = map.cases;
@@ -245,7 +271,11 @@ namespace wpp {
 				// If not found, check for a default arm, otherwise error.
 				else {
 					if (default_case == wpp::NODE_EMPTY)
-						wpp::error(positions[node_id], env, "no matches found.");
+						wpp::error(
+							node_id, env,
+							"no matches found",
+							"exhausted all checks in map expression"
+						);
 
 					else
 						str = evaluate(default_case, env, fn_env);
@@ -253,7 +283,7 @@ namespace wpp {
 			},
 
 			[&] (const Pre&) {
-				// wpp::dbg("(eval) prefix");
+				// DBG();
 
 				// const auto& [exprs, stmts] = pre;
 
@@ -283,7 +313,7 @@ namespace wpp {
 				if (env.state & wpp::INTERNAL_ERROR_STATE)
 					throw wpp::Error{};
 
-				wpp::dbg("(eval) document");
+				DBG("doc");
 
 				for (const wpp::node_t node: doc.statements)
 					str += evaluate(node, env, fn_env);

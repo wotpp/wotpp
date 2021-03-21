@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <misc/fwddecl.hpp>
+#include <misc/util/util.hpp>
 #include <frontend/token.hpp>
 #include <frontend/char.hpp>
 #include <structures/environment.hpp>
@@ -110,10 +111,14 @@ namespace wpp {
 		):
 			env(env_),
 			ptr(env_.sources.top().base),
+			lookahead({ptr, 1}, TOKEN_NONE),
 			lookahead_mode(mode_)
 		{
 			if (not wpp::validate_utf8(ptr))
-				wpp::error_utf8(wpp::Pos{env.sources.top(), ptr}, env, "invalid UTF-8.");
+				wpp::error_utf8(wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
+					"invalid UTF-8",
+					"invalid bytes in source"
+				);
 
 			ptr = env_.sources.top().base;
 
@@ -122,7 +127,7 @@ namespace wpp {
 
 
 		wpp::Pos position() const {
-			return { env.sources.top(), lookahead.view.ptr };
+			return { env.sources.top(), lookahead.view };
 		}
 
 
@@ -131,6 +136,8 @@ namespace wpp {
 			// then we update the lookahead token and set the new
 			// lookahead mode.
 			if (mode != lookahead_mode) {
+				DBG(ANSI_FG_RED, lexer_modes::lexer_mode_to_str[lookahead_mode], " -> ", lexer_modes::lexer_mode_to_str[mode]);
+
 				ptr = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
 
 				lookahead = next_token(mode);
