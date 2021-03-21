@@ -151,7 +151,9 @@ namespace wpp {
 
 		if (mode != modes::repl) {
 			if (bytes) {
-				pos_info_str = wpp::cat(std::filesystem::relative(file, env.root).string(), ":", offset - base, "(byte)");
+				sloc.line = offset - base;
+				sloc.column = offset - base;
+				pos_info_str = wpp::cat(" ", std::filesystem::relative(file, env.root).string(), ":", offset - base, "(byte)");
 			}
 
 			else if (*offset != '\0') {
@@ -193,21 +195,25 @@ namespace wpp {
 				} while (wpp::is_whitespace(printout_end));
 			}
 
-
-			// Generate source snippet string.
-
-			const std::string printout = std::string(printout_begin, printout_end - printout_begin + 1);
-			const std::string specific = wpp::cat(
-				std::string(offset - printout_begin, ' '), colour, "╰ ", ANSI_RESET, error_specific, "\n"
-			);
-
 			if (mode != modes::repl)
 				column_str += std::to_string(sloc.line);
 
-			src_snippet_str = wpp::cat(
-				column_str, " │ ", printout, "\n",
-				std::string(column_str.size(), ' '), " │ ", specific
-			);
+			if (not bytes) {
+				// Generate source snippet string.
+				const std::string printout = std::string(printout_begin, printout_end - printout_begin + 1);
+				const std::string specific = wpp::cat(
+					std::string(offset - printout_begin, ' '), colour, "╰ ", ANSI_RESET, error_specific, "\n"
+				);
+
+				src_snippet_str = wpp::cat(
+					column_str, " │ ", printout, "\n",
+					std::string(column_str.size(), ' '), " │ ", specific
+				);
+			}
+
+			else {
+				src_snippet_str = wpp::cat(column_str, "(byte) │ ", error_specific);
+			}
 		}
 
 		else {

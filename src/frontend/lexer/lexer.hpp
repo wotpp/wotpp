@@ -117,7 +117,7 @@ namespace wpp {
 			if (not wpp::validate_utf8(ptr))
 				wpp::error_utf8(wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
 					"invalid UTF-8",
-					"invalid bytes in source"
+					"malformed bytes appear in source"
 				);
 
 			ptr = env_.sources.top().base;
