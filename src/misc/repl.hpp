@@ -26,7 +26,7 @@ namespace wpp {
 			std::cout << "wot++ repl\n";
 
 			const auto path = std::filesystem::current_path();
-			wpp::Env env{ path, wpp::flags_t{} };
+			wpp::Env env{ path, wpp::flags_t{wpp::WARN_ALL} };
 
 			using_history();
 
@@ -48,7 +48,9 @@ namespace wpp {
 
 					std::cout << out << std::flush;
 
-				} catch (const wpp::Error&) {}
+				} catch (const wpp::Error& e) {
+					e.show();
+				}
 
 				std::free(input);
 			}

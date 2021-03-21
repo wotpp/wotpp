@@ -93,7 +93,7 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 			out += wpp::evaluate(wpp::parse(env), env);
 		}
 
-		catch (wpp::Error& e) {
+		catch (const wpp::Error& e) {
 			e.show();
 			return 1;
 		}
