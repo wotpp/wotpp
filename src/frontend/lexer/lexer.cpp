@@ -274,30 +274,40 @@ namespace wpp {
 			// Hex escape \xFF.
 			else if (*ptr == 'x') {
 				lex.next();
-				tok.type = TOKEN_ESCAPE_HEX;
-
-				view.ptr = ptr;
-
-				// Get first and second nibble.
-				const char* first_nibble = ptr++;
-				const char* second_nibble = ptr++;
+				type = TOKEN_ESCAPE_HEX;
+				vptr = ptr;
 
 				// Check if nibbles are valid digits.
-				if (not wpp::is_hex(first_nibble) or not wpp::is_hex(second_nibble))
-					wpp::error(lex.position(), lex.env, "invalid character", "invalud character in hex escape character");
+				if (not wpp::is_hex(ptr))
+					wpp::error(wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+						"invalid character",
+						"invalid character in hex escape sequence"
+					);
+
+				lex.next();
+
+				if (not wpp::is_hex(ptr))
+					wpp::error(wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+						"invalid character",
+						"invalid character in hex escape sequence"
+					);
+
+				lex.next();
 			}
 
 			// Bin escape \b00001111.
 			else if (*ptr == 'b') {
 				lex.next();
 				type = TOKEN_ESCAPE_BIN;
-
 				vptr = ptr;
 
 				// Consume 8 characters, check if each one is a valid digit.
 				for (; ptr != vptr + 8; lex.next()) {
 					if (not wpp::is_bin(ptr))
-						wpp::error(lex.position(), lex.env, "invalid character", "invalud character in binary escape character");
+						wpp::error(wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+							"invalid character",
+							"invalid character in binary escape sequence"
+						);
 				}
 			}
 

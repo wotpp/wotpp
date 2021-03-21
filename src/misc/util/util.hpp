@@ -73,7 +73,7 @@ namespace wpp {
 			} while (false)
 
 	#else
-		#define DBG do {} while (false);
+		#define DBG(...) do {} while (false);
 	#endif
 
 
