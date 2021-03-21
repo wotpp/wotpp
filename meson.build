@@ -183,6 +183,8 @@ test_cases = {
 	'tests/var.wpp': true,
 	'tests/drop.wpp': true,
 	'tests/drop_fail.wpp': false,
+	'tests/utf_invalid.wpp': false,
+	'tests/utf_valid.wpp': true,
 }
 
 if not get_option('disable_run')
