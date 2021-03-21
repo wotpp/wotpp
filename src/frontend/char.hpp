@@ -11,29 +11,23 @@
 namespace wpp {
 	// Get the size of a UTF-8 codepoint.
 	inline uint8_t size_utf8(const char* ptr) {
-		uint8_t out = 0;
-
-		const bool vals[] = {
-			(*ptr & 0b10000000) == 0b00000000,
-			(*ptr & 0b11100000) == 0b11000000,
-			(*ptr & 0b11110000) == 0b11100000,
-			(*ptr & 0b11111000) == 0b11110000,
-		};
-
-		for (uint8_t i = 0; i < 4; ++i)
-			vals[i] && (out = i);
-
-		return out + 1;
+		if      ((*ptr & 0b10000000) == 0b00000000) return 1;
+		else if ((*ptr & 0b11100000) == 0b11000000) return 2;
+		else if ((*ptr & 0b11110000) == 0b11100000) return 3;
+		else if ((*ptr & 0b11111000) == 0b11110000) return 4;
+		return 0;
 	}
 
 
 	// Find the beginning of the first codepoint iterating backwards
 	// from a given pointer.
 	inline const char* prev_char_utf8(const char* const begin, const char* ptr) {
-		while (
-			--ptr >= begin and
-			((*ptr & 0b10000000) and
-			!(*ptr & 0b01000000))
+		do {
+			--ptr;
+		} while (
+			ptr >= begin and
+			// Make sure byte is of the form `10xx_xxxx`.
+			((*ptr & 0b10000000) and not (*ptr & 0b01000000))
 		);
 
 		return ptr;
@@ -45,9 +39,9 @@ namespace wpp {
 
 		switch (wpp::size_utf8(c)) {
 			case 1: return out;
-			case 2: return ((out & 31) << 6) | (c[1] & 63);
-			case 3: return ((out & 15) << 12) | ((c[1] & 63) << 6) | (c[2] & 63);
-			case 4: return ((out & 7) << 18) | ((c[1] & 63) << 12) | ((c[2] & 63) << 6) | (c[3] & 63);
+			case 2: return ((out & 31) << 6)  |  (c[1] & 63);
+			case 3: return ((out & 15) << 12) | ((c[1] & 63) << 6)  |  (c[2] & 63);
+			case 4: return ((out & 7)  << 18) | ((c[1] & 63) << 12) | ((c[2] & 63) << 6) | (c[3] & 63);
 		}
 
 		return 0;
