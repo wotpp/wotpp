@@ -28,6 +28,11 @@ namespace wpp {
 			return *(ptr + n);
 		}
 
+		constexpr View& extend(const View& other) {
+			length += (other.ptr - ptr) + other.length + length;
+			return *this;
+		}
+
 
 		// Comparison operators.
 		// First compares length and then failing that, character by character.
