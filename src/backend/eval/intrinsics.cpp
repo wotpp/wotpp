@@ -121,19 +121,20 @@ namespace wpp {
 		const auto new_path = old_path / std::filesystem::path{fname};
 
 		std::filesystem::current_path(new_path.parent_path());
+		std::string source;
 
 		try {
-			const std::string source = wpp::read_file(new_path);
-
-			env.sources.push(new_path, source, wpp::modes::source);
-			str = wpp::evaluate(wpp::parse(env), env, fn_env);
-
-			std::filesystem::current_path(old_path);
+			source = wpp::read_file(new_path);
 		}
 
-		catch (const std::filesystem::filesystem_error& e) {
+		catch (...) {
 			wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 		}
+
+		env.sources.push(new_path, source, wpp::modes::source);
+		str = wpp::evaluate(wpp::parse(env), env, fn_env);
+
+		std::filesystem::current_path(old_path);
 
 		return str;
 	}
