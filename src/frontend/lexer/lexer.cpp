@@ -233,22 +233,19 @@ namespace wpp {
 
 			// Check if consumed string is actually a keyword.
 			if      (view == "let")       type = TOKEN_LET;
-			else if (view == "prefix")    type = TOKEN_PREFIX;
 			else if (view == "map")       type = TOKEN_MAP;
+			else if (view == "push")      type = TOKEN_PUSH;
+			else if (view == "pop")       type = TOKEN_POP;
+			else if (view == "use")       type = TOKEN_USE;
 			else if (view == "run")       type = TOKEN_RUN;
-			else if (view == "eval")      type = TOKEN_EVAL;
 			else if (view == "file")      type = TOKEN_FILE;
 			else if (view == "assert")    type = TOKEN_ASSERT;
 			else if (view == "pipe")      type = TOKEN_PIPE;
 			else if (view == "error")     type = TOKEN_ERROR;
 			else if (view == "source")    type = TOKEN_SOURCE;
 			else if (view == "escape")    type = TOKEN_ESCAPE;
-			else if (view == "slice")     type = TOKEN_SLICE;
-			else if (view == "find")      type = TOKEN_FIND;
-			else if (view == "length")    type = TOKEN_LENGTH;
 			else if (view == "log")       type = TOKEN_LOG;
 			else if (view == "drop")      type = TOKEN_DROP;
-			else if (view == "var")       type = TOKEN_VAR;
 
 			DBG(token_to_str[type], ": '", view, "'");
 		}

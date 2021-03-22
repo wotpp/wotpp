@@ -14,21 +14,6 @@
 
 // AST nodes.
 namespace wpp {
-	// A function call.
-	struct FnInvoke {
-		std::vector<wpp::node_t> arguments;
-		wpp::View identifier;
-
-		FnInvoke(
-			const std::vector<wpp::node_t>& arguments_,
-			const wpp::View& identifier_
-		):
-			arguments(arguments_),
-			identifier(identifier_) {}
-
-		FnInvoke() {}
-	};
-
 	struct Intrinsic {
 		std::vector<wpp::node_t> arguments;
 		wpp::View identifier;
@@ -44,6 +29,21 @@ namespace wpp {
 			type(type_) {}
 
 		Intrinsic() {}
+	};
+
+	// A function call.
+	struct FnInvoke {
+		std::vector<wpp::node_t> arguments;
+		wpp::View identifier;
+
+		FnInvoke(
+			const std::vector<wpp::node_t>& arguments_,
+			const wpp::View& identifier_
+		):
+			arguments(arguments_),
+			identifier(identifier_) {}
+
+		FnInvoke() {}
 	};
 
 	// Function definition.
@@ -64,11 +64,12 @@ namespace wpp {
 		Fn() {}
 	};
 
-	struct Codeify {
-		wpp::node_t expr;
+	// A variable reference.
+	struct VarRef {
+		wpp::View identifier;
 
-		Codeify(const wpp::node_t expr_): expr(expr_) {}
-		Codeify() {}
+		VarRef(const wpp::View& identifier_): identifier(identifier_) {}
+		VarRef() {}
 	};
 
 	// Variable definition.
@@ -84,6 +85,13 @@ namespace wpp {
 			body(body_) {}
 
 		Var() {}
+	};
+
+	struct Codeify {
+		wpp::node_t expr;
+
+		Codeify(const wpp::node_t expr_): expr(expr_) {}
+		Codeify() {}
 	};
 
 	struct Drop {
@@ -124,21 +132,6 @@ namespace wpp {
 		Block() {}
 	};
 
-	// Namespace that embodies zero or more statements.
-	struct Pre {
-		std::vector<wpp::node_t> exprs;
-		std::vector<wpp::node_t> statements;
-
-		Pre(
-			const std::vector<wpp::node_t>& exprs_,
-			const std::vector<wpp::node_t>& statements_
-		):
-			exprs(exprs_),
-			statements(statements_) {}
-
-		Pre() {}
-	};
-
 	// Map strings to new strings.
 	struct Map {
 		std::vector<std::pair<wpp::node_t, wpp::node_t>> cases;
@@ -157,6 +150,13 @@ namespace wpp {
 		Map() {}
 	};
 
+	struct Use {
+		wpp::node_t path;
+
+		Use(const wpp::node_t path_): path(path_) {}
+		Use() {}
+	};
+
 	// The root node of a wot++ program.
 	struct Document {
 		std::vector<wpp::node_t> statements;
@@ -167,16 +167,17 @@ namespace wpp {
 
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
+		Use,
 		FnInvoke,
-		Intrinsic,
 		Fn,
+		VarRef,
 		Var,
+		Intrinsic,
 		Codeify,
 		Map,
 		String,
 		Concat,
 		Block,
-		Pre,
 		Document,
 		Drop
 	>;

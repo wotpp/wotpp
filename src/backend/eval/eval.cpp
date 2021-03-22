@@ -15,6 +15,7 @@ namespace wpp {
 	std::string evaluate(const wpp::node_t node_id, wpp::Env& env, wpp::FnEnv* fn_env) {
 		const auto& ast = env.ast;
 		auto& functions = env.functions;
+		auto& variables = env.variables;
 		const auto& positions = env.positions;
 		const auto& flags = env.flags;
 
@@ -59,32 +60,6 @@ namespace wpp {
 				const auto& caller_args = call.arguments;
 
 				std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
-
-				// Check if parameter.
-				if (fn_env) {
-					auto& args = fn_env->args;
-
-					if (auto it = args.find(caller_name); it != args.end()) {
-						if (caller_args.size() > 0)
-							wpp::error(
-								node_id, env,
-								"attempting to invoke parameter",
-								wpp::cat("attempting to invoke parameter '", caller_name, "' as if it were a function")
-							);
-
-						str = it->second;
-
-						// Check if it's shadowing a function (even this one).
-						if (flags & wpp::WARN_PARAM_SHADOW_FUNC and functions.find(caller_mangled_name) != functions.end())
-							wpp::warn(
-								node_id, env,
-								"parameter shadows function",
-								wpp::cat("parameter '", caller_name, "' is shadowing a function")
-							);
-
-						return;
-					}
-				}
 
 				// If it wasn't a parameter, we fall through to here and check if it's a function.
 				auto func_it = functions.find(caller_mangled_name);
@@ -136,11 +111,11 @@ namespace wpp {
 			},
 
 			[&] (const Fn& func) {
-				DBG("fn");
-
 				const auto& name = func.identifier;
 				const auto& params = func.parameters;
 				const auto& body = func.body;
+
+				DBG("fn: ", name, ", body: ", body);
 
 				auto it = functions.find(wpp::cat(name, params.size()));
 
@@ -165,31 +140,65 @@ namespace wpp {
 				str = wpp::intrinsic_eval(node_id, {colby.expr}, env, fn_env);
 			},
 
-			[&] (const Var&) {
-				// DBG();
+			[&] (const VarRef& varref) {
+				DBG("varref");
 
-				// auto& [name, body] = var;
+				const auto& name = varref.identifier;
 
-				// const auto func_name = wpp::cat(name, 0);
-				// const auto str = evaluate(body, env, fn_env);
+				// Check if parameter.
+				if (fn_env) {
+					auto& args = fn_env->args;
 
-				// // Replace body with a string of the evaluation result.
-				// ast.replace<String>(body, str);
+					if (auto it = args.find(name); it != args.end()) {
+						str = it->second; // Return str.
 
-				// // Replace Var node with Fn node.
-				// ast.replace<Fn>(node_id, name, std::vector<wpp::View>{}, body);
+						// Check if it's shadowing a function (even this one).
+						if (flags & wpp::WARN_PARAM_SHADOW_VAR and variables.find(name.str()) != variables.end())
+							wpp::warn(
+								node_id, env,
+								"parameter shadows variable",
+								wpp::cat("parameter '", name.str(), "' is shadowing a variable")
+							);
 
-				// auto it = functions.find(func_name);
+						return;
+					}
+				}
 
-				// if (it != functions.end()) {
-				// 	if (flags & wpp::WARN_VARFUNC_REDEFINED)
-				// 		wpp::warn(positions[node_id], env, "function/variable '", name, "' redefined.");
+				if (auto it = variables.find(name.str()); it != variables.end())
+					str = it->second;
 
-				// 	it->second.emplace_back(node_id);
-				// }
+				else
+					wpp::error(
+						node_id, env,
+						"variable not found",
+						wpp::cat("attempting to reference variable '", name.str(), "' which is undefined")
+					);
+			},
 
-				// else
-				// 	functions.emplace(func_name, std::vector{node_id});
+			[&] (const Var& var) {
+				const auto name = var.identifier.str();
+				const auto& body = var.body;
+
+				DBG("var: ", name, ", body: ", body);
+
+				if (auto it = variables.find(name); it != variables.end()) {
+					if (flags & wpp::WARN_VAR_REDEFINED)
+						wpp::warn(
+							node_id, env,
+							"variable redefined",
+							wpp::cat("variable '", name, "' redefined")
+						);
+
+					it->second = evaluate(body, env, fn_env);
+				}
+
+				else
+					variables.emplace(name, evaluate(body, env, fn_env));
+			},
+
+			[&] (const Use& use) {
+				DBG("use: ", evaluate(use.path, env, fn_env));
+				wpp::intrinsic_source(node_id, {use.path}, env, fn_env);
 			},
 
 			[&] (const Drop& drop) {
@@ -282,7 +291,7 @@ namespace wpp {
 				}
 			},
 
-			[&] (const Pre&) {
+			// [&] (const Pre&) {
 				// DBG();
 
 				// const auto& [exprs, stmts] = pre;
@@ -307,7 +316,7 @@ namespace wpp {
 				// 		str += evaluate(stmt, env, fn_env);
 				// 	}
 				// }
-			},
+			// },
 
 			[&] (const Document& doc) {
 				if (env.state & wpp::INTERNAL_ERROR_STATE)

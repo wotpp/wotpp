@@ -43,8 +43,8 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 	wpp::flags_t flags = 0;
 
 	for (const auto& x: warnings) {
-		if (x == "param-shadow-func")
-			flags |= wpp::WARN_PARAM_SHADOW_FUNC;
+		if (x == "param-shadow-var")
+			flags |= wpp::WARN_PARAM_SHADOW_VAR;
 
 		else if (x == "param-shadow-param")
 			flags |= wpp::WARN_PARAM_SHADOW_PARAM;

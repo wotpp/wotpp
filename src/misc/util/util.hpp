@@ -202,7 +202,7 @@ namespace wpp {
 				// Generate source snippet string.
 				const std::string printout = std::string(printout_begin, printout_end - printout_begin + 1);
 				const std::string specific = wpp::cat(
-					std::string(offset - printout_begin, ' '), colour, "╰ ", ANSI_RESET, error_specific, "\n"
+					std::string(offset - printout_begin, ' '), colour, "⤷ ", ANSI_RESET, error_specific, "\n"
 				);
 
 				src_snippet_str = wpp::cat(
@@ -288,6 +288,9 @@ namespace wpp {
 	// Read a file into a string relatively quickly.
 	inline std::string read_file(const std::filesystem::path& path) {
 		std::ifstream is(path);
+
+		if (not is.is_open())
+			throw std::runtime_error("file not found");
 
 		std::stringstream ss;
 		ss << is.rdbuf();
