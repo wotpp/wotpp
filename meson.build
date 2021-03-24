@@ -160,7 +160,6 @@ test_cases = {
 	'tests/assert.wpp': true,
 	'tests/file.wpp': true,
 	'tests/meta.wpp': true,
-	# 'tests/prefix.wpp': true,
 	'tests/literals.wpp': true,
 	'tests/paragraph.wpp': true,
 	'tests/raw.wpp': true,

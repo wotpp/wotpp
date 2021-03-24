@@ -1,2 +1,2 @@
 "2"
-source("sources/source3")
+use "sources/source3"

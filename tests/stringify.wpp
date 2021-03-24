@@ -1,3 +1,3 @@
 #[expect(foo)]
 let foo "foo"
-eval(\foo)
+!\foo

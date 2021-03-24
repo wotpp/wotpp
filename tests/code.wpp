@@ -1,32 +1,49 @@
-#[expect( coode\ncoode   coode\ncoode\n coode)]
+#[expect( foo\nfoo   foo\nfoo\n foo)]
 c#"
 
-     coode
-    coode   coode
-    coode
-     coode
+     foo
+    foo   foo
+    foo
+     foo
 "#
 
 
-#[expect( coode\ncoode   coode\ncoode\n coode)]
-c#"     coode
-    coode   coode
-    coode
-     coode
+#[expect( foo\nfoo   foo\nfoo\n foo)]
+c#"     foo
+    foo   foo
+    foo
+     foo
 "#
 
 
-#[expect( coode\ncoode   coode\ncoode\n coode)]
-c#"     coode
-    coode   coode
-    coode
-     coode
+#[expect( foo\nfoo   foo\nfoo\n foo)]
+c#"     foo
+    foo   foo
+    foo
+     foo
 
 
 
 
 "#
 
+
+#[expect(foo\nfoo\nfoo\nfoo)]
+c/"
+foo
+foo
+foo
+foo
+"/
+
+
+#[expect(\t\tfoo\n\tfoo\n\t\tfoo\n\tfoo)]
+c/"
+		foo
+	foo
+\t\tfoo
+	foo
+"/
 
 
 

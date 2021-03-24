@@ -1,2 +1,2 @@
 let test "hi"
-drop eval("\"hi\"")
+drop file("\"hi\"")

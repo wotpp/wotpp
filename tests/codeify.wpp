@@ -1,6 +1,6 @@
 #[expect(hello)]
 let foo(x)
-	=x
+	!x
 
 let hello "hello"
 

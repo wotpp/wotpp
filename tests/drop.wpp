@@ -1,7 +1,7 @@
-let x "a"
-let x "b"
+let x() "a"
+let x() "b"
 
 #[expect(ba)]
-x
-drop x
-x
+x()
+drop x()
+x()
