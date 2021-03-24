@@ -17,10 +17,7 @@ namespace wpp {
 
 		void lex_smart(wpp::Lexer&, wpp::Token&);
 		void lex_string_escape(wpp::Lexer&, wpp::Token&);
-		void lex_string_other(wpp::Lexer&, wpp::Token&);
-		void lex_string_raw(wpp::Lexer&, wpp::Token&);
 
-		void lex_mode_string(wpp::Lexer&, wpp::Token&, bool);
 		void lex_mode_normal(wpp::Lexer&, wpp::Token&);
 	}
 }
@@ -30,17 +27,24 @@ namespace wpp {
 	wpp::Token Lexer::next_token(wpp::lexer_mode_type_t mode) {
 		wpp::Token tok{{ ptr, 1 }, TOKEN_NONE};
 
+		auto& [view, type] = tok;
+		auto& [vptr, vlen] = view;
+
 		// Loop until we find a valid token.
 		// This skips comments and whitespace.
 		while (true) {
+			// Update view pointer so if the lexer continues (whitespace/comment),
+			// the token starts at the right location.
+			vptr = ptr;
+
 			// EOF
 			if (*ptr == '\0')
-				tok.type = TOKEN_EOF;
+				type = TOKEN_EOF;
 
 			// Character mode: Return the next character.
 			else if (mode == lexer_modes::chr) {
+				type = TOKEN_CHAR;
 				next();
-				tok.type = TOKEN_CHAR;
 			}
 
 			// Handle quotes.
@@ -72,12 +76,91 @@ namespace wpp {
 				lex_mode_normal(*this, tok);
 			}
 
-			// String mode.
-			else if (mode == lexer_modes::string)
-				lex_mode_string(*this, tok, true);
+			// Strings
+			else if (mode == lexer_modes::string) {
+				if (*ptr == '\\')
+					lex_string_escape(*this, tok);
 
-			else if (mode == lexer_modes::string_no_escape)
-				lex_mode_string(*this, tok, false);
+				else {
+					type = TOKEN_STRING;
+
+					// Consume all characters except quotes, escapes and EOF.
+					while (not wpp::in_group(ptr, '\\', '"', '\'', '\0'))
+						next();
+
+					// Set view length equal to the number of consumed characters.
+					vlen = ptr - vptr;
+				}
+			}
+
+			else if (mode == lexer_modes::string_raw) {
+				type = TOKEN_STRING;
+
+				// Consume all characters except quotes, escapes and EOF.
+				while (not wpp::in_group(ptr, '"', '\'', '\0'))
+					next();
+
+				// Set view length equal to the number of consumed characters.
+				vlen = ptr - vptr;
+			}
+
+			else if (mode == lexer_modes::string_para) {
+				// Important that this comes before the general whitespace handling.
+				if (*ptr == '\n') {
+					type = TOKEN_WHITESPACE_NEWLINE;
+					do { next(); } while (*ptr == '\n');
+					vlen = ptr - vptr;
+				}
+
+				else if (wpp::in_group(ptr, ' ', '\t', '\r', '\v', '\f') or wpp::is_whitespace_utf8(wpp::decode_utf8(ptr))) {
+					type = TOKEN_WHITESPACE;
+					do { next(); } while (wpp::in_group(ptr, ' ', '\t', '\r', '\v', '\f') or wpp::is_whitespace_utf8(wpp::decode_utf8(ptr)));
+					vlen = ptr - vptr;
+				}
+
+				else if (*ptr == '\\')
+					lex_string_escape(*this, tok);
+
+				else {
+					type = TOKEN_STRING;
+
+					// Consume all characters except quotes, escapes and EOF.
+					while (not (wpp::in_group(ptr, '\\', '"', '\'', '\0') or wpp::is_whitespace(ptr)))
+						next();
+
+					// Set view length equal to the number of consumed characters.
+					vlen = ptr - vptr;
+				}
+			}
+
+			else if (mode == lexer_modes::string_code) {
+				// Important that this comes before the general whitespace handling.
+				if (*ptr == '\n') {
+					type = TOKEN_WHITESPACE_NEWLINE;
+					do { next(); } while (*ptr == '\n');
+					vlen = ptr - vptr;
+				}
+
+				else if (wpp::in_group(ptr, ' ', '\t', '\r', '\v', '\f') or wpp::is_whitespace_utf8(wpp::decode_utf8(ptr))) {
+					type = TOKEN_WHITESPACE;
+					do { next(); } while (wpp::in_group(ptr, ' ', '\t', '\r', '\v', '\f') or wpp::is_whitespace_utf8(wpp::decode_utf8(ptr)));
+					vlen = ptr - vptr;
+				}
+
+				else if (*ptr == '\\')
+					lex_string_escape(*this, tok);
+
+				else {
+					type = TOKEN_STRING;
+
+					// Consume all characters except quotes, escapes and EOF.
+					while (not (wpp::in_group(ptr, '\\', '"', '\'', '\0') or wpp::is_whitespace(ptr)))
+						next();
+
+					// Set view length equal to the number of consumed characters.
+					vlen = ptr - vptr;
+				}
+			}
 
 			// Break by default. We use continue above if we need another token.
 			break;
@@ -200,14 +283,15 @@ namespace wpp {
 
 
 		void lex_whitespace(wpp::Lexer& lex, wpp::Token& tok) {
+			tok.type = TOKEN_WHITESPACE;
+
 			// Consume as much whitespace as we can.
 			do {
 				lex.next();
 			} while (wpp::is_whitespace(lex.ptr));
 
-			// Update view pointer so when the lexer continues, the token starts
-			// at the right location.
-			tok.view.ptr = lex.ptr;
+			// Set token view length to the number of consumed characters.
+			tok.view.length = lex.ptr - tok.view.ptr;
 		}
 
 
@@ -311,44 +395,6 @@ namespace wpp {
 			// Set view length to the number of consumed characters.
 			vlen = ptr - vptr;
 			DBG(token_to_str[type], ": '", view, "'");
-		}
-
-
-		void lex_string_other(wpp::Lexer& lex, wpp::Token& tok) {
-			tok.type = TOKEN_STRING;
-
-			// Consume all characters except quotes, escapes and EOF.
-			while (not wpp::in_group(lex.ptr, '\\', '"', '\'', '\0'))
-				lex.next();
-
-			// Set view length equal to the number of consumed characters.
-			tok.view.length = lex.ptr - tok.view.ptr;
-
-			DBG(token_to_str[tok.type], ": '", tok.view, "'");
-		}
-
-
-		void lex_string_raw(wpp::Lexer& lex, wpp::Token& tok) {
-			tok.type = TOKEN_STRING;
-
-			while (not wpp::in_group(lex.ptr, '"', '\'', '\0'))
-				lex.next();
-
-			tok.view.length = lex.ptr - tok.view.ptr;
-
-			DBG(token_to_str[tok.type], ": '", tok.view, "'");
-		}
-
-
-		void lex_mode_string(wpp::Lexer& lex, wpp::Token& tok, bool handle_escapes) {
-			if (handle_escapes and *lex.ptr == '\\')
-				lex_string_escape(lex, tok);
-
-			else if (not handle_escapes and *lex.ptr == '\\')
-				lex_string_raw(lex, tok);
-
-			else
-				lex_string_other(lex, tok);
 		}
 
 

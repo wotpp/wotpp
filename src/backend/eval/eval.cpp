@@ -136,7 +136,6 @@ namespace wpp {
 
 			[&] (const Codeify& colby) {
 				DBG("codeify");
-
 				str = wpp::intrinsic_eval(node_id, {colby.expr}, env, fn_env);
 			},
 
@@ -198,7 +197,7 @@ namespace wpp {
 
 			[&] (const Use& use) {
 				DBG("use: ", evaluate(use.path, env, fn_env));
-				wpp::intrinsic_source(node_id, {use.path}, env, fn_env);
+				str = wpp::intrinsic_source(node_id, {use.path}, env, fn_env);
 			},
 
 			[&] (const Drop& drop) {

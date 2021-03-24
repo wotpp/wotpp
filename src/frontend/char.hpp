@@ -131,28 +131,31 @@ namespace wpp {
 	}
 
 
-	// Collapse consecutive whitespace.
-	inline void collapse_whitespace(std::string& str) {
-		// Replace all whitespace with just ' '.
+	// Collapse consecutive runs of characters.
+	inline std::string collapse_repeated(std::string&& str) {
 		char* const begin = str.data();
 		char* const end = str.data() + str.size();
 
-		for (char* ptr = begin; ptr != end; ptr += wpp::size_utf8(ptr)) {
-			if (wpp::is_whitespace(ptr))
-				*ptr = ' ';
+		// Check if adjacent characters are identical.
+		const auto pred = [] (const char* lhs, const char* rhs) {
+			return wpp::decode_utf8(lhs) == wpp::decode_utf8(rhs);
+		};
+
+		char* first = begin;
+		char* result = begin;
+
+		// std::unique: https://en.cppreference.com/w/cpp/algorithm/unique#Possible_implementation
+		while (++first != end) {
+			if (not pred(result, first) and ++result != first)
+				*result = *first;
 		}
 
-		// Collapse repeated spaces.
-		str.erase(std::unique(str.begin(), str.end(), [] (char lhs, char rhs) {
-			return lhs == rhs and lhs == ' ';
-		}), str.end());
+		++result;
 
-		// Strip leading and trailing whitespace.
-		if (str.front() == ' ')
-			str.erase(str.begin(), str.begin() + 1);
+		// Erase all but one of the characters.
+		str.erase(str.begin() + (result - begin), str.end());
 
-		if (str.back() == ' ')
-			str.erase(str.end() - 1, str.end());
+		return str;
 	}
 
 

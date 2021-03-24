@@ -56,16 +56,16 @@ namespace wpp {
 	#ifndef NDEBUG
 		#define DBG(...) \
 			do { \
-				[fn_name = __func__] (auto&&... args) { \
+				[dbg_fn_name__ = __func__] (auto&&... dbg_args__) { \
 					auto& os = [&] () -> std::ostream& { \
 						return ( \
 							std::cerr << ANSI_FG_MAGENTA << "log " << ANSI_RESET << \
 							std::filesystem::path(__FILE__).filename().string() << ":" << \
-							__LINE__ << " in `" << ANSI_FG_YELLOW << fn_name << ANSI_RESET << "`"); \
+							__LINE__ << " in `" << ANSI_FG_YELLOW << dbg_fn_name__ << ANSI_RESET << "`"); \
 					} (); \
-					if constexpr(sizeof...(args) > 0) { \
+					if constexpr(sizeof...(dbg_args__) > 0) { \
 						os << " => " << ANSI_BOLD;\
-						(os << ... << std::forward<decltype(args)>(args)) << ANSI_RESET << '\n'; \
+						(os << ... << std::forward<decltype(dbg_args__)>(dbg_args__)) << ANSI_RESET << '\n'; \
 					} else { \
 						os << ANSI_RESET << '\n'; \
 					} \

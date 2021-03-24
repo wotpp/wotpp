@@ -252,20 +252,20 @@ namespace wpp {
 			auto& str = tree.get<String>(node).value;
 
 			const auto delim = lex.advance().view.at(1);  // User defined delimiter.
-			const auto quote = lex.advance(wpp::lexer_modes::string_no_escape); // ' or "
+			const auto quote = lex.advance(wpp::lexer_modes::string_raw); // ' or "
 
 			while (true) {
-				if (lex.peek(wpp::lexer_modes::string_no_escape) == TOKEN_EOF)
+				if (lex.peek(wpp::lexer_modes::string_raw) == TOKEN_EOF)
 					wpp::error(node, env, "unterminated string", "reached EOF while parsing raw string literal that begins here");
 
 				// If we encounter ' or ", we check one character ahead to see
 				// if it matches the user defined delimiter, it if does,
 				// we erase the last quote character and break.
-				if (lex.peek(wpp::lexer_modes::string_no_escape) == quote) {
+				else if (lex.peek(wpp::lexer_modes::string_raw) == quote) {
 					// Store this quote, it may not actually be a part
 					// of the string terminator. We append it to the string
 					// if the next `if` block tests false.
-					const auto tmp = lex.advance(wpp::lexer_modes::string_no_escape);
+					const auto tmp = lex.advance(wpp::lexer_modes::string_raw);
 
 					if (lex.peek(wpp::lexer_modes::chr).view == delim) {
 						lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
@@ -277,7 +277,7 @@ namespace wpp {
 
 				// If not EOF or '/", consume.
 				else {
-					str += lex.advance(wpp::lexer_modes::string_no_escape).str();
+					str += lex.advance(wpp::lexer_modes::string_raw).str();
 				}
 			}
 
@@ -288,64 +288,87 @@ namespace wpp {
 
 
 		wpp::node_t para_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
-			DBG();
-
 			const wpp::node_t node = tree.add<String>();
 			pos.emplace_back(lex.position());
 			auto& str = tree.get<String>(node).value;
 
-			const auto delim = lex.advance().view.at(1);  // User defined delimiter.
-			const auto quote = lex.advance(wpp::lexer_modes::string); // ' or "
+			const auto delim = lex.advance(wpp::lexer_modes::string_para).view.at(1);  // User defined delimiter.
+			const auto quote = lex.advance(wpp::lexer_modes::string_para); // ' or "
 
-			std::vector<std::pair<std::string, bool>> chunks;
+
+			struct Part {
+				std::string str;
+				bool is_whitespace;
+
+				Part(const std::string& str_, bool is_whitespace_):
+					str(str_), is_whitespace(is_whitespace_) {}
+			};
+
+			std::vector<Part> chunks;
+
+
+			// Skip leading whitespace.
+			while (wpp::eq_any(lex.peek(wpp::lexer_modes::string_para), TOKEN_WHITESPACE, TOKEN_WHITESPACE_NEWLINE))
+				lex.advance(wpp::lexer_modes::string_para);
+
 
 			while (true) {
-				if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
+				if (lex.peek(wpp::lexer_modes::string_para) == TOKEN_EOF)
 					wpp::error(node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
 
 				// If we encounter ' or ", we check one character ahead to see
 				// if it matches the user defined delimiter, it if does,
 				// we erase the last quote character and break.
-				if (lex.peek(wpp::lexer_modes::string) == quote) {
+				else if (lex.peek(wpp::lexer_modes::string_para) == quote) {
 					// Store this quote, it may not actually be a part
 					// of the string terminator. We append it to the string
 					// if the next `if` block tests false.
-					const auto tmp = lex.advance(wpp::lexer_modes::string);
+					const auto tmp = lex.advance(wpp::lexer_modes::string_para);
 
 					if (lex.peek(wpp::lexer_modes::chr).view == delim) {
 						lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
 						break;  // Exit the loop, string is fully consumed.
 					}
 
+					// Quote was not a part of the string terminator so we append it.
 					chunks.emplace_back(tmp.str(), false);
 				}
 
 				// If not EOF or '/", consume.
 				else {
-					// Parse escape characters and append "parts" of the string to `str`.
-					if (peek_is_escape(lex.peek(wpp::lexer_modes::string)))
-						chunks.emplace_back(wpp::handle_escapes(lex.advance(wpp::lexer_modes::string)), true);
+					const auto token = lex.advance(wpp::lexer_modes::string_para);
 
-					else {
-						std::string tmp = lex.advance(wpp::lexer_modes::string).str();
-						wpp::collapse_whitespace(tmp);
-						chunks.emplace_back(tmp, false);
-					}
+					// Collapse repeated whitespace of the same type.
+					if (token == TOKEN_WHITESPACE)
+						chunks.emplace_back(wpp::collapse_repeated(token.str()), true);
+
+					// Collapse pairs of newlines into a single newline and strip any loner newlines.
+					else if (token == TOKEN_WHITESPACE_NEWLINE)
+						chunks.emplace_back(std::string(token.str().size() / 2, '\n'), true);
+
+					// Handle escape sequences.
+					else if (peek_is_escape(token))
+						chunks.emplace_back(wpp::handle_escapes(token), false);
+
+					// Otherwise just append the textual parts of the string.
+					else
+						chunks.emplace_back(token.str(), false);
 				}
 			}
 
-			for (size_t i = 0; i < chunks.size() - 1; ++i) {
-				auto& [x1, all_whitespace1] = chunks[i];
-				auto& [x2, all_whitespace2] = chunks[i + 1];
 
-				if (all_whitespace1 or all_whitespace2)
-					str += x1;
+			// Trim trailing whitespace.
+			auto it = chunks.rbegin();
+			while (it->is_whitespace)
+				++it;
 
-				else
-					str += x1 + ' ';
-			}
+			chunks.erase(it.base(), chunks.end());
 
-			str += chunks.back().first;
+
+			// Join string.
+			for (const auto& [chunk, is_whitespace]: chunks)
+				str += chunk;
+
 
 			DBG("'", str, "'");
 
@@ -353,91 +376,153 @@ namespace wpp {
 		}
 
 
-		wpp::node_t code_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&) {
-			DBG();
+		wpp::node_t code_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			const wpp::node_t node = tree.add<String>();
+			pos.emplace_back(lex.position());
+			auto& str = tree.get<String>(node).value;
+
+			const auto delim = lex.advance(wpp::lexer_modes::string_code).view.at(1);  // User defined delimiter.
+			const auto quote = lex.advance(wpp::lexer_modes::string_code); // ' or "
+
+			enum {
+				KIND_LEADING,
+				KIND_NEWLINE,
+				KIND_WHITESPACE,
+				KIND_OTHER,
+			};
+
+			struct Part {
+				std::string str;
+				uint8_t kind;
+
+				Part(const std::string& str_, uint8_t kind_):
+					str(str_), kind(kind_) {}
+			};
+
+			std::vector<Part> chunks;
+
+
+			// Check if the first token is whitespace and then check if its followed
+			// by text.
+			// If it is followed by text, this whitespace is leading.
+			if (lex.peek(wpp::lexer_modes::string_code) == TOKEN_WHITESPACE) {
+				const auto tmp = lex.advance(wpp::lexer_modes::string_code).str();
+
+				if (not wpp::eq_any(lex.peek(wpp::lexer_modes::string_code), TOKEN_WHITESPACE, TOKEN_WHITESPACE_NEWLINE))
+					chunks.emplace_back(tmp, KIND_LEADING);
+
+				else
+					chunks.emplace_back(tmp, KIND_WHITESPACE);
+			}
+
+
+			while (true) {
+				if (lex.peek(wpp::lexer_modes::string_code) == TOKEN_EOF)
+					wpp::error(node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
+
+				// If we encounter ' or ", we check one character ahead to see
+				// if it matches the user defined delimiter, it if does,
+				// we erase the last quote character and break.
+				else if (lex.peek(wpp::lexer_modes::string_code) == quote) {
+					// Store this quote, it may not actually be a part
+					// of the string terminator. We append it to the string
+					// if the next `if` block tests false.
+					const auto tmp = lex.advance(wpp::lexer_modes::string_code);
+
+					if (lex.peek(wpp::lexer_modes::chr).view == delim) {
+						lex.advance(wpp::lexer_modes::chr); // Skip user delimiter.
+						break;  // Exit the loop, string is fully consumed.
+					}
+
+					// Quote was not a part of the string terminator so we append it.
+					chunks.emplace_back(tmp.str(), KIND_OTHER);
+				}
+
+				// If not EOF or '/", consume.
+				else {
+					const auto token = lex.advance(wpp::lexer_modes::string_code);
+
+					// Check for newline followed by whitespace.
+					if (token == TOKEN_WHITESPACE_NEWLINE) {
+						chunks.emplace_back(token.str(), KIND_NEWLINE);
+
+						// If this newline has whitespace after it, we have to check
+						// how much whitespace there is to track indentation level.
+						if (lex.peek(wpp::lexer_modes::string_code) == TOKEN_WHITESPACE)
+							chunks.emplace_back(lex.advance(wpp::lexer_modes::string_code).str(), KIND_LEADING);
+
+						else
+							chunks.emplace_back("", KIND_LEADING);
+					}
+
+					else if (token == TOKEN_WHITESPACE)
+						chunks.emplace_back(token.str(), KIND_WHITESPACE);
+
+					// Handle escape sequences.
+					else if (peek_is_escape(token))
+						chunks.emplace_back(wpp::handle_escapes(token), KIND_OTHER);
+
+					// Otherwise just append the textual parts of the string.
+					else
+						chunks.emplace_back(token.str(), KIND_OTHER);
+				}
+			}
+
+
+			// Trim leading whitespace.
+			for (auto it = chunks.begin(); it != chunks.end();) {
+				// If we find text, break. The leading whitespace has been removed.
+				if (it->kind == KIND_OTHER)
+					break;
+
+				// If we find a newline, erase from the beginning of
+				// the vector to the current iterator.
+				else if (it->kind == KIND_NEWLINE) {
+					// We use `i + 1` here to erase this newline also.
+					chunks.erase(chunks.begin(), it + 1);
+
+					it = chunks.begin(); // Reset from beginning and search.
+					continue;
+				}
+
+				++it; // We increment here so that we avoid skipping the first element on a "reset".
+			}
+
 
 			// Trim trailing whitespace.
-			// Loop from back of string to beginning.
-			// for (auto it = str.rbegin(); it != str.rend(); ++it) {
-			// 	// If we find something that isn't whitespace, erase from the back
-			// 	// of the string to the current position of the iterator.
-			// 	if (not wpp::is_whitespace(&*it)) {
-			// 		str.erase(it.base(), str.end());
-			// 		break;
-			// 	}
-			// }
-
-			// // Trim leading whitespace.
-			// for (auto it = str.begin(); it != str.end();) {
-			// 	if (not wpp::is_whitespace(&*it))
-			// 		break;
-
-			// 	else if (*it == '\n') {
-			// 		str.erase(str.begin(), it + 1);
-			// 		it = str.begin();
-			// 		continue;  // Skip the increment of the iterator.
-			// 	}
-
-			// 	++it;
-			// }
+			// Loop from back of vector to beginning.
+			for (auto it = chunks.rbegin(); it != chunks.rend(); ++it) {
+				// If we find text, erase from the back of the
+				// vector to the current position of the iterator.
+				if (it->kind == KIND_OTHER) {
+					chunks.erase(it.base(), chunks.end());
+					break;
+				}
+			}
 
 
-			// // Discover tab depth.
-			// int common_indent = std::numeric_limits<int>::max();
+			// Discover common leading whitespace amount.
+			size_t common_leading_whitespace = std::numeric_limits<size_t>::max();
 
-			// for (auto it = str.begin(); *it; ++it) {
-			// 	if (*it == '\n') {
-			// 		int indent = 0;
-
-			// 		++it; // Skip newline.
-
-			// 		// Loop until we find something that isn't whitespace.
-			// 		while (wpp::is_whitespace(&*it))
-			// 			++it, ++indent;
-
-			// 		if (indent < common_indent)
-			// 			common_indent = indent;
-			// 	}
-			// }
+			for (const auto& [chunk, kind]: chunks) {
+				if (kind == KIND_LEADING and chunk.size() < common_leading_whitespace)
+					common_leading_whitespace = chunk.size();
+			}
 
 
-			// // Remove leading indentation on each line up to common_indent amount.
+			// Join chunks.
+			for (auto& [chunk, kind]: chunks) {
+				// If this chunk is leading whitespace, strip up to `common_leading_whitespace` from the front.
+				if (kind == KIND_LEADING)
+					chunk.erase(chunk.begin(), chunk.begin() + common_leading_whitespace);
 
-			// // Strips whitespace until we hit either a non whitespace character
-			// // or reach the maximum amount of indentation to strip.
-			// const auto strip = [&] (const char* ptr) {
-			// 	const char* start = ptr;
-			// 	int count_whitespace = 0;
+				str += chunk;
+			}
 
-			// 	while (wpp::is_whitespace(ptr) and count_whitespace != common_indent)
-			// 		++ptr, ++count_whitespace;
 
-			// 	str.erase(start - str.c_str(), ptr - start);
+			DBG("'", str, "'");
 
-			// 	// Set pointer back to beginning of removed range because
-			// 	// we are iterating while altering the string.
-			// 	ptr = start;
-
-			// 	return ptr;
-			// };
-
-			// const char* ptr = str.c_str();
-
-			// // Remove whitespace on first line between start of string and first non whitespace character.
-			// if (wpp::is_whitespace(ptr))
-			// 	ptr = strip(ptr);
-
-			// // Remove the rest of the leading whitespace.
-			// while (*ptr) {
-			// 	if (*ptr == '\n')
-			// 		ptr = strip(++ptr);
-
-			// 	++ptr;
-			// }
-
-			// DBG("'", str, "'");
-
-			return wpp::NODE_EMPTY;
+			return node;
 		}
 
 
@@ -642,34 +727,6 @@ namespace wpp {
 
 			return node;
 		}
-
-
-		// wpp::node_t var(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
-		// 	DBG();
-
-		// 	// Create `Var` node ahead of time so we can insert member data
-		// 	// directly instead of copying/moving it into a new node at the end.
-		// 	const wpp::node_t node = tree.add<Var>();
-		// 	pos.emplace_back(lex.position());
-
-		// 	// Skip `var` keyword. The statement parser already checked
-		// 	// for it before calling us.
-		// 	lex.advance();
-
-		// 	// Make sure the next token is an identifier, if it is, set the name
-		// 	// of our `Fn` node to match.
-		// 	if (lex.peek() != TOKEN_IDENTIFIER)
-		// 		wpp::error(node, env, "expected identifier", "expecting identifier after `var`", "insert an identifier to name the variable");
-
-
-		// 	tree.get<Var>(node).identifier = lex.advance().view;
-
-		// 	// Parse the variable body.
-		// 	const wpp::node_t body = expression(lex, tree, pos, env);
-		// 	tree.get<Var>(node).body = body;
-
-		// 	return NODE_EMPTY;
-		// }
 
 
 		wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
