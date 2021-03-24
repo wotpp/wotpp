@@ -1,4 +1,4 @@
-#[expect(foo\tfoo foo\nfoo\nfoo)]
+#[expect(foo\tfoo foofoo\nfoo)]
 p#"foo	foo   foo
 foo
 
@@ -19,7 +19,7 @@ p~"have a quote: "hello""~
 
 
 
-#[expect(foo\nfoo\nfoo\nfoo)]
+#[expect(foofoofoofoo)]
 p/"
 foo
 foo
@@ -27,7 +27,8 @@ foo
 foo
 "/
 
-#[expect(foo\n\nfoo\n\tfoo\nfoo)]
+
+#[expect(foo\nfoo\tfoofoo)]
 p/"
 foo\n
 foo
