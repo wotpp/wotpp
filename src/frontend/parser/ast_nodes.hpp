@@ -166,6 +166,9 @@ namespace wpp {
 	};
 
 	struct Pop {
+		wpp::node_t expr;
+
+		Pop(const wpp::node_t expr_): expr(expr_) {}
 		Pop() {}
 	};
 

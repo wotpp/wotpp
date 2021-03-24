@@ -827,6 +827,16 @@ namespace wpp {
 
 			lex.advance(); // skip `pop`.
 
+			if (not peek_is_expr(lex.peek()))
+				wpp::error(
+					lex.position(), env,
+					"expected expression",
+					"expecting an expression to follow `pop`"
+				);
+
+			const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+			tree.get<Pop>(node).expr = expr;
+
 			return node;
 		}
 
@@ -1200,6 +1210,7 @@ namespace wpp {
 				"expected statement",
 				"expecting a statement to appear here"
 			);
+
 			return wpp::NODE_EMPTY;
 		}
 	}

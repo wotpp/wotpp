@@ -155,7 +155,7 @@ namespace wpp {
 		// Erase all but one of the characters.
 		str.erase(str.begin() + (result - begin), str.end());
 
-		return str;
+		return std::move(str);
 	}
 
 

@@ -79,7 +79,7 @@ namespace wpp {
 		wpp::Variables variables{};
 		wpp::Positions positions{};
 
-		std::stack<std::string> stack{};
+		std::stack<std::string, std::vector<std::string>> stack{};
 
 		wpp::Sources sources{};
 

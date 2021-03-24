@@ -197,14 +197,24 @@ namespace wpp {
 			},
 
 			[&] (const Push& psh) {
-				DBG("push: ", evaluate(psh.expr, env, fn_env));
+				DBG("push");
 				stack.emplace(evaluate(psh.expr, env, fn_env));
 			},
 
-			[&] (const Pop& pop) {
-				DBG("push: ", stack.top());
-				str = stack.top();
-				stack.pop();
+			[&] (const Pop& poop) {
+				const wpp::node_t expr = poop.expr;
+
+				if (not stack.empty()) {
+					str = stack.top();
+					stack.pop();
+					evaluate(expr, env, fn_env);
+				}
+
+				else {
+					// wpp::error(node_id, env, "stack underflow", "popping from an empty stack");
+				}
+
+				DBG("pop: '", str, "'");
 			},
 
 			[&] (const Use& use) {
