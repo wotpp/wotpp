@@ -17,7 +17,6 @@ namespace {
 			tok == wpp::TOKEN_ASSERT or
 			tok == wpp::TOKEN_PIPE or
 			tok == wpp::TOKEN_ERROR or
-			tok == wpp::TOKEN_SOURCE or
 			tok == wpp::TOKEN_SLICE or
 			tok == wpp::TOKEN_FIND or
 			tok == wpp::TOKEN_LENGTH or
@@ -78,6 +77,7 @@ namespace {
 	// Check if the token is an expression.
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
+			tok == wpp::TOKEN_POP or
 			tok == wpp::TOKEN_MAP or
 			tok == wpp::TOKEN_EVAL or
 			tok == wpp::TOKEN_LBRACE or
@@ -132,6 +132,9 @@ namespace wpp {
 		wpp::node_t drop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 		wpp::node_t let(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 		wpp::node_t use(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+
+		wpp::node_t pop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+		wpp::node_t push(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	}
 }
 
@@ -784,11 +787,45 @@ namespace wpp {
 				wpp::error(
 					lex.position(), env,
 					"expected string",
-					"expecting a string as path name for use"
+					"expecting a string as path name for `use`"
 				);
 
 			const wpp::node_t path = wpp::string(lex, tree, pos, env);
 			tree.get<Use>(node).path = path;
+
+			return node;
+		}
+
+
+		wpp::node_t push(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			DBG();
+
+			const wpp::node_t node = tree.add<Push>();
+			pos.emplace_back(lex.position());
+
+			lex.advance(); // skip `push`.
+
+			if (not peek_is_expr(lex.peek()))
+				wpp::error(
+					lex.position(), env,
+					"expected expression",
+					"expecting an expression to follow `push`"
+				);
+
+			const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+			tree.get<Push>(node).expr = expr;
+
+			return node;
+		}
+
+
+		wpp::node_t pop(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+			DBG();
+
+			const wpp::node_t node = tree.add<Pop>();
+			pos.emplace_back(lex.position());
+
+			lex.advance(); // skip `pop`.
 
 			return node;
 		}
@@ -1111,6 +1148,9 @@ namespace wpp {
 			else if (lookahead == TOKEN_EVAL)
 				lhs = wpp::codeify(lex, tree, pos, env);
 
+			else if (lookahead == TOKEN_POP)
+				lhs = wpp::pop(lex, tree, pos, env);
+
 			else
 				wpp::error(
 					lex.position(), env,
@@ -1148,6 +1188,9 @@ namespace wpp {
 
 			else if (lookahead == TOKEN_USE)
 				return wpp::use(lex, tree, pos, env);
+
+			else if (lookahead == TOKEN_PUSH)
+				return wpp::push(lex, tree, pos, env);
 
 			else if (peek_is_expr(lookahead))
 				return wpp::expression(lex, tree, pos, env);

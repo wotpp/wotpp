@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <stack>
 #include <list>
 #include <unordered_map>
 
@@ -77,6 +78,8 @@ namespace wpp {
 		wpp::Functions functions{};
 		wpp::Variables variables{};
 		wpp::Positions positions{};
+
+		std::stack<std::string> stack{};
 
 		wpp::Sources sources{};
 

@@ -165,8 +165,21 @@ namespace wpp {
 		Document() {}
 	};
 
+	struct Pop {
+		Pop() {}
+	};
+
+	struct Push {
+		wpp::node_t expr;
+
+		Push(const wpp::node_t expr_): expr(expr_) {}
+		Push() {}
+	};
+
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
+		Pop,
+		Push,
 		Use,
 		FnInvoke,
 		Fn,

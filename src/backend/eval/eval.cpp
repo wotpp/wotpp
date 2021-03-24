@@ -16,6 +16,7 @@ namespace wpp {
 		const auto& ast = env.ast;
 		auto& functions = env.functions;
 		auto& variables = env.variables;
+		auto& stack = env.stack;
 		const auto& positions = env.positions;
 		const auto& flags = env.flags;
 
@@ -193,6 +194,17 @@ namespace wpp {
 
 				else
 					variables.emplace(name, evaluate(body, env, fn_env));
+			},
+
+			[&] (const Push& psh) {
+				DBG("push: ", evaluate(psh.expr, env, fn_env));
+				stack.emplace(evaluate(psh.expr, env, fn_env));
+			},
+
+			[&] (const Pop& pop) {
+				DBG("push: ", stack.top());
+				str = stack.top();
+				stack.pop();
 			},
 
 			[&] (const Use& use) {
