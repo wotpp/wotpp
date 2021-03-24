@@ -307,7 +307,6 @@ namespace wpp {
 			std::vector<Part> chunks;
 
 
-			// Skip leading whitespace.
 			while (wpp::eq_any(lex.peek(wpp::lexer_modes::string_para), TOKEN_WHITESPACE, TOKEN_WHITESPACE_NEWLINE))
 				lex.advance(wpp::lexer_modes::string_para);
 
@@ -338,13 +337,19 @@ namespace wpp {
 				else {
 					const auto token = lex.advance(wpp::lexer_modes::string_para);
 
-					// Collapse repeated whitespace of the same type.
-					if (token == TOKEN_WHITESPACE)
-						chunks.emplace_back(wpp::collapse_repeated(token.str()), true);
-
 					// Collapse pairs of newlines into a single newline and strip any loner newlines.
-					else if (token == TOKEN_WHITESPACE_NEWLINE)
+					if (token == TOKEN_WHITESPACE_NEWLINE) {
 						chunks.emplace_back(std::string(token.str().size() / 2, '\n'), true);
+
+						// If this newline has whitespace after it, we have to check
+						// how much whitespace there is to track indentation level.
+						if (chunks.back().str.size() > 0 and lex.peek(wpp::lexer_modes::string_para) == TOKEN_WHITESPACE)
+							lex.advance(wpp::lexer_modes::string_para);
+					}
+
+					// Collapse repeated whitespace of the same type.
+					else if (token == TOKEN_WHITESPACE)
+						chunks.emplace_back(wpp::collapse_repeated(token.str()), true);
 
 					// Handle escape sequences.
 					else if (peek_is_escape(token))
@@ -365,8 +370,8 @@ namespace wpp {
 			chunks.erase(it.base(), chunks.end());
 
 
-			// Join string.
-			for (const auto& [chunk, is_whitespace]: chunks)
+			// Join chunks.
+			for (auto& [chunk, is_whitespace]: chunks)
 				str += chunk;
 
 
