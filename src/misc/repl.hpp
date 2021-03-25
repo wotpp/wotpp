@@ -31,6 +31,9 @@ namespace wpp {
 			using_history();
 
 			while (true) {
+				// Reset error state.
+				env.state &= ~wpp::INTERNAL_ERROR_STATE;
+
 				char* input = readline(">>> ");
 
 				if (not input) // EOF
