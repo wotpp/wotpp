@@ -973,6 +973,7 @@ namespace wpp {
 					"expecting a trailing expression at the end of block"
 				);
 
+
 			// Check for statement, otherwise we parse a single expression.
 			// last_is_expr is used to check if the last statement holds
 			// an expression, if it does we need to back up after parsing
@@ -990,6 +991,7 @@ namespace wpp {
 				} while (peek_is_stmt(lex.peek()));
 			}
 
+
 			// If the next token is not an expression and the last statement
 			// was an expression then we can pop the last statement and use
 			// it as our trailing expression.
@@ -1000,11 +1002,12 @@ namespace wpp {
 
 			else {
 				wpp::error(
-					tree.get<Block>(node).statements.back(), env,
+					lex.position(), env,
 					"expected expression",
 					"expecting a trailing expression at the end of block"
 				);
 			}
+
 
 			if (lex.peek() == TOKEN_ARROW)
 				wpp::error(
