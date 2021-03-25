@@ -166,9 +166,19 @@ namespace wpp {
 	};
 
 	struct Pop {
-		wpp::node_t expr;
+		std::vector<wpp::View> arguments;
+		wpp::View identifier;
+		int index_of_popped_arg;
 
-		Pop(const wpp::node_t expr_): expr(expr_) {}
+		Pop(
+			const std::vector<wpp::View>& arguments_,
+			const wpp::View& identifier_,
+			int index_of_popped_arg_
+		):
+			arguments(arguments_),
+			identifier(identifier_),
+			index_of_popped_arg(index_of_popped_arg_) {}
+
 		Pop() {}
 	};
 
