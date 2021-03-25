@@ -161,6 +161,10 @@ namespace wpp {
 				pos_info_str = wpp::cat(" ", std::filesystem::relative(file, env.root).string(), ":", sloc.line, ":", sloc.column);
 			}
 
+			else if (*offset == '\0') {
+				pos_info_str = " (eof)";
+			}
+
 			else {
 				pos_info_str = wpp::cat(" ", std::filesystem::relative(file, env.root).string(), ":eof");
 			}
@@ -217,7 +221,7 @@ namespace wpp {
 		}
 
 		else {
-			src_snippet_str = wpp::cat(column_str, "(eof) │ ", error_specific);
+			src_snippet_str = wpp::cat(column_str, " │ ", error_specific);
 		}
 
 		if (not suggestion.empty())

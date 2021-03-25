@@ -326,7 +326,6 @@ namespace wpp {
 			else if (view == "assert")    type = TOKEN_ASSERT;
 			else if (view == "pipe")      type = TOKEN_PIPE;
 			else if (view == "error")     type = TOKEN_ERROR;
-			else if (view == "source")    type = TOKEN_SOURCE;
 			else if (view == "escape")    type = TOKEN_ESCAPE;
 			else if (view == "log")       type = TOKEN_LOG;
 			else if (view == "drop")      type = TOKEN_DROP;
