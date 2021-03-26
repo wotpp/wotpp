@@ -48,7 +48,8 @@ namespace wpp {
 
 
 	struct FnEnv {
-		wpp::Arguments args;
+		wpp::Arguments arguments;
+		wpp::Arguments priority_constants;
 	};
 
 

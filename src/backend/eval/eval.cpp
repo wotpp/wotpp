@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <iterator>
 #include <algorithm>
 
 #include <misc/util/util.hpp>
@@ -12,6 +13,24 @@
 
 namespace wpp {
 	std::string evaluate(const wpp::node_t, wpp::Env&, wpp::FnEnv*);
+
+	namespace {
+		std::string eval_intrinsic(wpp::node_t, const Intrinsic&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_fninvoke(wpp::node_t, const FnInvoke&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_fn(wpp::node_t, const Fn&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_codeify(wpp::node_t, const Codeify&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_varref(wpp::node_t, const VarRef&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_var(wpp::node_t, const Var&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_push(wpp::node_t, const Push&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_pop(wpp::node_t, const Pop&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_use(wpp::node_t, const Use&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_drop(wpp::node_t, const Drop&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_string(wpp::node_t, const String&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_cat(wpp::node_t, const Concat&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_block(wpp::node_t, const Block&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_map(wpp::node_t, const Map&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_document(wpp::node_t, const Document&, wpp::Env&, wpp::FnEnv*);
+	}
 }
 
 
@@ -61,53 +80,64 @@ namespace wpp { namespace {
 
 		std::string caller_mangled_name = wpp::cat(caller_name, caller_args.size());
 
-		// If it wasn't a parameter, we fall through to here and check if it's a function.
+
 		auto func_it = functions.find(caller_mangled_name);
 
-		if (func_it == functions.end() or func_it->second.empty())
-			wpp::error(
-				node_id, env,
-				"function not found",
-				wpp::cat("attempting to invoke function '", caller_name, "' which is undefined"),
-				"are you passing the correct number of arguments?"
-			);
+		if (func_it == functions.end() or func_it->second.empty()) {
+			func_it = functions.find(wpp::cat(caller_name, "_v"));
+
+			if (func_it == functions.end() or func_it->second.empty())
+				wpp::error(
+					node_id, env,
+					"function not found",
+					wpp::cat("attempting to invoke function '", caller_name, "' (", caller_args.size(), " parameters) which is undefined"),
+					"are you passing the correct number of arguments?"
+				);
+		}
 
 		const auto func = ast.get<wpp::Fn>(func_it->second.back());
 
 		// Retrieve function.
 		const auto& callee_name = func.identifier;
 		const auto& params = func.parameters;
-		const auto& body = func.body;
+		const auto body = func.body;
+		const auto is_variadic = func.is_variadic;
+
 
 		// Set up Arguments to pass down to function body.
 		wpp::FnEnv new_fn_env;
 
 		if (fn_env)
-			new_fn_env.args = fn_env->args;
+			new_fn_env.arguments = fn_env->arguments;
 
-		// Evaluate arguments and store their result.
-		for (int i = 0; i < (int)caller_args.size(); i++) {
-			const auto result = evaluate(caller_args[i], env, fn_env);
 
-			if (auto it = new_fn_env.args.find(params[i]); it != new_fn_env.args.end()) {
-				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
-					wpp::warn(
-						node_id, env,
-						"parameter shadows parameter",
-						wpp::cat(
-							"parameter '", it->first, "' inside function '", callee_name, "' shadows parameter from enclosing function"
-						)
-					);
-
-				it->second = result;
-			}
-
-			else
-				new_fn_env.args.insert_or_assign(params[i], evaluate(caller_args[i], env, fn_env));
+		// Handle variadic args.
+		for (auto it = caller_args.rbegin(); it != (caller_args.rend() - params.size()); ++it) {
+			const auto result = evaluate(*it, env, fn_env);
+			eval_push(node_id, wpp::Push{*it}, env, fn_env);
 		}
 
-		for (auto& [key, val]: new_fn_env.args)
-			std::cerr << key << " -> " << val << '\n';
+		// Evaluate arguments and store their result.
+		for (auto it = params.rbegin(); it != params.rend(); ++it) {
+			// Calculate distance from end of params to current iterator -1
+			const auto index = std::distance(it, params.rend()) - 1;
+			const auto result = evaluate(caller_args[index], env, fn_env);
+
+			// If parameter is not already in environment, insert it.
+			if (const auto arg_it = new_fn_env.arguments.find(*it); arg_it == new_fn_env.arguments.end())
+				new_fn_env.arguments.emplace(*it, result);
+
+			// If parameter exists, overwrite it.
+			else {
+				arg_it->second = result;
+
+				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
+					wpp::warn(node_id, env, "parameter shadows parameter",
+						wpp::cat("parameter '", arg_it->first, "' inside function '", callee_name, "' shadows parameter from enclosing function")
+					);
+			}
+		}
+
 
 		// Call function.
 		return evaluate(body, env, &new_fn_env);
@@ -121,24 +151,29 @@ namespace wpp { namespace {
 		const auto& name = func.identifier;
 		const auto& params = func.parameters;
 		const auto& body = func.body;
+		const auto& is_variadic = func.is_variadic;
 
 		DBG("fn: ", name, ", body: ", body);
 
-		auto it = functions.find(wpp::cat(name, params.size()));
 
-		if (it != functions.end()) {
+		std::string mangled_name;
+
+		if (is_variadic)
+			mangled_name = wpp::cat(name, "_v");
+
+		else
+			mangled_name = wpp::cat(name, params.size());
+
+
+		if (auto it = functions.find(mangled_name); it != functions.end()) {
 			if (flags & wpp::WARN_FUNC_REDEFINED)
-				wpp::warn(
-					node_id, env,
-					"function redefined",
-					wpp::cat("function '", name, "' redefined")
-				);
+				wpp::warn(node_id, env, "function redefined", wpp::cat("function '", name, "' redefined"));
 
 			it->second.emplace_back(node_id);
 		}
 
 		else
-			functions.emplace(wpp::cat(name, params.size()), std::vector{node_id});
+			functions.emplace(mangled_name, std::vector{node_id});
 
 		return "";
 	}
@@ -161,9 +196,9 @@ namespace wpp { namespace {
 
 		// Check if parameter.
 		if (fn_env) {
-			auto& args = fn_env->args;
+			auto& arguments = fn_env->arguments;
 
-			if (auto it = args.find(name); it != args.end()) {
+			if (auto it = arguments.find(name); it != arguments.end()) {
 				str = it->second; // Return str.
 
 				// Check if it's shadowing a function (even this one).
@@ -228,26 +263,35 @@ namespace wpp { namespace {
 	}
 
 
-	std::string eval_pop(wpp::node_t node_id, const Pop& poop, wpp::Env& env, wpp::FnEnv* fn_env) {
+	std::string eval_pop(wpp::node_t node_id, const Pop& pop, wpp::Env& env, wpp::FnEnv* fn_env) {
 		std::string str;
 
 		auto& stack = env.stack;
+		auto& functions = env.functions;
+		auto& ast = env.ast;
 
-		const auto& func = poop.identifier;
-		const auto& args = poop.arguments;
-		const auto index = poop.index_of_popped_arg;
+		const auto& func = pop.identifier;
+		const auto index = pop.index_of_popped_arg;
+		auto args = pop.arguments;
+
+		DBG();
 
 		if (not stack.empty()) {
-			str = stack.top();
+			std::string top = stack.top();
+			wpp::node_t node = ast.add<String>(top);
 			stack.pop();
-			// evaluate(expr, env, fn_env);
+
+			args[index] = node;
+
+			str = eval_fninvoke(node_id, FnInvoke{args, func}, env, fn_env);
 		}
 
-		// else {
-		// 	// wpp::error(node_id, env, "stack underflow", "popping from an empty stack");
-		// }
+		else {
+			args.erase(args.begin() + index);
+			str = eval_fninvoke(node_id, FnInvoke{args, func}, env, fn_env);
+		}
 
-		// DBG("pop: '", str, "'");
+		DBG("pop: '", str, "'");
 
 		return str;
 	}

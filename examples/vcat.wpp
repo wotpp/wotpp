@@ -1,0 +1,9 @@
+let vcat_p(x)
+	x .. pop vcat_p(*)
+
+let vcat_p() ""
+
+let vcat(*) pop vcat_p(*)
+
+vcat(\a, \b, \c) "\n"
+

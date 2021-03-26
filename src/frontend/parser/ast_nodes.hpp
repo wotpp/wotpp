@@ -51,15 +51,18 @@ namespace wpp {
 		std::vector<wpp::View> parameters;
 		wpp::View identifier;
 		wpp::node_t body;
+		bool is_variadic;
 
 		Fn(
 			const std::vector<wpp::View>& parameters_,
 			const wpp::View& identifier_,
-			const wpp::node_t body_
+			const wpp::node_t body_,
+			const bool is_variadic_
 		):
 			parameters(parameters_),
 			identifier(identifier_),
-			body(body_) {}
+			body(body_),
+			is_variadic(is_variadic_) {}
 
 		Fn() {}
 	};
@@ -166,12 +169,12 @@ namespace wpp {
 	};
 
 	struct Pop {
-		std::vector<wpp::View> arguments;
+		std::vector<wpp::node_t> arguments;
 		wpp::View identifier;
 		int index_of_popped_arg;
 
 		Pop(
-			const std::vector<wpp::View>& arguments_,
+			const std::vector<wpp::node_t>& arguments_,
 			const wpp::View& identifier_,
 			int index_of_popped_arg_
 		):

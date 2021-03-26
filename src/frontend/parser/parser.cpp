@@ -676,13 +676,45 @@ namespace wpp { namespace {
 
 		lex.advance();  // Skip `(`.
 
+
+		bool found_star = false;
+
 		if (lex.peek() != TOKEN_RPAREN) {
 			// Collect parameters.
 			// Advance until we run out of identifiers.
 			// While there is an identifier there is another parameter.
-			while (lex.peek() == TOKEN_IDENTIFIER) {
-				// Add the parameter
-				tree.get<Fn>(node).parameters.emplace_back(lex.advance().view);
+			while (wpp::eq_any(lex.peek(), TOKEN_IDENTIFIER, TOKEN_STAR)) {
+				if (lex.peek() == TOKEN_STAR) {
+					if (found_star)
+						wpp::error(
+							lex.position(), env,
+							"duplicate `*`",
+							"found multiple occurrences of `*` in parameter list",
+							"remove one of the `*` in your parameter list"
+						);
+
+					else {
+						found_star = true;
+						tree.get<Fn>(node).is_variadic = true;
+					}
+
+					lex.advance();
+				}
+
+				else {
+					if (found_star)
+						wpp::error(
+							lex.position(), env,
+							"parameter follows `*`",
+							"`*` must come after all other parameters",
+							"move the parameters to the front of `*`"
+						);
+
+					// Add the parameter
+					else
+						tree.get<Fn>(node).parameters.emplace_back(lex.advance().view);
+				}
+
 
 				// If the next token is a comma, skip it.
 				if (lex.peek() == TOKEN_COMMA)
@@ -846,13 +878,15 @@ namespace wpp { namespace {
 		bool found_popped_arg = false;
 
 		if (lex.peek() != TOKEN_RPAREN) {
-			while (wpp::eq_any(lex.peek(), TOKEN_IDENTIFIER, TOKEN_STAR)) {
+			// While there is an expression there is another parameter.
+			while (peek_is_expr(lex.peek()) or lex.peek() == TOKEN_STAR) {
 				// Check if we have already encountered `*`, error if yes.
 				// If not, we set the flag to true and record the index of this arg.
 				if (lex.peek() == TOKEN_STAR) {
 					if (not found_popped_arg) {
 						found_popped_arg = true;
 						tree.get<Pop>(node).index_of_popped_arg = tree.get<Pop>(node).arguments.size();
+						tree.get<Pop>(node).arguments.emplace_back(NODE_EMPTY);
 					}
 
 					else if (found_popped_arg)
@@ -862,21 +896,26 @@ namespace wpp { namespace {
 							"found multiple occurrences of `*` in argument list",
 							"remove one of the `*` in your argument list, only specify one index for the popped value to be passed"
 						);
+
+					lex.advance();
 				}
 
-				// Add argument to vector.
-				tree.get<Pop>(node).arguments.emplace_back(lex.advance().view);
+				else {
+					// Parse expr.
+					wpp::node_t expr = expression(lex, tree, pos, env);
+					tree.get<Pop>(node).arguments.emplace_back(expr);
+				}
 
-
-				// We expect either a comma or a closing paren to follow an identifier.
+				// If the next token is a comma, skip it.
 				if (lex.peek() == TOKEN_COMMA)
 					lex.advance(); // skip the comma
 
+				// Otherwise it must be ')'
 				else if (lex.peek() != TOKEN_RPAREN)
 					wpp::error(
 						lex.position(), env,
-						"expected identifier or `)`",
-						"expecting identifier or `)` to follow `,`"
+						"expected expression or `)`",
+						"expecting expression  or `)` to follow `,`"
 					);
 			}
 		}

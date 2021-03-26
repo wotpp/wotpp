@@ -1,0 +1,21 @@
+let rest(s, x)
+	x .. s .. pop rest(s, *)
+
+let rest(s) ""
+
+
+let first(s, x) x
+let first(s) ""
+
+
+let join(sep)
+	pop first(sep, *)
+	.. pop rest(sep, *)
+
+
+push "c"
+push "b"
+push "a"
+
+join(", ") '\n'
+
