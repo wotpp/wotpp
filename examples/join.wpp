@@ -8,14 +8,11 @@ let first(s, x) x
 let first(s) ""
 
 
-let join(sep)
+let join(sep, *)
 	pop first(sep, *)
 	.. pop rest(sep, *)
 
 
-push "c"
-push "b"
-push "a"
+join(", ", \a, \b, \c) '\n'
 
-join(", ") '\n'
 

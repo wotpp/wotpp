@@ -117,6 +117,7 @@ namespace wpp { namespace {
 			eval_push(node_id, wpp::Push{*it}, env, fn_env);
 		}
 
+
 		// Evaluate arguments and store their result.
 		for (auto it = params.rbegin(); it != params.rend(); ++it) {
 			// Calculate distance from end of params to current iterator -1
@@ -140,7 +141,17 @@ namespace wpp { namespace {
 
 
 		// Call function.
-		return evaluate(body, env, &new_fn_env);
+		env.call_depth++;
+
+		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth % 128 == 0)
+			wpp::warn(node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of ", env.call_depth),
+				"a large call depth may indicate recursion without an exit condition"
+			);
+
+		const std::string str = evaluate(body, env, &new_fn_env);
+		env.call_depth--;
+
+		return str;
 	}
 
 

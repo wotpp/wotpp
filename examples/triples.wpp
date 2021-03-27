@@ -1,0 +1,24 @@
+let arrow(x, y) x .. " -> " .. y .. "\n"
+let arrow(x) x .. " -> <null>\n"
+
+let colon(x, y) x .. ": " .. y
+let colon(x) x .. ": <null>"
+
+let rec_3(x, y) arrow(x, y) .. pop rec_1(*)
+let rec_2(x, y) pop rec_3(colon(x, y), *)
+let rec_1(x) pop rec_2(x, *)
+
+let rec_3(x) arrow(x)
+let rec_2(x) colon(x) .. "\n"
+let rec_1() ""
+
+let triples(*)
+	pop rec_1(*)
+
+triples(\a, \b, \c, \d, \e, \f) '\n'
+triples(\a, \b, \c, \d, \e) '\n'
+triples(\a, \b, \c, \d) '\n'
+triples(\a, \b, \c)
+
+
+

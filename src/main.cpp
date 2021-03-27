@@ -52,8 +52,11 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 		else if (x == "func-redefined")
 			flags |= wpp::WARN_FUNC_REDEFINED;
 
-		else if (x == "varfunc-redefined")
-			flags |= wpp::WARN_VARFUNC_REDEFINED;
+		else if (x == "var-redefined")
+			flags |= wpp::WARN_VAR_REDEFINED;
+
+		else if (x == "deep-recursion")
+			flags |= wpp::WARN_DEEP_RECURSION;
 
 		else if (x == "all")
 			flags = wpp::WARN_ALL;

@@ -1,0 +1,28 @@
+# Overloads for pair.
+let pair(x, y) x .. ". " .. y .. "\n"
+let pair(x) x .. ". <null>\n"
+let pair() ""
+
+
+# Assemble a pair and then cat it to the return of another pop.
+let rec_2(x, y)
+	pair(x, y) .. pop rec_1(*)
+
+# Base case for empty stack.
+let rec_2(x) pair(x)
+
+
+# `x` was popped previously, we pass it down along with
+# a newly popped value to get a pair of strings.
+let rec_1(x) pop rec_2(x, *)
+let rec_1() ""
+
+# Variadic wrapper func.
+let pairs(*) pop rec_1(*)
+
+pairs(\a, \b) # `a. b`
+pairs(\a)     # `a. <null>`
+pairs()       # `` (empty string)
+
+
+

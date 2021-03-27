@@ -84,6 +84,8 @@ namespace wpp {
 
 		wpp::Sources sources{};
 
+		int call_depth{};
+
 		const std::filesystem::path root{};
 		const wpp::flags_t flags{};
 
