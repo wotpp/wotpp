@@ -59,15 +59,12 @@ namespace wpp { namespace {
 				return str; \
 			}
 
-		INTRINSIC(3, slice,  TOKEN_SLICE);
-		INTRINSIC(2, find,   TOKEN_FIND);
 		INTRINSIC(2, assert, TOKEN_ASSERT);
 		INTRINSIC(2, pipe,   TOKEN_PIPE);
 		INTRINSIC(1, error,  TOKEN_ERROR);
 		INTRINSIC(1, file,   TOKEN_FILE);
 		INTRINSIC(1, escape, TOKEN_ESCAPE);
 		INTRINSIC(1, run,    TOKEN_RUN);
-		INTRINSIC(1, length, TOKEN_LENGTH);
 		INTRINSIC(1, log,    TOKEN_LOG);
 
 		#undef INTRINSIC

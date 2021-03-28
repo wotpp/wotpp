@@ -114,10 +114,6 @@ namespace wpp {
 		return in_range(c, 'A', 'F') or in_range(c, 'a', 'f') or is_digit(c);
 	}
 
-	constexpr bool is_dec(const char* c) {
-		return is_digit(c);
-	}
-
 	constexpr bool is_bin(const char* c) {
 		return in_group(c, '0', '1');
 	}

@@ -18,8 +18,9 @@
 int main(int argc, const char* argv[]) {
 	auto t1 = std::chrono::steady_clock::now();
 
-constexpr auto ver = "alpha-git";
-constexpr auto desc = "A small macro language for producing and manipulating strings.";
+	constexpr auto ver = "alpha-git";
+	constexpr auto desc = "A small macro language for producing and manipulating strings.";
+
 
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
@@ -43,6 +44,7 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 	wpp::flags_t flags = 0;
 
 	for (const auto& x: warnings) {
+		// Set warnings flags.
 		if (x == "param-shadow-var")
 			flags |= wpp::WARN_PARAM_SHADOW_VAR;
 
@@ -58,9 +60,30 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 		else if (x == "deep-recursion")
 			flags |= wpp::WARN_DEEP_RECURSION;
 
+
+		// Unset warning flags.
+		if (x == "no-param-shadow-var")
+			flags &= ~wpp::WARN_PARAM_SHADOW_VAR;
+
+		else if (x == "no-param-shadow-param")
+			flags &= ~wpp::WARN_PARAM_SHADOW_PARAM;
+
+		else if (x == "no-func-redefined")
+			flags &= ~wpp::WARN_FUNC_REDEFINED;
+
+		else if (x == "no-var-redefined")
+			flags &= ~wpp::WARN_VAR_REDEFINED;
+
+		else if (x == "no-deep-recursion")
+			flags &= ~wpp::WARN_DEEP_RECURSION;
+
+
+		// Enable all warnings.
 		else if (x == "all")
 			flags = wpp::WARN_ALL;
 
+
+		// Unknown warning flag.
 		else {
 			std::cerr << "unrecognized warning: '" << x << "'.\n";
 			return 1;
@@ -101,7 +124,7 @@ constexpr auto desc = "A small macro language for producing and manipulating str
 			return 1;
 		}
 
-		catch (const std::filesystem::filesystem_error&) {
+		catch (...) {
 			std::cerr << "file '" << fname << "' not found.\n";
 			return 1;
 		}

@@ -115,7 +115,6 @@ namespace wpp { namespace {
 	wpp::node_t stringify_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t hex_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t bin_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t dec_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 
 	wpp::node_t raw_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t para_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
@@ -780,34 +779,9 @@ namespace wpp { namespace {
 
 
 		// Consume list of identifiers.
-		bool found_star = false;
-
-		while (wpp::eq_any(lex.peek(), TOKEN_IDENTIFIER, TOKEN_STAR)) {
-			if (lex.peek() == TOKEN_STAR) {
-				if (not found_star)
-					found_star = true;
-
-				else
-					wpp::error(lex.position(), env, "duplicate `*`",
-						"found multiple occurrences of `*` in argument list",
-						"remove one of the `*` in your argument list"
-					);
-			}
-
-			else {
-				if (not found_star)
-					// Increment number of arguments.
-					tree.get<DropFunc>(node).n_args++;
-
-				else
-					wpp::error(lex.position(), env, "argument follows `*`",
-						"`*` must come after all other arguments",
-						"move the arguments to the front of `*`"
-					);
-			}
-
+		while (lex.peek() == TOKEN_IDENTIFIER) {
+			tree.get<DropFunc>(node).n_args++;
 			lex.advance();
-
 
 			// If the next token is a comma, skip it.
 			if (lex.peek() == TOKEN_COMMA)
@@ -818,17 +792,25 @@ namespace wpp { namespace {
 				wpp::error(lex.position(), env, "expected identifier or `)`", "expecting identifier  or `)` to follow `,`");
 		}
 
-		// Make sure parameter list is terminated by `)`.
-		if (lex.advance() != TOKEN_RPAREN)
+		if (lex.peek() == TOKEN_STAR) {
+			tree.replace<DropVarFunc>(node, identifier, tree.get<DropFunc>(node).n_args);
+			lex.advance();
+
+			// Make sure parameter list is terminated by `)`.
+			if (lex.peek() != TOKEN_RPAREN)
+				wpp::error(lex.position(), env, "expected `)`",
+					"expecting `)` to terminate parameter list",
+					"`*` must come at the end of the parameter list"
+				);
+		}
+
+		else if (lex.peek() != TOKEN_RPAREN)
 			wpp::error(lex.position(), env, "expected `)`",
 				"expecting `)` to follow argument list",
 				"there might be a non-identifier token in the argument list"
 			);
 
-
-		if (found_star)
-			tree.replace<DropVarFunc>(node, identifier, tree.get<DropFunc>(node).n_args);
-
+		lex.advance();
 
 		return node;
 	}
@@ -891,56 +873,44 @@ namespace wpp { namespace {
 		lex.advance();  // Skip `(`.
 
 
-		bool found_placeholders = false;
-
 		if (lex.peek() != TOKEN_RPAREN) {
 			// While there is an expression there is another parameter.
-			while (peek_is_expr(lex.peek()) or lex.peek() == TOKEN_STAR) {
-				// Check if we have already encountered `*`, error if yes.
-				// If not, we set the flag to true and record the index of this arg.
-				if (lex.peek() == TOKEN_STAR) {
-					if (not found_placeholders)
-						found_placeholders = true;
-
-					tree.get<Pop>(node).n_popped_args++;
-					lex.advance();
-				}
-
-				else {
-					if (found_placeholders)
-						wpp::error(lex.position(), env, "unexpected identifier", "identifiers must come before any `*` in the argument list");
-
-					// Parse expr.
-					wpp::node_t expr = expression(lex, tree, pos, env);
-					tree.get<Pop>(node).arguments.emplace_back(expr);
-				}
+			while (peek_is_expr(lex.peek())) {
+				wpp::node_t expr = expression(lex, tree, pos, env);
+				tree.get<Pop>(node).arguments.emplace_back(expr);
 
 				// If the next token is a comma, skip it.
 				if (lex.peek() == TOKEN_COMMA)
 					lex.advance(); // skip the comma
-
-				// Otherwise it must be ')'
-				else if (lex.peek() != TOKEN_RPAREN)
-					wpp::error(lex.position(), env, "expected expression or `)`", "expecting expression  or `)` to follow `,`");
 			}
 		}
+
+
+		if (lex.peek() != TOKEN_STAR)
+			wpp::error(node, env, "no substitute argument",
+				"the function template must specify an argument with which to substitute the popped value",
+				"insert `*` somewhere in the argument list to specify that the popped value will be passed to that index"
+			);
+
+
+		while (lex.peek() == TOKEN_STAR) {
+			tree.get<Pop>(node).n_popped_args++;
+			lex.advance();
+
+			// If the next token is a comma, skip it.
+			if (lex.peek() == TOKEN_COMMA)
+				lex.advance(); // skip the comma
+		}
+
 
 		// Make sure argument list is terminated by `)`.
 		if (lex.peek() != TOKEN_RPAREN)
 			wpp::error(lex.position(), env, "expected `)`",
-				"expecting `)` to follow argument list",
-				"there might be a non-identifier token in the argument list"
+				"expecting `)` to terminate argument list",
+				"`*` must come at the end of the argument list"
 			);
 
 		lex.advance();
-
-
-		// Make sure we found `*` in the argument list.
-		if (not found_placeholders)
-			wpp::error(node, env, "no substitute arguments",
-				"the function template must specify at least one argument with which to substitute the popped value",
-				"insert `*` to the end of the argument list to specify that the popped value will be passed to that index"
-			);
 
 		return node;
 	}
