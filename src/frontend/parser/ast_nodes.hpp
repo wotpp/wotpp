@@ -97,12 +97,39 @@ namespace wpp {
 		Codeify() {}
 	};
 
-	struct Drop {
-		wpp::node_t func{};
 
-		Drop(const wpp::node_t& func_): func(func_) {}
-		Drop() {}
+	struct DropFunc {
+		wpp::View identifier{};
+		int n_args{};
+
+		DropFunc(const wpp::View& identifier_, int n_args_):
+			identifier(identifier_), n_args(n_args_) {}
+
+		DropFunc() {}
 	};
+
+
+	struct DropVar {
+		wpp::View identifier{};
+
+		DropVar(const wpp::View& identifier_):
+			identifier(identifier_) {}
+
+		DropVar() {}
+	};
+
+
+	// Drop variadic function.
+	struct DropVarFunc {
+		wpp::View identifier{};
+		int min_args{};
+
+		DropVarFunc(const wpp::View& identifier_, int min_args_):
+			identifier(identifier_), min_args(min_args_) {}
+
+		DropVarFunc() {}
+	};
+
 
 	// String literal.
 	struct String {
@@ -171,16 +198,16 @@ namespace wpp {
 	struct Pop {
 		std::vector<wpp::node_t> arguments{};
 		wpp::View identifier{};
-		int index_of_popped_arg{};
+		int n_popped_args{};
 
 		Pop(
 			const std::vector<wpp::node_t>& arguments_,
 			const wpp::View& identifier_,
-			int index_of_popped_arg_
+			int n_popped_args_
 		):
 			arguments(arguments_),
 			identifier(identifier_),
-			index_of_popped_arg(index_of_popped_arg_) {}
+			n_popped_args(n_popped_args_) {}
 
 		Pop() {}
 	};
@@ -208,7 +235,9 @@ namespace wpp {
 		Concat,
 		Block,
 		Document,
-		Drop
+		DropFunc,
+		DropVar,
+		DropVarFunc
 	>;
 }
 

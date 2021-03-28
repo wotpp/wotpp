@@ -162,7 +162,7 @@ namespace wpp {
 			}
 
 			else if (*offset == '\0') {
-				pos_info_str = " (eof)";
+				pos_info_str = " eof";
 			}
 
 			else {
@@ -221,7 +221,10 @@ namespace wpp {
 		}
 
 		else {
-			src_snippet_str = wpp::cat(column_str, " │ ", error_specific);
+			if (mode != modes::repl)
+				src_snippet_str = wpp::cat(column_str, "(eof) │ ", error_specific);
+			else
+				src_snippet_str = wpp::cat(column_str, " │ ", error_specific);
 		}
 
 		if (not suggestion.empty())

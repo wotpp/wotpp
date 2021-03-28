@@ -1,24 +1,24 @@
-let arrow(x, y) x .. " -> " .. y .. "\n"
-let arrow(x) x .. " -> <null>\n"
+let render(x, y, z)
+	x .. ": " .. y .. " -> " .. z .. '\n'
 
-let colon(x, y) x .. ": " .. y
-let colon(x) x .. ": <null>"
+let render(x, y)
+	x .. ": " .. y .. " -> <null>\n"
 
-let rec_3(x, y) arrow(x, y) .. pop rec_1(*)
-let rec_2(x, y) pop rec_3(colon(x, y), *)
-let rec_1(x) pop rec_2(x, *)
+let render(x)
+	x .. ": <null> -> <null>\n"
 
-let rec_3(x) arrow(x)
-let rec_2(x) colon(x) .. "\n"
-let rec_1() ""
 
-let triples(*)
-	pop rec_1(*)
+let recurse(x, y, z) render(x, y, z) .. triples()
+let recurse(x, y)    render(x, y) ..    triples()
+let recurse(x)       render(x) ..       triples()
+let recurse()        ""
+
+let triples(*) pop recurse(*, *, *)
+
 
 triples(\a, \b, \c, \d, \e, \f) '\n'
 triples(\a, \b, \c, \d, \e) '\n'
 triples(\a, \b, \c, \d) '\n'
 triples(\a, \b, \c)
-
 
 

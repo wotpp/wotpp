@@ -18,6 +18,27 @@
 
 
 namespace wpp {
+	struct FuncKey {
+		wpp::View identifier{};
+		int n_args{};
+
+		bool operator==(const FuncKey& other) const {
+			return n_args == other.n_args and identifier == other.identifier;
+		}
+	};
+}
+
+
+namespace std {
+	template<> struct hash<wpp::FuncKey> {
+		std::size_t operator()(const wpp::FuncKey& v) const noexcept {
+			return std::hash<wpp::View>()(v.identifier) ^ std::hash<int>()(v.n_args);
+		}
+	};
+}
+
+
+namespace wpp {
 	struct Source {
 		const std::filesystem::path file{};
 		const char* const base = nullptr;
@@ -40,8 +61,15 @@ namespace wpp {
 	};
 
 
-	using Functions = std::unordered_map<std::string, std::vector<wpp::node_t>>;
-	using Variables = std::unordered_map<std::string, std::string>;
+	struct VariadicFuncEntry {
+		std::vector<wpp::node_t> generations{};
+		int min_args{};
+	};
+
+
+	using Variables         = std::unordered_map<wpp::View, std::vector<std::string>>;
+	using VariadicFunctions = std::unordered_map<wpp::View, wpp::VariadicFuncEntry>;
+	using Functions         = std::unordered_map<wpp::FuncKey, std::vector<wpp::node_t>>;
 
 	using Arguments = std::unordered_map<wpp::View, std::string>;
 	using Positions = std::vector<wpp::Pos>;
@@ -76,20 +104,20 @@ namespace wpp {
 	struct Env {
 		wpp::AST ast{};
 
+		wpp::VariadicFunctions variadic_functions{};
 		wpp::Functions functions{};
 		wpp::Variables variables{};
-		wpp::Positions positions{};
 
 		std::stack<std::string, std::vector<std::string>> stack{};
 
+		wpp::Positions positions{};
 		wpp::Sources sources{};
-
-		int call_depth{};
 
 		const std::filesystem::path root{};
 		const wpp::flags_t flags{};
-
 		wpp::flags_t state{};
+
+		int call_depth{};
 
 
 		Env(
