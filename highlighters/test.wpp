@@ -8,7 +8,7 @@ pipe("echo", "hello world")
 escape("'foo'")
 log("hello")
 
-r#" "#
+r#""#
 
 0xFF
 0b1111

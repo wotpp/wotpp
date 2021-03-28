@@ -17,12 +17,20 @@ provide-module -override wpp %{
 
 	add-highlighter shared/wpp/other/ regex "\B\\([^\s\)])+" 0:string
 
-	add-highlighter shared/wpp/raw_string region -match-capture %{\br([^\s])("|')} %{(?:"|')([^\s])} fill string
-	add-highlighter shared/wpp/code_string region -match-capture %{\bc([^\s])("|')} %{(?:"|')([^\s])} group
-	add-highlighter shared/wpp/para_string region -match-capture %{\bp([^\s])("|')} %{(?:"|')([^\s])} group
+	add-highlighter shared/wpp/raw_string_dquote region -match-capture %{\br([^\s])"} %{"([^\s"])} fill string
+	add-highlighter shared/wpp/raw_string_squote region -match-capture %{\br([^\s])'} %{'([^\s'])} fill string
 
-	add-highlighter shared/wpp/code_string/ fill string
-	add-highlighter shared/wpp/para_string/ fill string
+	add-highlighter shared/wpp/code_string_dquote region -match-capture %{\bc([^\s])"} %{"([^\s"])} group
+	add-highlighter shared/wpp/code_string_squote region -match-capture %{\bc([^\s])'} %{'([^\s'])} group
+
+	add-highlighter shared/wpp/para_string_dquote region -match-capture %{\bp([^\s])"} %{"([^\s"])} group
+	add-highlighter shared/wpp/para_string_squote region -match-capture %{\bp([^\s])'} %{'([^\s'])} group
+
+	add-highlighter shared/wpp/code_string_dquote/ fill string
+	add-highlighter shared/wpp/para_string_dquote/ fill string
+
+	add-highlighter shared/wpp/code_string_squote/ fill string
+	add-highlighter shared/wpp/para_string_squote/ fill string
 
 	add-highlighter shared/wpp/doublequote_string region '"' (?<!\\)(\\\\)*" group
 	add-highlighter shared/wpp/singlequote_string region "'" (?<!\\)(\\\\)*' group
