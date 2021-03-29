@@ -38,7 +38,107 @@ namespace wpp {
 
 // Utils
 namespace wpp { namespace {
+	wpp::Fn find_func(wpp::node_t node_id, const FnInvoke& call, int n_args, wpp::Env& env) {
+		auto& functions = env.functions;
+		auto& variadic_functions = env.variadic_functions;
+		const auto& ast = env.ast;
+		const auto& flags = env.flags;
 
+		const auto& name = call.identifier;
+		const auto& args = call.arguments;
+
+		wpp::Fn func{};
+
+		// Lookup normal function first.
+		const auto it = functions.find(wpp::FuncKey{name, n_args});
+
+		if (it != functions.end())
+			func = ast.get<wpp::Fn>(it->second.back());
+
+		// No normal function found, we look up a variadic function.
+		else {
+			const auto it = variadic_functions.find(name);
+
+			// Check if we found a match and that the caller has the minimum number of arguments required.
+			if (it != variadic_functions.end() and n_args >= it->second.min_args)
+				func = ast.get<wpp::Fn>(it->second.generations.back());
+
+			// No func found, normal nor variadic.
+			else
+				wpp::error(node_id, env, "function not found",
+					wpp::cat("attempting to invoke function '", name, "' (", n_args, " parameters) which is undefined"),
+					"are you passing the correct number of arguments?"
+				);
+		}
+
+		return func;
+	}
+
+
+	std::string call_func(wpp::node_t node_id, const FnInvoke& call, const std::vector<std::string>& arg_strings, wpp::Env& env, wpp::FnEnv* fn_env) {
+		auto& functions = env.functions;
+		auto& variadic_functions = env.variadic_functions;
+		const auto& ast = env.ast;
+		const auto& flags = env.flags;
+
+		const auto& name = call.identifier;
+		const auto& args = call.arguments;
+
+
+		wpp::Fn func = find_func(node_id, call, arg_strings.size(), env);
+
+
+		// Set up Arguments to pass down to function body.
+		wpp::FnEnv new_fn_env;
+
+		if (fn_env)
+			new_fn_env.arguments = fn_env->arguments;
+
+
+		const auto& params = func.parameters;
+
+		// Push variadic arguments.
+		for (auto it = arg_strings.rbegin(); it != (arg_strings.rend() - params.size()); ++it)
+			env.stack.emplace(*it);
+
+
+		// Setup normal arguments.
+		for (auto it = params.rbegin(); it != params.rend(); ++it) {
+			// Calculate distance from end of params to current iterator -1
+			const auto index = std::distance(it, params.rend()) - 1;
+			const auto& result = arg_strings[index];
+
+			const auto arg_it = new_fn_env.arguments.find(*it);
+
+			// If parameter is not already in environment, insert it.
+			if (arg_it == new_fn_env.arguments.end())
+				new_fn_env.arguments.emplace(*it, result);
+
+			// If parameter exists, overwrite it.
+			else {
+				arg_it->second = result;
+
+				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
+					wpp::warn(node_id, env, "parameter shadows parameter",
+						wpp::cat("parameter '", arg_it->first, "' inside function '", name, "' shadows parameter from enclosing function")
+					);
+			}
+		}
+
+
+		// Call function.
+		env.call_depth++;
+
+		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth % 128 == 0)
+			wpp::warn(node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of ", env.call_depth),
+				"a large call depth may indicate recursion without an exit condition"
+			);
+
+		const std::string str = evaluate(func.body, env, &new_fn_env);
+		env.call_depth--;
+
+		return str;
+	}
 }}
 
 
@@ -76,95 +176,13 @@ namespace wpp { namespace {
 	std::string eval_fninvoke(wpp::node_t node_id, const FnInvoke& call, wpp::Env& env, wpp::FnEnv* fn_env) {
 		DBG();
 
-		auto& functions = env.functions;
-		auto& variadic_functions = env.variadic_functions;
-		const auto& ast = env.ast;
-		const auto& flags = env.flags;
+		// Evaluate arguments.
+		std::vector<std::string> arg_strings;
 
-		const auto& name = call.identifier;
-		const auto& args = call.arguments;
+		for (const wpp::node_t node: call.arguments)
+			arg_strings.emplace_back(wpp::evaluate(node, env, fn_env));
 
-
-		wpp::Fn func{};
-
-		// Lookup normal function first.
-		{
-			const auto it = functions.find(wpp::FuncKey{name, args.size()});
-
-			if (it != functions.end())
-				func = ast.get<wpp::Fn>(it->second.back());
-
-			// No normal function found, we look up a variadic function.
-			else {
-				const auto it = variadic_functions.find(name);
-
-				// Check if we found a match and that the caller has the minimum number of arguments required.
-				if (it != variadic_functions.end() and args.size() >= it->second.min_args)
-					func = ast.get<wpp::Fn>(it->second.generations.back());
-
-				// No func found, normal nor variadic.
-				else
-					wpp::error(node_id, env, "function not found",
-						wpp::cat("attempting to invoke function '", name, "' (", args.size(), " parameters) which is undefined"),
-						"are you passing the correct number of arguments?"
-					);
-			}
-		}
-
-
-		// Set up Arguments to pass down to function body.
-		wpp::FnEnv new_fn_env;
-
-		if (fn_env)
-			new_fn_env.arguments = fn_env->arguments;
-
-
-		const auto& params = func.parameters;
-
-		// Arguments are evaluated right to left.
-		// Handle variadic args first.
-		for (auto it = args.rbegin(); it != (args.rend() - params.size()); ++it) {
-			const auto result = evaluate(*it, env, fn_env);
-			eval_push(node_id, wpp::Push{*it}, env, fn_env); // Push argument to stack.
-		}
-
-
-		// Evaluate normal arguments.
-		for (auto it = params.rbegin(); it != params.rend(); ++it) {
-			// Calculate distance from end of params to current iterator -1
-			const auto index = std::distance(it, params.rend()) - 1;
-			const auto result = evaluate(args[index], env, fn_env);
-
-			const auto arg_it = new_fn_env.arguments.find(*it);
-
-			// If parameter is not already in environment, insert it.
-			if (arg_it == new_fn_env.arguments.end())
-				new_fn_env.arguments.emplace(*it, result);
-
-			// If parameter exists, overwrite it.
-			else {
-				arg_it->second = result;
-
-				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
-					wpp::warn(node_id, env, "parameter shadows parameter",
-						wpp::cat("parameter '", arg_it->first, "' inside function '", name, "' shadows parameter from enclosing function")
-					);
-			}
-		}
-
-
-		// Call function.
-		env.call_depth++;
-
-		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth % 128 == 0)
-			wpp::warn(node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of ", env.call_depth),
-				"a large call depth may indicate recursion without an exit condition"
-			);
-
-		const std::string str = evaluate(func.body, env, &new_fn_env);
-		env.call_depth--;
-
-		return str;
+		return wpp::call_func(node_id, call, arg_strings, env, fn_env);
 	}
 
 
@@ -287,21 +305,24 @@ namespace wpp { namespace {
 
 		const auto& func = pop.identifier;
 		const auto n_popped_args = pop.n_popped_args;
-		auto args = pop.arguments;
+		const auto& args = pop.arguments;
+
+
+		// Evaluate arguments.
+		std::vector<std::string> arg_strings;
+
+		for (const wpp::node_t node: args)
+			arg_strings.emplace_back(wpp::evaluate(node, env, fn_env));
+
 
 		// Loop to collect as many strings from the stack as possible until we reach `n_popped_args`
 		// or the stack is empty.
-		for (int i = 0; i < n_popped_args; ++i) {
-			if (stack.empty())
-				break;
-
-			wpp::node_t node = ast.add<String>(stack.top());
+		for (int i = 0; not stack.empty() and i < n_popped_args; ++i) {
+			arg_strings.emplace_back(stack.top());
 			stack.pop();
-
-			args.emplace_back(node);
 		}
 
-		return eval_fninvoke(node_id, FnInvoke{args, func}, env, fn_env);
+		return wpp::call_func(node_id, FnInvoke{args, func}, arg_strings, env, fn_env);
 	}
 
 
