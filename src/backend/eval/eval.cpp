@@ -300,8 +300,6 @@ namespace wpp { namespace {
 		DBG();
 
 		auto& stack = env.stack;
-		auto& functions = env.functions;
-		auto& ast = env.ast;
 
 		const auto& func = pop.identifier;
 		const auto n_popped_args = pop.n_popped_args;

@@ -9,6 +9,7 @@
 #include <stack>
 #include <list>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <cstdint>
 
@@ -84,8 +85,14 @@ namespace wpp {
 	struct Sources {
 		std::list<wpp::Source> sources{};
 		std::list<std::string> strings{};
+		std::unordered_set<std::string> previously_seen{};
+
+		bool is_previously_seen(const std::filesystem::path& p) const {
+			return previously_seen.find(p.string()) != previously_seen.end();
+		}
 
 		wpp::Source& push(const std::filesystem::path& file, const std::string& str, const wpp::mode_type_t mode) {
+			previously_seen.emplace(file.string());
 			const auto& ref = strings.emplace_back(str);
 			return sources.emplace_back(file, ref.c_str(), mode);
 		}

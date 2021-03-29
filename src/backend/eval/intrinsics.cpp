@@ -120,6 +120,10 @@ namespace wpp {
 		const auto old_path = std::filesystem::current_path();
 		const auto new_path = old_path / std::filesystem::path{fname};
 
+		// Don't source something we've already seen.
+		if (env.sources.is_previously_seen(new_path))
+			return "";
+
 		std::filesystem::current_path(new_path.parent_path());
 		std::string source;
 

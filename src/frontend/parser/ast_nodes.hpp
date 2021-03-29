@@ -219,6 +219,19 @@ namespace wpp {
 		Push() {}
 	};
 
+	struct Slice {
+		wpp::node_t expr{};
+
+		int start{};
+		int stop{};
+		int step{};
+
+		Slice(const wpp::node_t expr_, int start_, int stop_, int step_):
+			expr(expr_), start(start_), stop(stop_), step(step_) {}
+
+		Slice() {}
+	};
+
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
 		Pop,
