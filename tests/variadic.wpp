@@ -43,7 +43,7 @@ triples(\a, \b, \c) '\n'
 
 
 let rest(s, x)
-    x .. s .. pop rest(s, *)
+	x .. s .. pop rest(s, *)
 
 let rest(s) ""
 
@@ -53,7 +53,8 @@ let first(s) ""
 
 
 let join(sep, *)
-    pop rest(sep, *)
+	pop first(sep, *)
+	.. pop rest(sep, *)
 
 
 #[expect(a, b, c, \n)]
