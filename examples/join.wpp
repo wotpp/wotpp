@@ -1,18 +1,15 @@
+let rest(s, x, y)
+	x .. s .. pop rest(s, y, *)
+
 let rest(s, x)
-	x .. s .. pop rest(s, *)
+	x
 
 let rest(s) ""
 
-
-let first(s, x) x
-let first(s) ""
-
-
 let join(sep, *)
-	pop first(sep, *)
-	.. pop rest(sep, *)
+	pop rest(sep, *, *)
 
 
+join(", ", \a, \b, \c, \d) '\n'
 join(", ", \a, \b, \c) '\n'
-
 
