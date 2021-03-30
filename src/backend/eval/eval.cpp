@@ -409,7 +409,12 @@ namespace wpp { namespace {
 
 	std::string eval_cat(wpp::node_t node_id, const Concat& cat, wpp::Env& env, wpp::FnEnv* fn_env) {
 		DBG("lhs: ", cat.lhs, ", rhs: ", cat.rhs);
-		return evaluate(cat.lhs, env, fn_env) + evaluate(cat.rhs, env, fn_env);
+		std::string str;
+
+		str += evaluate(cat.lhs, env, fn_env);
+		str += evaluate(cat.rhs, env, fn_env);
+
+		return str;
 	}
 
 
@@ -511,8 +516,6 @@ namespace wpp { namespace {
 namespace wpp {
 	// The core of the evaluator.
 	std::string evaluate(const wpp::node_t node_id, wpp::Env& env, wpp::FnEnv* fn_env) {
-		const auto& variant = env.ast[node_id];
-
 		return wpp::visit(env.ast[node_id],
 			[&] (const Intrinsic& x)   { return eval_intrinsic    (node_id, x, env, fn_env); },
 			[&] (const FnInvoke& x)    { return eval_fninvoke     (node_id, x, env, fn_env); },

@@ -48,13 +48,8 @@ let rest(s, x)
 let rest(s) ""
 
 
-let first(s, x) x
-let first(s) ""
-
-
 let join(sep, *)
-	pop first(sep, *)
-	.. pop rest(sep, *)
+	pop rest(sep, *)
 
 
 #[expect(a, b, c, \n)]
