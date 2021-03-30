@@ -33,11 +33,11 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(node_id, env, "run not available");
+			wpp::error(node_id, env, "instrinsic disabled", "run not available");
 		#endif
 
 		if (env.flags & wpp::FLAG_DISABLE_RUN)
-			wpp::error(node_id, env, "run not available");
+			wpp::error(node_id, env, "intrinsic disabled", "run not available");
 
 		const auto cmd = wpp::evaluate(exprs[0], env, fn_env);
 
@@ -49,7 +49,7 @@ namespace wpp {
 			str.erase(str.end() - 1, str.end());
 
 		if (rc)
-			wpp::error(node_id, env, "subprocess exited with non-zero status");
+			wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
 
 		return str;
 	}
@@ -62,11 +62,11 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(node_id, env, "pipe not available");
+			wpp::error(node_id, env, "intrinsic disabled", "pipe not available");
 		#endif
 
 		if (env.flags & wpp::FLAG_DISABLE_RUN)
-			wpp::error(node_id, env, "pipe not available");
+			wpp::error(node_id, env, "intrinsic disabled", "pipe not available");
 
 		std::string str;
 
@@ -81,7 +81,7 @@ namespace wpp {
 			out.erase(out.end() - 1, out.end());
 
 		if (rc)
-			wpp::error(node_id, env, "subprocess exited with non-zero status");
+			wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
 
 		return out;
 	}
@@ -168,7 +168,7 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		const auto msg = evaluate(exprs[0], env, fn_env);
-		wpp::error(node_id, env, msg);
+		wpp::error(node_id, env, "user error", msg);
 
 		return "";
 	}
@@ -211,96 +211,96 @@ namespace wpp {
 	}
 
 
-	std::string intrinsic_slice(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
-		wpp::Env& env,
-		wpp::FnEnv* fn_env
-	) {
-		// Evaluate arguments
-		const auto string = evaluate(exprs[0], env, fn_env);
-		const auto start_raw = evaluate(exprs[1], env, fn_env);
-		const auto end_raw = evaluate(exprs[2], env, fn_env);
+	// std::string intrinsic_slice(
+	// 	const wpp::node_t node_id,
+	// 	const std::vector<wpp::node_t>& exprs,
+	// 	wpp::Env& env,
+		// wpp::FnEnv* fn_env
+	// ) {
+	// 	// Evaluate arguments
+	// 	const auto string = evaluate(exprs[0], env, fn_env);
+	// 	const auto start_raw = evaluate(exprs[1], env, fn_env);
+	// 	const auto end_raw = evaluate(exprs[2], env, fn_env);
 
-		// Parse the start and end arguments
-		int start = 0;
-		int end = 0;
-
-
-		try {
-			start = std::stoi(start_raw);
-			end = std::stoi(end_raw);
-		}
-
-		catch (...) {
-			wpp::error(node_id, env, "slice range must be numerical");
-		}
+	// 	// Parse the start and end arguments
+	// 	int start = 0;
+	// 	int end = 0;
 
 
-		const int len = string.length();
+	// 	try {
+	// 		start = std::stoi(start_raw);
+	// 		end = std::stoi(end_raw);
+	// 	}
 
-		// Work out the start and length of the slice
-		int begin = 0;
-		int count = 0;
-
-
-		if (start < 0)
-			begin = len + start;
-
-		else
-			begin = start;
+	// 	catch (...) {
+	// 		wpp::error(node_id, env, "slice range must be numerical");
+	// 	}
 
 
-		if (end < 0)
-			count = (len + end) - begin + 1;
+	// 	const int len = string.length();
 
-		else
-			count = end - begin + 1;
-
-
-		// Make sure the range is valid
-		if (count <= 0)
-			wpp::error(node_id, env, "end of slice cannot be before the start");
-
-		else if (len < begin + count)
-			wpp::error(node_id, env, "slice extends outside of string bounds");
-
-		else if (start < 0 && end >= 0)
-			wpp::error(node_id, env, "start cannot be negative where end is negative");
+	// 	// Work out the start and length of the slice
+	// 	int begin = 0;
+	// 	int count = 0;
 
 
-		// Return the string slice
-		return string.substr(begin, count);
-	}
+	// 	if (start < 0)
+	// 		begin = len + start;
+
+	// 	else
+	// 		begin = start;
 
 
-	std::string intrinsic_find(
-		const wpp::node_t,
-		const std::vector<wpp::node_t>& exprs,
-		wpp::Env& env,
-		wpp::FnEnv* fn_env
-	) {
-		// Evaluate arguments
-		const auto string = evaluate(exprs[0], env, fn_env);
-		const auto pattern = evaluate(exprs[1], env, fn_env);
+	// 	if (end < 0)
+	// 		count = (len + end) - begin + 1;
 
-		// Search in string. Returns the index of a match.
-		if (auto position = string.find(pattern); position != std::string::npos)
-			return std::to_string(position);
-
-		return "";
-	}
+	// 	else
+	// 		count = end - begin + 1;
 
 
-	std::string intrinsic_length(
-		const wpp::node_t,
-		const std::vector<wpp::node_t>& exprs,
-		wpp::Env& env,
-		wpp::FnEnv* fn_env
-	) {
-		// Evaluate argument
-		const auto string = evaluate(exprs[0], env, fn_env);
-		return std::to_string(string.size());
-	}
+	// 	// Make sure the range is valid
+	// 	if (count <= 0)
+	// 		wpp::error(node_id, env, "end of slice cannot be before the start");
+
+	// 	else if (len < begin + count)
+	// 		wpp::error(node_id, env, "slice extends outside of string bounds");
+
+	// 	else if (start < 0 && end >= 0)
+	// 		wpp::error(node_id, env, "start cannot be negative where end is negative");
+
+
+	// 	// Return the string slice
+	// 	return string.substr(begin, count);
+	// }
+
+
+	// std::string intrinsic_find(
+	// 	const wpp::node_t,
+	// 	const std::vector<wpp::node_t>& exprs,
+	// 	wpp::Env& env,
+	// 	wpp::FnEnv* fn_env
+	// ) {
+	// 	// Evaluate arguments
+	// 	const auto string = evaluate(exprs[0], env, fn_env);
+	// 	const auto pattern = evaluate(exprs[1], env, fn_env);
+
+	// 	// Search in string. Returns the index of a match.
+	// 	if (auto position = string.find(pattern); position != std::string::npos)
+	// 		return std::to_string(position);
+
+	// 	return "";
+	// }
+
+
+	// std::string intrinsic_length(
+	// 	const wpp::node_t,
+	// 	const std::vector<wpp::node_t>& exprs,
+	// 	wpp::Env& env,
+	// 	wpp::FnEnv* fn_env
+	// ) {
+	// 	// Evaluate argument
+	// 	const auto string = evaluate(exprs[0], env, fn_env);
+	// 	return std::to_string(string.size());
+	// }
 }
 

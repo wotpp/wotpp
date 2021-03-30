@@ -14,6 +14,7 @@ namespace wpp {
 		void lex_whitespace(wpp::Lexer&, wpp::Token&);
 
 		void lex_identifier(wpp::Lexer&, wpp::Token&);
+		void lex_int(wpp::Lexer&, wpp::Token&);
 
 		void lex_smart(wpp::Lexer&, wpp::Token&);
 		void lex_string_escape(wpp::Lexer&, wpp::Token&);
@@ -54,8 +55,14 @@ namespace wpp {
 			else if (*ptr == '"')
 				lex_simple(TOKEN_DOUBLEQUOTE, 1, *this, tok);
 
+			else if (mode == lexer_modes::stringify) {
+				lex_identifier(*this, tok);
+				type = TOKEN_IDENTIFIER;
+				vlen = ptr - vptr;
+			}
+
 			// Normal mode.
-			else if (mode == lexer_modes::normal) {
+			else if (wpp::eq_any(mode, lexer_modes::normal, lexer_modes::slice)) {
 				// Comment.
 				if (*ptr == '#' and *(ptr + 1) == '[') {
 					lex_comment(*this, tok);
@@ -72,7 +79,14 @@ namespace wpp {
 					continue; // Throw away whitespace and get next token.
 				}
 
-				// If neither comment nor token, handle a normal token.
+				else if (mode == lexer_modes::slice and (wpp::is_digit(ptr) or *ptr == '-')) {
+					type = TOKEN_INT;
+					do { next(); } while (wpp::is_digit(ptr));
+					vlen = ptr - vptr;
+					break;
+				}
+
+				// If neither comment nor whitespace, handle a normal token.
 				lex_mode_normal(*this, tok);
 			}
 
@@ -306,7 +320,7 @@ namespace wpp {
 			// Make sure we don't run into a character that belongs to another token.
 			while (
 				not wpp::is_whitespace(ptr) and
-				not wpp::in_group(ptr, '(', ')', '{', '}', ',', '\0', '\'', '"') and
+				not wpp::in_group(ptr, '[', ']', ':', '(', ')', '{', '}', ',', '\0', '\'', '"') and
 				not (*ptr == '.' and *(ptr + 1) == '.') and
 				not (*ptr == '#' and *(ptr + 1) == '[')
 			)
@@ -425,6 +439,9 @@ namespace wpp {
 			else if (*lex.ptr == '\\')
 				lex_simple(TOKEN_STRINGIFY, 1, lex, tok);
 
+			else if (*lex.ptr == ':')
+				lex_simple(TOKEN_COLON, 1, lex, tok);
+
 			else if (*lex.ptr == '*')
 				lex_simple(TOKEN_STAR, 1, lex, tok);
 
@@ -433,6 +450,12 @@ namespace wpp {
 
 			else if (*lex.ptr == ')')
 				lex_simple(TOKEN_RPAREN, 1, lex, tok);
+
+			else if (*lex.ptr == '[')
+				lex_simple(TOKEN_LBRACKET, 1, lex, tok);
+
+			else if (*lex.ptr == ']')
+				lex_simple(TOKEN_RBRACKET, 1, lex, tok);
 
 			else if (*lex.ptr == '{')
 				lex_simple(TOKEN_LBRACE, 1, lex, tok);

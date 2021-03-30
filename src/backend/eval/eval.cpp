@@ -29,6 +29,7 @@ namespace wpp {
 		std::string eval_dropvar(wpp::node_t, const DropVar&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_string(wpp::node_t, const String&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_cat(wpp::node_t, const Concat&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_slice(wpp::node_t, const Concat&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_block(wpp::node_t, const Block&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_map(wpp::node_t, const Map&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_document(wpp::node_t, const Document&, wpp::Env&, wpp::FnEnv*);
@@ -38,7 +39,7 @@ namespace wpp {
 
 // Utils
 namespace wpp { namespace {
-	wpp::Fn find_func(wpp::node_t node_id, const FnInvoke& call, int n_args, wpp::Env& env) {
+	wpp::Fn find_func(wpp::node_t node_id, const FnInvoke& call, size_t n_args, wpp::Env& env) {
 		auto& functions = env.functions;
 		auto& variadic_functions = env.variadic_functions;
 		const auto& ast = env.ast;
@@ -57,11 +58,11 @@ namespace wpp { namespace {
 
 		// No normal function found, we look up a variadic function.
 		else {
-			const auto it = variadic_functions.find(name);
+			const auto v_it = variadic_functions.find(name);
 
 			// Check if we found a match and that the caller has the minimum number of arguments required.
-			if (it != variadic_functions.end() and n_args >= it->second.min_args)
-				func = ast.get<wpp::Fn>(it->second.generations.back());
+			if (v_it != variadic_functions.end() and n_args >= v_it->second.min_args)
+				func = ast.get<wpp::Fn>(v_it->second.generations.back());
 
 			// No func found, normal nor variadic.
 			else
@@ -315,7 +316,7 @@ namespace wpp { namespace {
 
 		// Loop to collect as many strings from the stack as possible until we reach `n_popped_args`
 		// or the stack is empty.
-		for (int i = 0; not stack.empty() and i < n_popped_args; ++i) {
+		for (size_t i = 0; not stack.empty() and i < n_popped_args; ++i) {
 			arg_strings.emplace_back(stack.top());
 			stack.pop();
 		}
@@ -414,6 +415,39 @@ namespace wpp { namespace {
 	}
 
 
+	std::string eval_slice(wpp::node_t node_id, const Slice& s, wpp::Env& env, wpp::FnEnv* fn_env) {
+		DBG();
+		std::string str = evaluate(s.expr, env, fn_env);
+
+		int start = s.start;
+		int stop = s.stop;
+
+		std::cerr << "def [" << start << ", " << stop << "]\n";
+
+		if (start < 0)
+			start = str.size() - start;
+
+		if (stop < 0)
+			stop = str.size() - -stop;
+
+		std::cerr << "new [" << start << ", " << stop << "]\n";
+
+		if (s.set & Slice::SLICE_INDEX) {
+			str = str[s.start];
+			return str;
+		}
+
+		if (start > stop)
+			return "";
+
+		// str = str.substr(s.start, s.stop - s.start);
+
+
+
+		return str;
+	}
+
+
 	std::string eval_block(wpp::node_t node_id, const Block& block, wpp::Env& env, wpp::FnEnv* fn_env) {
 		DBG();
 
@@ -496,6 +530,7 @@ namespace wpp {
 			[&] (const DropVar& x)     { return eval_dropvar      (node_id, x, env, fn_env); },
 			[&] (const String& x)      { return eval_string       (node_id, x, env, fn_env); },
 			[&] (const Concat& x)      { return eval_cat          (node_id, x, env, fn_env); },
+			[&] (const Slice& x)       { return eval_slice        (node_id, x, env, fn_env); },
 			[&] (const Block& x)       { return eval_block        (node_id, x, env, fn_env); },
 			[&] (const Map& x)         { return eval_map          (node_id, x, env, fn_env); },
 			[&] (const Document& x)    { return eval_document     (node_id, x, env, fn_env); }
