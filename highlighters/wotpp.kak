@@ -41,8 +41,11 @@ provide-module -override wpp %{
 	add-highlighter shared/wpp/doublequote_string/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
 	add-highlighter shared/wpp/singlequote_string/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
 
-	add-highlighter shared/wpp/code_string/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
-	add-highlighter shared/wpp/para_string/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
+	add-highlighter shared/wpp/code_string_dquote/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
+	add-highlighter shared/wpp/code_string_squote/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
+
+	add-highlighter shared/wpp/para_string_dquote/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
+	add-highlighter shared/wpp/para_string_squote/ regex \\[\\ntr'"]|\\x[A-Fa-f0-9]{2}|\\b[01]{8} 0:keyword
 }
 
 hook global BufCreate .*\.(wpp) %{

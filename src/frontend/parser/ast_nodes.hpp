@@ -100,9 +100,9 @@ namespace wpp {
 
 	struct DropFunc {
 		wpp::View identifier{};
-		int n_args{};
+		size_t n_args{};
 
-		DropFunc(const wpp::View& identifier_, int n_args_):
+		DropFunc(const wpp::View& identifier_, size_t n_args_):
 			identifier(identifier_), n_args(n_args_) {}
 
 		DropFunc() {}
@@ -122,9 +122,9 @@ namespace wpp {
 	// Drop variadic function.
 	struct DropVarFunc {
 		wpp::View identifier{};
-		int min_args{};
+		size_t min_args{};
 
-		DropVarFunc(const wpp::View& identifier_, int min_args_):
+		DropVarFunc(const wpp::View& identifier_, size_t min_args_):
 			identifier(identifier_), min_args(min_args_) {}
 
 		DropVarFunc() {}
@@ -198,12 +198,12 @@ namespace wpp {
 	struct Pop {
 		std::vector<wpp::node_t> arguments{};
 		wpp::View identifier{};
-		int n_popped_args{};
+		size_t n_popped_args{};
 
 		Pop(
 			const std::vector<wpp::node_t>& arguments_,
 			const wpp::View& identifier_,
-			int n_popped_args_
+			size_t n_popped_args_
 		):
 			arguments(arguments_),
 			identifier(identifier_),
@@ -223,17 +223,25 @@ namespace wpp {
 		wpp::node_t expr{};
 
 		int start{};
-		int stop{};
-		int step{};
+		int stop{-1};
 
-		Slice(const wpp::node_t expr_, int start_, int stop_, int step_):
-			expr(expr_), start(start_), stop(stop_), step(step_) {}
+		enum {
+			SLICE_INDEX = 0b0000'0001,
+			SLICE_START = 0b0000'0010,
+			SLICE_STOP  = 0b0000'0100,
+		};
+
+		uint8_t set;
+
+		Slice(const wpp::node_t expr_, int start_, int stop_):
+			expr(expr_), start(start_), stop(stop_) {}
 
 		Slice() {}
 	};
 
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
+		Slice,
 		Pop,
 		Push,
 		Use,

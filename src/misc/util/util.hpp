@@ -28,6 +28,24 @@ namespace wpp {
 	}
 
 
+	inline int view_to_int(const View& v) {
+		int n = 0;
+
+		auto ptr = v.ptr;
+
+		if (*ptr == '-')
+			++ptr;
+
+		for (; ptr != v.ptr + v.length; ++ptr)
+			n = (n * 10) + (*ptr - '0');
+
+		if (*v.ptr == '-')
+			n *= -1;
+
+		return n;
+	}
+
+
 	// std::string constructor does not allow repeating a string so
 	// this function implements it.
 	inline std::string repeat(const std::string& c, std::string::size_type n) {
@@ -248,7 +266,7 @@ namespace wpp {
 		const wpp::node_t& node_id,
 		const wpp::Env& env,
 		const std::string& error_general,
-		const std::string& error_specific = "",
+		const std::string& error_specific,
 		const std::string& suggestion = ""
 	) {
 		return print_error(bytes, type, colour, env.positions[node_id], env, error_general, error_specific, suggestion);

@@ -43,6 +43,10 @@ namespace wpp {
 			MODE(normal) \
 			MODE(chr) \
 			\
+			MODE(slice) \
+			MODE(args_or_params) \
+			MODE(stringify) \
+			\
 			MODE(string) \
 			MODE(string_raw) \
 			MODE(string_para) \

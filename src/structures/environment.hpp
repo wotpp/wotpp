@@ -21,7 +21,7 @@
 namespace wpp {
 	struct FuncKey {
 		wpp::View identifier{};
-		int n_args{};
+		size_t n_args{};
 
 		bool operator==(const FuncKey& other) const {
 			return n_args == other.n_args and identifier == other.identifier;
@@ -64,7 +64,7 @@ namespace wpp {
 
 	struct VariadicFuncEntry {
 		std::vector<wpp::node_t> generations{};
-		int min_args{};
+		size_t min_args{};
 	};
 
 

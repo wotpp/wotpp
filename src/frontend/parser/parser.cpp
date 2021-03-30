@@ -234,12 +234,12 @@ namespace wpp { namespace {
 
 		lex.advance(); // skip '`'.
 
-		if (lex.peek() != TOKEN_IDENTIFIER)
-			wpp::error(lex.position(), env, "identifier expected", "expecting an identifier to follow `\\`",
+		if (lex.peek(wpp::lexer_modes::stringify) != TOKEN_IDENTIFIER)
+			wpp::error(lex.position(), env, "expected identifier", "expecting an identifier to follow `\\`",
 				"insert an identifier after `\\` to stringify it"
 			);
 
-		tree.get<String>(node).value = lex.advance().str();
+		tree.get<String>(node).value = lex.advance(wpp::lexer_modes::stringify).str();
 
 		DBG("'", tree.get<String>(node).value, "'");
 
@@ -1156,15 +1156,63 @@ namespace wpp { namespace {
 			wpp::error(lex.position(), env, "expected expression", "expecting an expression to appear here");
 
 		if (lex.peek() == TOKEN_CAT) {
-			const wpp::node_t node = tree.add<Concat>();
+			pos.emplace_back(lex.position());
+			lex.advance(); // Skip `..`.
+			return tree.add<Concat>(lhs, expression(lex, tree, pos, env));
+		}
+
+		else if (lex.peek() == TOKEN_LBRACKET) {
+			const wpp::node_t node = tree.add<Slice>();
 			pos.emplace_back(lex.position());
 
-			lex.advance(); // Skip `..`.
+			tree.get<Slice>(node).expr = lhs;
 
-			const wpp::node_t rhs = expression(lex, tree, pos, env);
+			lex.advance(); // Skip `[`.
 
-			tree.get<Concat>(node).lhs = lhs;
-			tree.get<Concat>(node).rhs = rhs;
+
+			if (lex.peek(lexer_modes::slice) == TOKEN_RBRACKET)
+				wpp::error(lex.position(), env, "empty slice", "expecting slice operation");
+
+
+			// Start
+			if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
+				tree.get<Slice>(node).start = view_to_int(lex.advance(lexer_modes::slice).view);
+				tree.get<Slice>(node).set = Slice::SLICE_START;
+			}
+
+
+
+			if (lex.peek(lexer_modes::slice) == TOKEN_COLON)
+				lex.advance(lexer_modes::slice);
+
+			// Index
+			else if (lex.peek(lexer_modes::slice) == TOKEN_RBRACKET) {
+				tree.get<Slice>(node).set = Slice::SLICE_INDEX;
+				lex.advance(lexer_modes::slice);
+				return node;
+			}
+
+			else
+				wpp::error(lex.position(), env, "expected `:`, integer literal or `]`",
+					"expecting `:`, integer literal or `]` to follow integer literal"
+				);
+
+
+
+
+			// Stop
+			if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
+				tree.get<Slice>(node).stop = view_to_int(lex.advance(lexer_modes::slice).view);
+				tree.get<Slice>(node).set |= Slice::SLICE_STOP;
+			}
+
+			if (lex.peek(lexer_modes::slice) != TOKEN_RBRACKET)
+				wpp::error(lex.position(), env, "expected `]`", "expecting `]` to terminate end of slice");
+
+			if (tree.get<Slice>(node).set == 0)
+				wpp::error(node, env, "no range defined", "slice does not have any indices defined");
+
+			lex.advance(lexer_modes::slice);
 
 			return node;
 		}
@@ -1221,11 +1269,7 @@ namespace wpp {
 
 				while (not wpp::eq_any(lex.peek(),
 					TOKEN_RPAREN,
-					TOKEN_LPAREN,
-
 					TOKEN_RBRACE,
-					TOKEN_LBRACE,
-
 					TOKEN_LET,
 					TOKEN_EOF
 				))
