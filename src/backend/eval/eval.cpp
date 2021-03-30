@@ -207,11 +207,11 @@ namespace wpp { namespace {
 			}
 
 			else
-				variadic_functions.emplace(name, wpp::VariadicFuncEntry{std::vector{node_id}, params.size()});
+				variadic_functions.emplace(name, wpp::VariadicFuncEntry{std::vector{node_id}, (int) params.size()});
 		}
 
 		else {
-			const wpp::FuncKey key{name, params.size()};
+			const wpp::FuncKey key{name, (int) params.size()};
 
 			if (auto it = functions.find(key); it != functions.end()) {
 				if (flags & wpp::WARN_FUNC_REDEFINED)

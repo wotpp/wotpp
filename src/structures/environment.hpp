@@ -76,6 +76,9 @@ namespace wpp {
 	using Positions = std::vector<wpp::Pos>;
 
 
+	using SearchPath = std::vector<std::filesystem::path>;
+
+
 	struct FnEnv {
 		wpp::Arguments arguments;
 		wpp::Arguments priority_constants;
@@ -121,6 +124,7 @@ namespace wpp {
 		wpp::Sources sources{};
 
 		const std::filesystem::path root{};
+		const SearchPath path{};
 		const wpp::flags_t flags{};
 		wpp::flags_t state{};
 
@@ -129,9 +133,11 @@ namespace wpp {
 
 		Env(
 			const std::filesystem::path& root_,
+			const SearchPath& path_,
 			const wpp::flags_t flags_
 		):
 			root(root_),
+			path(path_),
 			flags(flags_)
 		{
 			ast.reserve(ast.capacity() + (1024 * 1024 * 10) / sizeof(decltype(ast)::value_type));
