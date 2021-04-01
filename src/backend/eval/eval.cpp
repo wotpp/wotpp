@@ -237,13 +237,12 @@ namespace wpp { namespace {
 
 
 	std::string eval_varref(wpp::node_t node_id, const VarRef& varref, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG();
-
 		const auto& flags = env.flags;
 		auto& variables = env.variables;
 
 		const auto& name = varref.identifier;
 
+		DBG(name);
 
 		// Check if parameter.
 		if (fn_env)
@@ -298,14 +297,13 @@ namespace wpp { namespace {
 
 
 	std::string eval_pop(wpp::node_t node_id, const Pop& pop, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG();
-
 		auto& stack = env.stack;
 
 		const auto& func = pop.identifier;
 		const auto n_popped_args = pop.n_popped_args;
 		const auto& args = pop.arguments;
 
+		DBG("pop: ", func, ", args: ", args.size(), ", popped args: ", n_popped_args);
 
 		// Evaluate arguments.
 		std::vector<std::string> arg_strings;
@@ -326,7 +324,7 @@ namespace wpp { namespace {
 
 
 	std::string eval_use(wpp::node_t node_id, const Use& use, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG("use: ", evaluate(use.path, env, fn_env));
+		DBG("use: ", use.path);
 		return wpp::intrinsic_source(node_id, {use.path}, env, fn_env);
 	}
 
@@ -404,14 +402,19 @@ namespace wpp { namespace {
 
 
 	std::string eval_string(wpp::node_t node_id, const String& str, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG();
+		DBG("str: ", str.value);
 		return str.value;
 	}
 
 
 	std::string eval_cat(wpp::node_t node_id, const Concat& cat, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG();
-		return evaluate(cat.lhs, env, fn_env) + evaluate(cat.rhs, env, fn_env);
+		DBG("lhs: ", cat.lhs, ", rhs: ", cat.rhs);
+		std::string str;
+
+		str += evaluate(cat.lhs, env, fn_env);
+		str += evaluate(cat.rhs, env, fn_env);
+
+		return str;
 	}
 
 
@@ -513,8 +516,6 @@ namespace wpp { namespace {
 namespace wpp {
 	// The core of the evaluator.
 	std::string evaluate(const wpp::node_t node_id, wpp::Env& env, wpp::FnEnv* fn_env) {
-		const auto& variant = env.ast[node_id];
-
 		return wpp::visit(env.ast[node_id],
 			[&] (const Intrinsic& x)   { return eval_intrinsic    (node_id, x, env, fn_env); },
 			[&] (const FnInvoke& x)    { return eval_fninvoke     (node_id, x, env, fn_env); },
