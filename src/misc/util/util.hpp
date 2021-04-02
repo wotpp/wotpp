@@ -196,11 +196,11 @@ namespace wpp {
 
 		if (*offset != '\0') {
 			// Walk forwards to newline or end of string.
-			while (*printout_end != '\n' and *printout_end)
+			while (*(printout_end + 1) != '\n' and *(printout_end + 1) != '\0')
 				++printout_end;
 
 			// Walk backwards to newline or beginning of string.
-			while (*printout_begin != '\n' and printout_begin > base)
+			while (*(printout_begin - 1) != '\n' and printout_begin > base)
 				--printout_begin;
 
 			// Strip whitespace from beginning.
