@@ -310,6 +310,22 @@ namespace wpp {
 	std::string exec(const std::string&, const std::string&, int&);
 
 
+	inline std::filesystem::path get_file_path(const std::filesystem::path& file, const SearchPath& search_path) {
+		// Check the current directory.
+		if (std::filesystem::exists(std::filesystem::current_path() / file))
+			return file;
+
+		// Otherwise, find it in the search path.
+		for (auto& dir: search_path) {
+			auto path = dir / file;
+			if (std::filesystem::exists(path))
+				return path;
+		}
+
+		throw std::runtime_error("file not found in search path");
+	}
+
+
 	// Read a file into a string relatively quickly.
 	inline std::string read_file(const std::filesystem::path& path) {
 		std::ifstream is(path);

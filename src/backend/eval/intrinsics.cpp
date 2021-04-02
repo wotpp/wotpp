@@ -115,24 +115,31 @@ namespace wpp {
 	) {
 		std::string str;
 		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
-
-		// Store current path and get the path of the new file.
-		const auto old_path = std::filesystem::current_path();
-		const auto new_path = old_path / std::filesystem::path{fname};
-
-		// Don't source something we've already seen.
-		if (env.sources.is_previously_seen(new_path))
-			return "";
-
-		std::filesystem::current_path(new_path.parent_path());
+		std::filesystem::path old_path, new_path;
 		std::string source;
 
 		try {
-			source = wpp::read_file(new_path);
+			// Store current path and get the path of the new file.
+			old_path = std::filesystem::current_path();
+			new_path = old_path / wpp::get_file_path(fname, env.path);
+
+			// Don't source something we've already seen.
+			if (env.sources.is_previously_seen(new_path))
+				return "";
+
+			std::filesystem::current_path(new_path.parent_path());
 		}
 
 		catch (...) {
-			wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+			wpp::error(node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+		}
+
+		try {
+			source = wpp::read_file(old_path / new_path);
+		}
+
+		catch (...) {
+			wpp::error(node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
 		}
 
 		env.sources.push(new_path, source, wpp::modes::source);

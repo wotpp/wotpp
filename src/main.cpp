@@ -24,19 +24,20 @@ int main(int argc, const char* argv[]) {
 
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
+	std::vector<std::string_view> path_dirs;
 	bool repl = false, disable_run = false, force = false;
-
 
 	std::vector<const char*> positional;
 
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,     "output file",                 "--output",      "-o"},
-		wpp::Opt{warnings,    "toggle warnings",             "--warnings",    "-W"},
-		wpp::Opt{repl,        "repl mode",                   "--repl",        "-r"},
-		wpp::Opt{disable_run, "disable run intrinsic",       "--disable-run", "-R"},
-		wpp::Opt{force,       "overwrite file if it exists", "--force",       "-f"}
+		wpp::Opt{outputf,     "output file",                                       "--output",      "-o"},
+		wpp::Opt{warnings,    "toggle warnings",                                   "--warnings",    "-W"},
+		wpp::Opt{repl,        "repl mode",                                         "--repl",        "-r"},
+		wpp::Opt{disable_run, "disable run intrinsic",                             "--disable-run", "-R"},
+		wpp::Opt{force,       "overwrite file if it exists",                       "--force",       "-f"},
+		wpp::Opt{path_dirs,   "specify directories to search when sourcing files", "--search-path", "-s"}
 	))
 		return 0;
 
@@ -95,6 +96,12 @@ int main(int argc, const char* argv[]) {
 		flags |= wpp::FLAG_DISABLE_RUN;
 
 
+	// Build search path.
+	wpp::SearchPath search_path;
+	for (auto& path: path_dirs)
+		search_path.emplace_back(path);
+
+
 	if (repl)
 		return wpp::repl();
 
@@ -114,7 +121,7 @@ int main(int argc, const char* argv[]) {
 			const auto path = initial_path / std::filesystem::path{fname};
 			std::filesystem::current_path(path.parent_path());
 
-			wpp::Env env{ initial_path, flags };
+			wpp::Env env{ initial_path, search_path, flags };
 			env.sources.push(path, wpp::read_file(path), wpp::modes::normal);
 			out += wpp::evaluate(wpp::parse(env), env);
 		}

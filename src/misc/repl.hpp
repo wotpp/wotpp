@@ -25,8 +25,8 @@ namespace wpp {
 		#else
 			std::cout << "wot++ repl\n";
 
-			const auto path = std::filesystem::current_path();
-			wpp::Env env{ path, wpp::flags_t{wpp::WARN_ALL} };
+			const auto initial_path = std::filesystem::current_path();
+			wpp::Env env{ initial_path, {}, wpp::flags_t{wpp::WARN_ALL} };
 
 			using_history();
 
@@ -41,7 +41,7 @@ namespace wpp {
 
 				add_history(input);
 
-				env.sources.push(path, input, modes::repl);
+				env.sources.push(initial_path, input, modes::repl);
 
 				try {
 					std::string out = wpp::evaluate(wpp::parse(env), env);
