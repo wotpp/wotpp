@@ -219,6 +219,13 @@ namespace wpp {
 		Push() {}
 	};
 
+	struct Ctx {
+		wpp::node_t expr{};
+
+		Ctx(const wpp::node_t expr_): expr(expr_) {}
+		Ctx() {}
+	};
+
 	struct Slice {
 		wpp::node_t expr{};
 
@@ -241,6 +248,7 @@ namespace wpp {
 
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
+		Ctx,
 		Slice,
 		Pop,
 		Push,

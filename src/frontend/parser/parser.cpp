@@ -126,6 +126,7 @@ namespace wpp { namespace {
 	wpp::node_t block(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t codeify(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t ctx(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 
 	wpp::node_t statement(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t drop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
@@ -1123,6 +1124,25 @@ namespace wpp { namespace {
 	}
 
 
+	wpp::node_t ctx(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+		DBG();
+
+		const wpp::node_t node = tree.add<Ctx>();
+		pos.emplace_back(lex.position());
+
+		lex.advance(); // Skip `ctx`.
+
+
+		if (not peek_is_expr(lex.peek()))
+			wpp::error(lex.position(), env, "expected expression", "expecting an expression to follow `ctx`");
+
+		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+		tree.get<Ctx>(node).expr = expr;
+
+		return node;
+	}
+
+
 	// Parse an expression.
 	wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
 		// We use lhs to store the resulting expression
@@ -1151,6 +1171,9 @@ namespace wpp { namespace {
 
 		else if (lookahead == TOKEN_POP)
 			lhs = wpp::pop(lex, tree, pos, env);
+
+		else if (lookahead == TOKEN_CTX)
+			lhs = wpp::ctx(lex, tree, pos, env);
 
 		else
 			wpp::error(lex.position(), env, "expected expression", "expecting an expression to appear here");

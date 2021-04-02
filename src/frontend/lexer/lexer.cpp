@@ -343,6 +343,7 @@ namespace wpp {
 			else if (view == "escape")    type = TOKEN_ESCAPE;
 			else if (view == "log")       type = TOKEN_LOG;
 			else if (view == "drop")      type = TOKEN_DROP;
+			else if (view == "ctx")       type = TOKEN_CTX;
 
 			DBG(token_to_str[type], ": '", view, "'");
 		}
