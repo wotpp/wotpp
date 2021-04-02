@@ -52,6 +52,7 @@ namespace wpp {
 		TOKEN(TOKEN_PUSH) \
 		TOKEN(TOKEN_POP) \
 		TOKEN(TOKEN_USE) \
+		TOKEN(TOKEN_CTX) \
 		\
 		TOKEN(TOKEN_RUN) \
 		TOKEN(TOKEN_FILE) \

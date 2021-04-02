@@ -116,6 +116,7 @@ namespace wpp {
 		std::string str;
 		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
 		std::filesystem::path old_path, new_path;
+		std::string source;
 
 		try {
 			// Store current path and get the path of the new file.
@@ -130,11 +131,16 @@ namespace wpp {
 		}
 
 		catch (...) {
-			wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+			wpp::error(node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 		}
 
-		std::string source;
-		source = wpp::read_file(old_path / new_path);
+		try {
+			source = wpp::read_file(old_path / new_path);
+		}
+
+		catch (...) {
+			wpp::error(node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
+		}
 
 		env.sources.push(new_path, source, wpp::modes::source);
 		str = wpp::evaluate(wpp::parse(env), env, fn_env);

@@ -32,12 +32,12 @@ int main(int argc, const char* argv[]) {
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,     "output file",                 "--output",      "-o"},
-		wpp::Opt{warnings,    "toggle warnings",             "--warnings",    "-W"},
-		wpp::Opt{repl,        "repl mode",                   "--repl",        "-r"},
-		wpp::Opt{disable_run, "disable run intrinsic",       "--disable-run", "-R"},
-		wpp::Opt{force,       "overwrite file if it exists", "--force",       "-f"},
-		wpp::Opt{path_dirs,   "specify wot++ include dirs",  "--search-path", "-s"}
+		wpp::Opt{outputf,     "output file",                                       "--output",      "-o"},
+		wpp::Opt{warnings,    "toggle warnings",                                   "--warnings",    "-W"},
+		wpp::Opt{repl,        "repl mode",                                         "--repl",        "-r"},
+		wpp::Opt{disable_run, "disable run intrinsic",                             "--disable-run", "-R"},
+		wpp::Opt{force,       "overwrite file if it exists",                       "--force",       "-f"},
+		wpp::Opt{path_dirs,   "specify directories to search when sourcing files", "--search-path", "-s"}
 	))
 		return 0;
 

@@ -87,6 +87,7 @@ namespace wpp { namespace {
 
 
 		wpp::Fn func = find_func(node_id, call, arg_strings.size(), env);
+		const bool is_variadic = func.is_variadic;
 
 
 		// Set up Arguments to pass down to function body.
@@ -98,9 +99,9 @@ namespace wpp { namespace {
 
 		const auto& params = func.parameters;
 
-		// Push variadic arguments.
+		// Handle variadic arguments.
 		for (auto it = arg_strings.rbegin(); it != (arg_strings.rend() - params.size()); ++it)
-			env.stack.emplace(*it);
+			env.stack.back().emplace_back(*it);
 
 
 		// Setup normal arguments.
@@ -175,7 +176,7 @@ namespace wpp { namespace {
 
 
 	std::string eval_fninvoke(wpp::node_t node_id, const FnInvoke& call, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG();
+		DBG(call.identifier);
 
 		// Evaluate arguments.
 		std::vector<std::string> arg_strings;
@@ -208,7 +209,7 @@ namespace wpp { namespace {
 			}
 
 			else
-				variadic_functions.emplace(name, wpp::VariadicFuncEntry{std::vector{node_id}, params.size()});
+				variadic_functions.emplace(std::make_pair(name, wpp::VariadicFuncEntry{std::initializer_list<node_t>{node_id}, params.size()}));
 		}
 
 		else {
@@ -222,7 +223,7 @@ namespace wpp { namespace {
 			}
 
 			else
-				functions.emplace(key, std::vector{node_id});
+				functions.emplace(key, std::initializer_list<node_t>{node_id});
 		}
 
 
@@ -283,7 +284,7 @@ namespace wpp { namespace {
 		}
 
 		else
-			variables.emplace(name, std::vector{wpp::evaluate(var.body, env, fn_env)});
+			variables.emplace(name, std::initializer_list<std::string>{wpp::evaluate(var.body, env, fn_env)});
 
 		return "";
 	}
@@ -291,7 +292,7 @@ namespace wpp { namespace {
 
 	std::string eval_push(wpp::node_t node_id, const Push& psh, wpp::Env& env, wpp::FnEnv* fn_env) {
 		DBG();
-		env.stack.emplace(evaluate(psh.expr, env, fn_env));
+		env.stack.back().emplace_back(evaluate(psh.expr, env, fn_env));
 		return "";
 	}
 
@@ -311,15 +312,29 @@ namespace wpp { namespace {
 		for (const wpp::node_t node: args)
 			arg_strings.emplace_back(wpp::evaluate(node, env, fn_env));
 
-
 		// Loop to collect as many strings from the stack as possible until we reach `n_popped_args`
 		// or the stack is empty.
-		for (size_t i = 0; not stack.empty() and i < n_popped_args; ++i) {
-			arg_strings.emplace_back(stack.top());
-			stack.pop();
+		for (size_t i = 0; not stack.back().empty() and (i < n_popped_args); ++i) {
+			arg_strings.emplace_back(stack.back().back());
+			stack.back().pop_back();
 		}
 
 		return wpp::call_func(node_id, FnInvoke{args, func}, arg_strings, env, fn_env);
+	}
+
+
+	std::string eval_ctx(wpp::node_t node_id, const Ctx& ctx, wpp::Env& env, wpp::FnEnv* fn_env) {
+		DBG();
+
+		auto& stack = env.stack;
+
+		stack.emplace_back();
+
+		const std::string str = wpp::evaluate(ctx.expr, env, fn_env);
+
+		stack.pop_back();
+
+		return str;
 	}
 
 
@@ -525,6 +540,7 @@ namespace wpp {
 			[&] (const Var& x)         { return eval_var          (node_id, x, env, fn_env); },
 			[&] (const Push& x)        { return eval_push         (node_id, x, env, fn_env); },
 			[&] (const Pop& x)         { return eval_pop          (node_id, x, env, fn_env); },
+			[&] (const Ctx& x)         { return eval_ctx          (node_id, x, env, fn_env); },
 			[&] (const Use& x)         { return eval_use          (node_id, x, env, fn_env); },
 			[&] (const DropFunc& x)    { return eval_dropfunc     (node_id, x, env, fn_env); },
 			[&] (const DropVarFunc& x) { return eval_dropvarfunc  (node_id, x, env, fn_env); },

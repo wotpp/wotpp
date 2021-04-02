@@ -1,14 +1,24 @@
-error("foo")
-drop foo
 let bar "bar"
+
+let foo(*)
+	# ...
+
+pop foo(*)
+push "hey"
+drop foo
+
+error("foo")
 run("echo hello world")
 file("foo.txt")
-source("src.wpp")
 pipe("echo", "hello world")
 escape("'foo'")
 log("hello")
 
 r#""#
+
+foo(\a, \b, \c)
+
+\foo..\bar
 
 0xFF
 0b1111

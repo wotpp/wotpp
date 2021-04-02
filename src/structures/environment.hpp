@@ -118,7 +118,7 @@ namespace wpp {
 		wpp::Functions functions{};
 		wpp::Variables variables{};
 
-		std::stack<std::string, std::vector<std::string>> stack{};
+		std::vector<std::vector<std::string>> stack{};
 
 		wpp::Positions positions{};
 		wpp::Sources sources{};
@@ -128,7 +128,7 @@ namespace wpp {
 		const wpp::flags_t flags{};
 		wpp::flags_t state{};
 
-		int call_depth{};
+		size_t call_depth{};
 
 
 		Env(
@@ -141,6 +141,7 @@ namespace wpp {
 			flags(flags_)
 		{
 			ast.reserve(ast.capacity() + (1024 * 1024 * 10) / sizeof(decltype(ast)::value_type));
+			stack.emplace_back();
 		}
 	};
 }
