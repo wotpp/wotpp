@@ -1,1 +1,1 @@
-run("false")
+run "false"

@@ -1,7 +1,0 @@
-let s "Hello, World!"
-
-#[expect(2)]
-find(s, "llo")
-
-#[expect()]
-find(s, "x")

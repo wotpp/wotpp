@@ -1,2 +1,2 @@
 #[ expect(hello world) ]
-run("echo hello world")
+run "echo hello world"

@@ -21,30 +21,6 @@ drop x(., .)
 
 
 #[expect(ba)]
-let x "a"
-let x "b"
-
-x
-drop x
-x
-drop x
-
-
-
-
-#[evpect(ba)]
-let x(*) "a"
-let x(*) "b"
-
-x()
-drop x(*)
-x()
-drop x(*)
-
-
-
-
-#[expect(ba)]
 let x(a, b, *) "a"
 let x(a, b, *) "b"
 

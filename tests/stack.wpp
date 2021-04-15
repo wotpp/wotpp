@@ -1,6 +1,6 @@
-push "c"
-push "b"
-push "a"
+let push(*) ""
+
+push(\a, \b, \c)
 
 
 let printer(x)

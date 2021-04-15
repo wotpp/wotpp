@@ -1,10 +1,1 @@
-let s "Hello, World!"
 
-slice(s, "-0", "4")
-
-slice(s, "7", "-100")
-
-slice(s, "2", "1")
-
-#[expect(World!)]
-slice(s, "asd", "lorem")

@@ -1,2 +1,2 @@
 let test "hi"
-drop file("\"hi\"")
+drop file "\"hi\""
