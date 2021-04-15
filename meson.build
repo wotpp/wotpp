@@ -128,6 +128,10 @@ if get_option('disable_colour')
 	add_project_arguments('-DWPP_DISABLE_COLOUR', language: 'cpp')
 endif
 
+if get_option('disable_file')
+	add_project_arguments('-DWPP_DISABLE_FILE', language: 'cpp')
+endif
+
 
 # REPL stuff
 libreadline_dep = dependency('readline', required: false)

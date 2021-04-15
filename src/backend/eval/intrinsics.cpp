@@ -33,25 +33,26 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(node_id, env, "instrinsic disabled", "run not available");
+			wpp::error(node_id, env, "instrinsic disabled", "`run` not available");
+
+		#else
+			if (env.flags & wpp::FLAG_DISABLE_RUN)
+				wpp::error(node_id, env, "intrinsic disabled", "`run` not available");
+
+			const auto cmd = wpp::evaluate(expr, env, fn_env);
+
+			int rc = 0;
+			std::string str = wpp::exec(cmd, rc);
+
+			// trim trailing newline.
+			if (str.back() == '\n')
+				str.erase(str.end() - 1, str.end());
+
+			if (rc)
+				wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
+
+			return str;
 		#endif
-
-		if (env.flags & wpp::FLAG_DISABLE_RUN)
-			wpp::error(node_id, env, "intrinsic disabled", "run not available");
-
-		const auto cmd = wpp::evaluate(expr, env, fn_env);
-
-		int rc = 0;
-		std::string str = wpp::exec(cmd, rc);
-
-		// trim trailing newline.
-		if (str.back() == '\n')
-			str.erase(str.end() - 1, str.end());
-
-		if (rc)
-			wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
-
-		return str;
 	}
 
 
@@ -63,28 +64,29 @@ namespace wpp {
 		wpp::FnEnv* fn_env
 	) {
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(node_id, env, "intrinsic disabled", "pipe not available");
+			wpp::error(node_id, env, "intrinsic disabled", "`pipe` not available");
+
+		#else
+			if (env.flags & wpp::FLAG_DISABLE_RUN)
+				wpp::error(node_id, env, "intrinsic disabled", "`pipe` not available");
+
+			std::string str;
+
+			const auto cmd = evaluate(cmd_id, env, fn_env);
+			const auto data = evaluate(value_id, env, fn_env);
+
+			int rc = 0;
+			std::string out = wpp::exec(cmd, data, rc);
+
+			// trim trailing newline.
+			if (out.back() == '\n')
+				out.erase(out.end() - 1, out.end());
+
+			if (rc)
+				wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
+
+			return out;
 		#endif
-
-		if (env.flags & wpp::FLAG_DISABLE_RUN)
-			wpp::error(node_id, env, "intrinsic disabled", "pipe not available");
-
-		std::string str;
-
-		const auto cmd = evaluate(cmd_id, env, fn_env);
-		const auto data = evaluate(value_id, env, fn_env);
-
-		int rc = 0;
-		std::string out = wpp::exec(cmd, data, rc);
-
-		// trim trailing newline.
-		if (out.back() == '\n')
-			out.erase(out.end() - 1, out.end());
-
-		if (rc)
-			wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
-
-		return out;
 	}
 
 
@@ -94,17 +96,25 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto fname = wpp::evaluate(expr, env, fn_env);
+		#if defined(WPP_DISABLE_FILE)
+			wpp::error(node_id, env, "instrinsic disabled", "`file` not available");
 
-		try {
-			return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
-		}
+		#else
+			if (env.flags & wpp::FLAG_DISABLE_FILE)
+				wpp::error(node_id, env, "intrinsic disabled", "`file` not available");
 
-		catch (...) {
-			wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
-		}
+			const auto fname = wpp::evaluate(expr, env, fn_env);
 
-		return "";
+			try {
+				return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
+			}
+
+			catch (...) {
+				wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+			}
+
+			return "";
+		#endif
 	}
 
 
@@ -114,41 +124,50 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		std::string str;
-		const auto fname = wpp::evaluate(expr, env, fn_env);
-		std::filesystem::path old_path, new_path;
-		std::string source;
+		#if defined(WPP_DISABLE_FILE)
+			wpp::error(node_id, env, "instrinsic disabled", "`use` not available");
 
-		try {
-			// Store current path and get the path of the new file.
-			old_path = std::filesystem::current_path();
-			new_path = old_path / wpp::get_file_path(fname, env.path);
+		#else
+			if (env.flags & wpp::FLAG_DISABLE_FILE)
+				wpp::error(node_id, env, "intrinsic disabled", "`use` not available");
 
-			// Don't source something we've already seen.
-			if (env.sources.is_previously_seen(new_path))
-				return "";
 
-			std::filesystem::current_path(new_path.parent_path());
-		}
+			std::string str;
+			const auto fname = wpp::evaluate(expr, env, fn_env);
+			std::filesystem::path old_path, new_path;
+			std::string source;
 
-		catch (...) {
-			wpp::error(node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
-		}
+			try {
+				// Store current path and get the path of the new file.
+				old_path = std::filesystem::current_path();
+				new_path = old_path / wpp::get_file_path(fname, env.path);
 
-		try {
-			source = wpp::read_file(old_path / new_path);
-		}
+				// Don't source something we've already seen.
+				if (env.sources.is_previously_seen(new_path))
+					return "";
 
-		catch (...) {
-			wpp::error(node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
-		}
+				std::filesystem::current_path(new_path.parent_path());
+			}
 
-		env.sources.push(new_path, source, wpp::modes::source);
-		str = wpp::evaluate(wpp::parse(env), env, fn_env);
+			catch (...) {
+				wpp::error(node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+			}
 
-		std::filesystem::current_path(old_path);
+			try {
+				source = wpp::read_file(old_path / new_path);
+			}
 
-		return str;
+			catch (...) {
+				wpp::error(node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
+			}
+
+			env.sources.push(new_path, source, wpp::modes::source);
+			str = wpp::evaluate(wpp::parse(env), env, fn_env);
+
+			std::filesystem::current_path(old_path);
+
+			return str;
+		#endif
 	}
 
 
