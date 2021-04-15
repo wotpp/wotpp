@@ -12,8 +12,8 @@
 namespace wpp {
 	// Execute a shell command, capture its standard output and return it
 	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
-	std::string exec(const std::string& cmd, int& rc) {
-		#if !defined(WPP_DISABLE_RUN)
+	#if !defined(WPP_DISABLE_RUN)
+		std::string exec(const std::string& cmd, int& rc) {
 			std::array<char, 128> buffer;
 			std::string result;
 
@@ -32,17 +32,17 @@ namespace wpp {
 			rc = pclose(pipe);
 
 			return result;
-		#else
-			(void)cmd;  // Hide "unused" warnings.
-			(void)rc;
+		}
 
+	#else
+		std::string exec(const std::string&, iny&) {
 			return "";
-		#endif
-	}
+		}
+	#endif
 
 
-	std::string exec(const std::string& cmd, const std::string& data, int& rc) {
-		#if !defined(WPP_DISABLE_RUN)
+	#if !defined(WPP_DISABLE_RUN)
+		std::string exec(const std::string& cmd, const std::string& data, int& rc) {
 			int stdin_pipe[2];
 			int stdout_pipe[2];
 
@@ -91,13 +91,12 @@ namespace wpp {
 			}
 
 			return out;
-		#else
-			(void)cmd;
-			(void)data;
-			(void)rc;
+		}
 
+	#else
+		std::string exec(const std::string&, const std::string&, int&) {
 			return "";
-		#endif
-	}
+		}
+	#endif
 }
 
