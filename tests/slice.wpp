@@ -10,8 +10,8 @@
 "hello world"[1:-9] '\n'
 #[expect(wo\n)]
 "hello world"[-5:-3] '\n'
-#[expect(\n)]
+#[expect()]
 "hello world"[5:-7] '\n'
-#[expect(\n)]
+#[expect()]
 "hello world"[2:1] '\n'
 

@@ -1,6 +1,6 @@
-let cat(x) x .. pop cat(*)
-let cat() ""
-let cat(*) pop cat(*)
+let impl/cat(x) x .. pop impl/cat(*)
+let impl/cat() ""
+let cat() pop impl/cat(*)
 
 #[expect(abcdabcd)]
 cat(\a, \b, cat(\c, \d, cat(\a, \b, cat(\c, \d))))
@@ -23,7 +23,7 @@ let recurse(x, y)    render(x, y) ..    triples()
 let recurse(x)       render(x) ..       triples()
 let recurse()        ""
 
-let triples(*) pop recurse(*, *, *)
+let triples() pop recurse(*, *, *)
 
 
 #[expect(a: b -> c\nd: e -> f\n\n)]
@@ -48,7 +48,7 @@ let rest(s, x)
 let rest(s) ""
 
 
-let join(sep, *)
+let join(sep)
 	pop rest(sep, *)
 
 

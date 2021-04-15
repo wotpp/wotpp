@@ -17,14 +17,3 @@ x(\a, \b)
 drop x(., .)
 x(\b, \a)
 drop x(., .)
-
-
-
-#[expect(ba)]
-let x(a, b, *) "a"
-let x(a, b, *) "b"
-
-x(\a, \b)
-drop x(., ., *)
-x(\a, \b)
-drop x(., ., *)

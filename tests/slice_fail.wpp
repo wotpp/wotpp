@@ -1,1 +1,6 @@
+"hello world"[f]
+"hello world"[:]
+"hello world"[::::]
+"hello world"[f:o]
+"hello world"[1:0]
 

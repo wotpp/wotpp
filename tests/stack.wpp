@@ -1,4 +1,4 @@
-let push(*) ""
+let push() ""
 
 push(\a, \b, \c)
 
