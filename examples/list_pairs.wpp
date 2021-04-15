@@ -1,0 +1,20 @@
+let pair(x, y)
+	"(" .. x .. ", " .. y .. ")"
+
+let pair/pair_iter(a, b)
+	", " .. pair(a, b) ..
+	pop pair/pair_iter(*, *)
+
+let pair/pair_iter(*) ""
+
+let pair/pair_first(x, y) pair(x, y)
+let pair/pair_first() ""
+
+let pairs(*)
+	"[" ..
+		pop pair/pair_first(*, *) ..
+		pop pair/pair_iter(*, *) ..
+	"]"
+
+pairs(\a, \b, \c, \d, \e) '\n'
+pairs(\a, \b, \c, \d, \e, \f) '\n'

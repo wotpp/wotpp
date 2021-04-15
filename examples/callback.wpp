@@ -11,11 +11,11 @@
 	function is only semantically checked for validity at invocation.
 ]
 
-let library_callback
+let library_callback()
 	"library: " .. user_callback("foo")
 
 let user_callback(x)
 	"user: " .. x
 
-library_callback
+library_callback()
 

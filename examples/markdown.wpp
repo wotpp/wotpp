@@ -1,26 +1,26 @@
-let \n "\n"
+let /n "\n"
 
-let h1(x) "# " .. x .. \n
-let h2(x) "## " .. x .. \n
-let h3(x) "### " .. x .. \n
-let h4(x) "#### " .. x .. \n
-let h5(x) "##### " .. x .. \n
+let h1(x) "# " .. x .. /n
+let h2(x) "## " .. x .. /n
+let h3(x) "### " .. x .. /n
+let h4(x) "#### " .. x .. /n
+let h5(x) "##### " .. x .. /n
 
 let em(x) "*" .. x .. "*"
 let b(x) "**" .. x .. "**"
 
-let link(name, url) "[" .. name .. "](" .. url .. ")" .. \n
-let img(name, url) "![" .. name .. "](" .. url .. ")" .. \n
+let link(name, url) "[" .. name .. "](" .. url .. ")" .. /n
+let img(name, url) "![" .. name .. "](" .. url .. ")" .. /n
 
-let quote(x) "> " .. x .. \n
+let quote(x) "> " .. x .. /n
 
-let ul(x) "- " .. x .. \n
-let ol(x) "1. " .. x .. \n
+let ul(x) "- " .. x .. /n
+let ol(x) "1. " .. x .. /n
 
-let hr "---" .. \n
+let hr "---" .. /n
 
 let code(x) "`" .. x .. "`"
-let codeblock(type, x) "```" .. type .. "\n" .. x .. "\n```" \n
+let codeblock(type, x) "```" .. type .. "\n" .. x .. "\n```" /n
 
 
 
@@ -29,7 +29,7 @@ hr
 
 h3("Testing a wot++ markdown wrapper")
 quote("Here's a quote.")
-codeblock(!cpp, c#"
+codeblock(\cpp, c#"
 	int main(int, const char*[]) {
 		return 0;
 	}

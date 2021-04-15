@@ -8,7 +8,7 @@ let pr_line(x)
 let print_n(n) {
 	pr_line(n) ..
 
-	="case" ..
+	\"case" ..
 
 	run(
 		"test " .. n .. " -eq 0; echo $?"
@@ -20,5 +20,5 @@ let print_n(n) {
 }
 
 "<html><body><ul>"
-	print_n(!20)
+	print_n(\20)
 "</ul></body></html>"

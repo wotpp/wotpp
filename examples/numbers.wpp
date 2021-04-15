@@ -5,7 +5,7 @@ let succ(x) "s(" .. x .. ")"
 let repeat(str, x) {
 	let s(x) str .. '(' .. x .. ')'
 	let z "z"
-	=x
+	!x
 }
 
 
@@ -35,4 +35,4 @@ let cb(x)
 	"<li>" .. x .. "</li>\n"
 
 
-repeat(!s, 5)
+repeat(\s, 5)

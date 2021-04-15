@@ -13,34 +13,34 @@
 ]
 
 let new_directive(name)
-	="let " .. name .. " (value) '#" .. name .. " ' .. value .. '\n'"
+	!"let " .. name .. " (value) '#" .. name .. " ' .. value .. '\n'"
 
 
 #[ Create some directives. ]
-new_directive(!id)
-new_directive(!tag)
+new_directive(\id)
+new_directive(\tag)
 
-new_directive(!title)
-new_directive(!author)
+new_directive(\title)
+new_directive(\author)
 
-new_directive(!year)
-new_directive(!month)
-new_directive(!day)
+new_directive(\year)
+new_directive(\month)
+new_directive(\day)
 
 
 #[ Functions to generate pre-filled information. ]
-let generate_id
-	run(!uuidgen)
+let generate_id()
+	run(\uuidgen)
 
-let generate_year   run("date +'%Y'")
-let generate_month  run("date +'%-m'")
-let generate_day    run("date +'%-d'")
+let generate_year()   run("date +'%Y'")
+let generate_month()  run("date +'%-m'")
+let generate_day()    run("date +'%-d'")
 
 
 #[ Helpers. ]
-let \n !\n
+let /n \\n
 
-let generate_header
+let generate_header()
 	id(generate_id) ..
 	year(generate_year) ..
 	month(generate_month) ..
@@ -48,7 +48,7 @@ let generate_header
 
 
 #[The actual note.]
-generate_header
+generate_header()
 
 title("Testing")
 author("Jack Clarke")
