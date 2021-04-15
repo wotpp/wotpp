@@ -4,7 +4,6 @@ let foo(*)
 	# ...
 
 pop foo(*)
-push "hey"
 drop foo
 
 error("foo")
