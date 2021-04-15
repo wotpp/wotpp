@@ -14,21 +14,55 @@
 
 // AST nodes.
 namespace wpp {
-	struct Intrinsic {
-		std::vector<wpp::node_t> arguments{};
-		wpp::View identifier{};
-		wpp::token_type_t type{};
+	struct IntrinsicFile {
+		wpp::node_t expr{};
 
-		Intrinsic(
-			const std::vector<wpp::node_t>& arguments_,
-			const wpp::View& identifier_,
-			const wpp::token_type_t type_
-		):
-			arguments(arguments_),
-			identifier(identifier_),
-			type(type_) {}
+		IntrinsicFile(wpp::node_t expr_): expr(expr_) {}
+		IntrinsicFile() {}
+	};
 
-		Intrinsic() {}
+	struct IntrinsicUse {
+		wpp::node_t expr{};
+
+		IntrinsicUse(wpp::node_t expr_): expr(expr_) {}
+		IntrinsicUse() {}
+	};
+
+	struct IntrinsicRun {
+		wpp::node_t expr{};
+
+		IntrinsicRun(wpp::node_t expr_): expr(expr_) {}
+		IntrinsicRun() {}
+	};
+
+	struct IntrinsicLog {
+		wpp::node_t expr{};
+
+		IntrinsicLog(wpp::node_t expr_): expr(expr_) {}
+		IntrinsicLog() {}
+	};
+
+	struct IntrinsicError {
+		wpp::node_t expr{};
+
+		IntrinsicError(wpp::node_t expr_): expr(expr_) {}
+		IntrinsicError() {}
+	};
+
+	struct IntrinsicPipe {
+		wpp::node_t cmd{};
+		wpp::node_t value{};
+
+		IntrinsicPipe(wpp::node_t cmd_, wpp::node_t value_): cmd(cmd_), value(value_) {}
+		IntrinsicPipe() {}
+	};
+
+	struct IntrinsicAssert {
+		wpp::node_t lhs{};
+		wpp::node_t rhs{};
+
+		IntrinsicAssert(wpp::node_t lhs_, wpp::node_t rhs_): lhs(lhs_), rhs(rhs_) {}
+		IntrinsicAssert() {}
 	};
 
 	// A function call.
@@ -98,36 +132,15 @@ namespace wpp {
 	};
 
 
-	struct DropFunc {
+	struct Drop {
 		wpp::View identifier{};
 		size_t n_args{};
+		bool is_variadic{};
 
-		DropFunc(const wpp::View& identifier_, size_t n_args_):
-			identifier(identifier_), n_args(n_args_) {}
+		Drop(const wpp::View& identifier_, size_t n_args_, bool is_variadic_):
+			identifier(identifier_), n_args(n_args_), is_variadic(is_variadic_) {}
 
-		DropFunc() {}
-	};
-
-
-	struct DropVar {
-		wpp::View identifier{};
-
-		DropVar(const wpp::View& identifier_):
-			identifier(identifier_) {}
-
-		DropVar() {}
-	};
-
-
-	// Drop variadic function.
-	struct DropVarFunc {
-		wpp::View identifier{};
-		size_t min_args{};
-
-		DropVarFunc(const wpp::View& identifier_, size_t min_args_):
-			identifier(identifier_), min_args(min_args_) {}
-
-		DropVarFunc() {}
+		Drop() {}
 	};
 
 
@@ -162,13 +175,13 @@ namespace wpp {
 		Block() {}
 	};
 
-	// Map strings to new strings.
-	struct Map {
+	// Match strings to new strings.
+	struct Match {
 		std::vector<std::pair<wpp::node_t, wpp::node_t>> cases{};
 		wpp::node_t expr{};
 		wpp::node_t default_case{};
 
-		Map(
+		Match(
 			const std::vector<std::pair<wpp::node_t, wpp::node_t>>& cases_,
 			const wpp::node_t expr_,
 			const wpp::node_t default_case_
@@ -177,7 +190,7 @@ namespace wpp {
 			expr(expr_),
 			default_case(default_case_) {}
 
-		Map() {}
+		Match() {}
 	};
 
 	struct Use {
@@ -212,13 +225,6 @@ namespace wpp {
 		Pop() {}
 	};
 
-	struct Push {
-		wpp::node_t expr{};
-
-		Push(const wpp::node_t expr_): expr(expr_) {}
-		Push() {}
-	};
-
 	struct Ctx {
 		wpp::node_t expr{};
 
@@ -230,7 +236,7 @@ namespace wpp {
 		wpp::node_t expr{};
 
 		int start{};
-		int stop{-1};
+		int stop{};
 
 		enum {
 			SLICE_INDEX = 0b0000'0001,
@@ -248,25 +254,27 @@ namespace wpp {
 
 	// An alias for our AST.
 	using AST = wpp::HeterogenousVector<
+		IntrinsicUse,
+		IntrinsicFile,
+		IntrinsicPipe,
+		IntrinsicRun,
+		IntrinsicError,
+		IntrinsicLog,
+		IntrinsicAssert,
 		Ctx,
 		Slice,
 		Pop,
-		Push,
-		Use,
 		FnInvoke,
 		Fn,
 		VarRef,
 		Var,
-		Intrinsic,
 		Codeify,
-		Map,
+		Match,
 		String,
 		Concat,
 		Block,
 		Document,
-		DropFunc,
-		DropVar,
-		DropVarFunc
+		Drop
 	>;
 }
 

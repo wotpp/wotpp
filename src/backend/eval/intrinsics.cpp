@@ -12,12 +12,12 @@
 
 namespace wpp {
 	std::string intrinsic_eval(
-		const wpp::node_t,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t expr,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const std::string source = wpp::evaluate(exprs[0], env, fn_env);
+		const std::string source = wpp::evaluate(expr, env, fn_env);
 
 		const auto& [file, base, mode] = env.sources.top();
 		env.sources.push(file, source, modes::eval);
@@ -27,8 +27,8 @@ namespace wpp {
 
 
 	std::string intrinsic_run(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t expr,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
@@ -39,7 +39,7 @@ namespace wpp {
 		if (env.flags & wpp::FLAG_DISABLE_RUN)
 			wpp::error(node_id, env, "intrinsic disabled", "run not available");
 
-		const auto cmd = wpp::evaluate(exprs[0], env, fn_env);
+		const auto cmd = wpp::evaluate(expr, env, fn_env);
 
 		int rc = 0;
 		std::string str = wpp::exec(cmd, rc);
@@ -56,8 +56,9 @@ namespace wpp {
 
 
 	std::string intrinsic_pipe(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t cmd_id,
+		wpp::node_t value_id,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
@@ -70,8 +71,8 @@ namespace wpp {
 
 		std::string str;
 
-		const auto cmd = evaluate(exprs[0], env, fn_env);
-		const auto data = evaluate(exprs[1], env, fn_env);
+		const auto cmd = evaluate(cmd_id, env, fn_env);
+		const auto data = evaluate(value_id, env, fn_env);
 
 		int rc = 0;
 		std::string out = wpp::exec(cmd, data, rc);
@@ -88,12 +89,12 @@ namespace wpp {
 
 
 	std::string intrinsic_file(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t expr,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
+		const auto fname = wpp::evaluate(expr, env, fn_env);
 
 		try {
 			return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
@@ -107,14 +108,14 @@ namespace wpp {
 	}
 
 
-	std::string intrinsic_source(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
+	std::string intrinsic_use(
+		wpp::node_t node_id,
+		wpp::node_t expr,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
 		std::string str;
-		const auto fname = wpp::evaluate(exprs[0], env, fn_env);
+		const auto fname = wpp::evaluate(expr, env, fn_env);
 		std::filesystem::path old_path, new_path;
 		std::string source;
 
@@ -152,14 +153,15 @@ namespace wpp {
 
 
 	std::string intrinsic_assert(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t lhs,
+		wpp::node_t rhs,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
 		// Check if strings are equal.
-		const auto str_a = evaluate(exprs[0], env, fn_env);
-		const auto str_b = evaluate(exprs[1], env, fn_env);
+		const auto str_a = evaluate(lhs, env, fn_env);
+		const auto str_b = evaluate(rhs, env, fn_env);
 
 		if (str_a != str_b)
 			wpp::error(node_id, env, "assertion failed", wpp::cat("lhs='", str_a, "', rhs='", str_b, "'"));
@@ -169,12 +171,12 @@ namespace wpp {
 
 
 	std::string intrinsic_error(
-		const wpp::node_t node_id,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t expr,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		const auto msg = evaluate(exprs[0], env, fn_env);
+		const auto msg = evaluate(expr, env, fn_env);
 		wpp::error(node_id, env, "user error", msg);
 
 		return "";
@@ -182,132 +184,13 @@ namespace wpp {
 
 
 	std::string intrinsic_log(
-		const wpp::node_t,
-		const std::vector<wpp::node_t>& exprs,
+		wpp::node_t node_id,
+		wpp::node_t expr,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
-		std::cerr << evaluate(exprs[0], env, fn_env);
+		std::cerr << evaluate(expr, env, fn_env);
 		return "";
 	}
-
-
-	std::string intrinsic_escape(
-		const wpp::node_t,
-		const std::vector<wpp::node_t>& exprs,
-		wpp::Env& env,
-		wpp::FnEnv* fn_env
-	) {
-		// Escape escape chars in a string.
-		std::string str;
-
-		const auto input = evaluate(exprs[0], env, fn_env);
-
-		for (const char c: input) {
-			switch (c) {
-				case '"':  str += "\\\""; break;
-				case '\'': str += "\\'";  break;
-				case '\n': str += "\\n";  break;
-				case '\t': str += "\\t";  break;
-				case '\r': str += "\\r";  break;
-				default:   str += c;      break;
-			}
-		}
-
-		return str;
-	}
-
-
-	// std::string intrinsic_slice(
-	// 	const wpp::node_t node_id,
-	// 	const std::vector<wpp::node_t>& exprs,
-	// 	wpp::Env& env,
-		// wpp::FnEnv* fn_env
-	// ) {
-	// 	// Evaluate arguments
-	// 	const auto string = evaluate(exprs[0], env, fn_env);
-	// 	const auto start_raw = evaluate(exprs[1], env, fn_env);
-	// 	const auto end_raw = evaluate(exprs[2], env, fn_env);
-
-	// 	// Parse the start and end arguments
-	// 	int start = 0;
-	// 	int end = 0;
-
-
-	// 	try {
-	// 		start = std::stoi(start_raw);
-	// 		end = std::stoi(end_raw);
-	// 	}
-
-	// 	catch (...) {
-	// 		wpp::error(node_id, env, "slice range must be numerical");
-	// 	}
-
-
-	// 	const int len = string.length();
-
-	// 	// Work out the start and length of the slice
-	// 	int begin = 0;
-	// 	int count = 0;
-
-
-	// 	if (start < 0)
-	// 		begin = len + start;
-
-	// 	else
-	// 		begin = start;
-
-
-	// 	if (end < 0)
-	// 		count = (len + end) - begin + 1;
-
-	// 	else
-	// 		count = end - begin + 1;
-
-
-	// 	// Make sure the range is valid
-	// 	if (count <= 0)
-	// 		wpp::error(node_id, env, "end of slice cannot be before the start");
-
-	// 	else if (len < begin + count)
-	// 		wpp::error(node_id, env, "slice extends outside of string bounds");
-
-	// 	else if (start < 0 && end >= 0)
-	// 		wpp::error(node_id, env, "start cannot be negative where end is negative");
-
-
-	// 	// Return the string slice
-	// 	return string.substr(begin, count);
-	// }
-
-
-	// std::string intrinsic_find(
-	// 	const wpp::node_t,
-	// 	const std::vector<wpp::node_t>& exprs,
-	// 	wpp::Env& env,
-	// 	wpp::FnEnv* fn_env
-	// ) {
-	// 	// Evaluate arguments
-	// 	const auto string = evaluate(exprs[0], env, fn_env);
-	// 	const auto pattern = evaluate(exprs[1], env, fn_env);
-
-	// 	// Search in string. Returns the index of a match.
-	// 	if (auto position = string.find(pattern); position != std::string::npos)
-	// 		return std::to_string(position);
-
-	// 	return "";
-	// }
-
-
-	// std::string intrinsic_length(
-	// 	const wpp::node_t,
-	// 	const std::vector<wpp::node_t>& exprs,
-	// 	wpp::Env& env,
-	// 	wpp::FnEnv* fn_env
-	// ) {
-	// 	// Evaluate argument
-	// 	const auto string = evaluate(exprs[0], env, fn_env);
-	// 	return std::to_string(string.size());
-	// }
 }
 

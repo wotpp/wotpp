@@ -8,6 +8,7 @@
 #include <vector>
 #include <stack>
 #include <list>
+#include <map>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -16,27 +17,6 @@
 #include <misc/flags.hpp>
 #include <misc/fwddecl.hpp>
 #include <frontend/parser/ast_nodes.hpp>
-
-
-namespace wpp {
-	struct FuncKey {
-		wpp::View identifier{};
-		size_t n_args{};
-
-		bool operator==(const FuncKey& other) const {
-			return n_args == other.n_args and identifier == other.identifier;
-		}
-	};
-}
-
-
-namespace std {
-	template<> struct hash<wpp::FuncKey> {
-		std::size_t operator()(const wpp::FuncKey& v) const noexcept {
-			return std::hash<wpp::View>()(v.identifier) ^ std::hash<int>()(v.n_args);
-		}
-	};
-}
 
 
 namespace wpp {
@@ -57,20 +37,14 @@ namespace wpp {
 
 
 	struct Pos {
-		const wpp::Source& source;           // Source associated with this position.
+		const wpp::Source& source;   // Source associated with this position.
 		wpp::View view;
 	};
 
 
-	struct VariadicFuncEntry {
-		std::vector<wpp::node_t> generations{};
-		size_t min_args{};
-	};
-
-
-	using Variables         = std::unordered_map<wpp::View, std::vector<std::string>>;
-	using VariadicFunctions = std::unordered_map<wpp::View, wpp::VariadicFuncEntry>;
-	using Functions         = std::unordered_map<wpp::FuncKey, std::vector<wpp::node_t>>;
+	using Variables         = std::unordered_map<wpp::View, std::string>;
+	using Functions         = std::unordered_map<wpp::View, std::unordered_map<int, std::vector<wpp::node_t>>>;
+	using VariadicFunctions = std::unordered_map<wpp::View, std::map<int, std::vector<wpp::node_t>, std::greater<int>>>;
 
 	using Arguments = std::unordered_map<wpp::View, std::string>;
 	using Positions = std::vector<wpp::Pos>;
@@ -81,7 +55,6 @@ namespace wpp {
 
 	struct FnEnv {
 		wpp::Arguments arguments;
-		wpp::Arguments priority_constants;
 	};
 
 
@@ -114,8 +87,8 @@ namespace wpp {
 	struct Env {
 		wpp::AST ast{};
 
-		wpp::VariadicFunctions variadic_functions{};
 		wpp::Functions functions{};
+		wpp::VariadicFunctions vfunctions{};
 		wpp::Variables variables{};
 
 		std::vector<std::vector<std::string>> stack{};
@@ -123,8 +96,10 @@ namespace wpp {
 		wpp::Positions positions{};
 		wpp::Sources sources{};
 
+		const wpp::SearchPath path{};
+
 		const std::filesystem::path root{};
-		const SearchPath path{};
+
 		const wpp::flags_t flags{};
 		wpp::flags_t state{};
 
@@ -133,15 +108,15 @@ namespace wpp {
 
 		Env(
 			const std::filesystem::path& root_,
-			const SearchPath& path_,
+			const wpp::SearchPath& path_,
 			const wpp::flags_t flags_
 		):
 			root(root_),
 			path(path_),
 			flags(flags_)
 		{
-			ast.reserve(ast.capacity() + (1024 * 1024 * 10) / sizeof(decltype(ast)::value_type));
-			stack.emplace_back();
+			ast.reserve(ast.capacity() + (1024 * 1024 * 10) / sizeof(decltype(ast)::value_type)); // 10MiB tree.
+			stack.emplace_back(); // Root stack.
 		}
 	};
 }

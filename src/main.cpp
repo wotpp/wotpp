@@ -63,7 +63,7 @@ int main(int argc, const char* argv[]) {
 
 
 		// Unset warning flags.
-		if (x == "no-param-shadow-var")
+		else if (x == "no-param-shadow-var")
 			flags &= ~wpp::WARN_PARAM_SHADOW_VAR;
 
 		else if (x == "no-param-shadow-param")

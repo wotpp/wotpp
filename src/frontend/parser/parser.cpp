@@ -10,29 +10,27 @@
 
 
 namespace {
-	inline bool peek_is_intrinsic(const wpp::Token& tok) {
+	inline bool peek_is_intrinsic_expr(const wpp::Token& tok) {
 		return
-			tok == wpp::TOKEN_RUN or
-			tok == wpp::TOKEN_FILE or
-			tok == wpp::TOKEN_ASSERT or
-			tok == wpp::TOKEN_PIPE or
-			tok == wpp::TOKEN_ERROR or
-			tok == wpp::TOKEN_SLICE or
-			tok == wpp::TOKEN_FIND or
-			tok == wpp::TOKEN_LENGTH or
-			tok == wpp::TOKEN_ESCAPE or
-			tok == wpp::TOKEN_LOG
+			tok == wpp::TOKEN_INTRINSIC_RUN or
+			tok == wpp::TOKEN_INTRINSIC_FILE or
+			tok == wpp::TOKEN_INTRINSIC_PIPE or
+			tok == wpp::TOKEN_INTRINSIC_USE
 		;
 	}
 
-	inline bool peek_is_keyword(const wpp::Token& tok) {
+	inline bool peek_is_intrinsic_stmt(const wpp::Token& tok) {
 		return
-			tok == wpp::TOKEN_LET or
-			tok == wpp::TOKEN_DROP or
-			tok == wpp::TOKEN_MAP or
-			tok == wpp::TOKEN_USE or
-			tok == wpp::TOKEN_PUSH or
-			tok == wpp::TOKEN_POP
+			tok == wpp::TOKEN_INTRINSIC_ERROR or
+			tok == wpp::TOKEN_INTRINSIC_LOG or
+			tok == wpp::TOKEN_INTRINSIC_ASSERT
+		;
+	}
+
+	inline bool peek_is_intrinsic(const wpp::Token& tok) {
+		return
+			peek_is_intrinsic_expr(tok) or
+			peek_is_intrinsic_stmt(tok)
 		;
 	}
 
@@ -61,16 +59,13 @@ namespace {
 
 	inline bool peek_is_reserved_name(const wpp::Token& tok) {
 		return
-			peek_is_intrinsic(tok) or
-			peek_is_keyword(tok)
-		;
-	}
+			tok == wpp::TOKEN_LET or
+			tok == wpp::TOKEN_DROP or
+			tok == wpp::TOKEN_MATCH or
+			tok == wpp::TOKEN_POP or
 
-	// Check if the token is an expression.
-	inline bool peek_is_call(const wpp::Token& tok) {
-		return
-			tok == wpp::TOKEN_IDENTIFIER or
-			peek_is_intrinsic(tok)
+			peek_is_intrinsic_expr(tok) or
+			peek_is_intrinsic_stmt(tok)
 		;
 	}
 
@@ -78,19 +73,26 @@ namespace {
 	inline bool peek_is_expr(const wpp::Token& tok) {
 		return
 			tok == wpp::TOKEN_POP or
-			tok == wpp::TOKEN_MAP or
+			tok == wpp::TOKEN_MATCH or
 			tok == wpp::TOKEN_EVAL or
+			tok == wpp::TOKEN_CTX or
 			tok == wpp::TOKEN_LBRACE or
+
+			tok == wpp::TOKEN_IDENTIFIER or
+
 			peek_is_string(tok) or
-			peek_is_call(tok)
+			peek_is_intrinsic_expr(tok)
 		;
 	}
 
 	// Check if the token is a statement.
 	inline bool peek_is_stmt(const wpp::Token& tok) {
 		return
-			peek_is_keyword(tok) or
-			peek_is_expr(tok)
+			tok == wpp::TOKEN_LET or
+			tok == wpp::TOKEN_DROP or
+
+			peek_is_expr(tok) or
+			peek_is_intrinsic_stmt(tok)
 		;
 	}
 
@@ -122,7 +124,7 @@ namespace wpp { namespace {
 
 	wpp::node_t expression(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t map(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t match(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t block(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t codeify(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
@@ -131,10 +133,9 @@ namespace wpp { namespace {
 	wpp::node_t statement(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t drop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 	wpp::node_t let(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t use(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-
 	wpp::node_t pop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t push(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+
+	wpp::node_t intrinsic(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
 }}
 
 
@@ -676,7 +677,16 @@ namespace wpp { namespace {
 			// Advance until we run out of identifiers.
 			// While there is an identifier there is another parameter.
 			while (lex.peek() == TOKEN_IDENTIFIER) {
-				tree.get<Fn>(node).parameters.emplace_back(lex.advance().view);
+				const auto param_view = lex.peek().view;
+				auto& param_vec = tree.get<Fn>(node).parameters;
+
+				if (std::find(param_vec.begin(), param_vec.end(), param_view) != param_vec.end())
+					wpp::error(lex.position(), env, "duplicate parameter",
+						"multiple occurences of the same identifier in parameter list"
+					);
+
+				param_vec.emplace_back(param_view);
+				lex.advance();
 
 				// If the next token is a comma, skip it.
 				if (lex.peek() == TOKEN_COMMA)
@@ -755,7 +765,7 @@ namespace wpp { namespace {
 	wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
 		DBG();
 
-		const wpp::node_t node = tree.add<DropFunc>();
+		const wpp::node_t node = tree.add<Drop>();
 		pos.emplace_back(lex.position());
 
 		lex.advance(); // Skip `drop`.
@@ -766,14 +776,7 @@ namespace wpp { namespace {
 
 
 		const auto identifier = lex.advance().view;
-		tree.get<DropFunc>(node).identifier = identifier;
-
-
-		// Check if there is an argument list, if not, this is a variable.
-		if (lex.peek() != TOKEN_LPAREN) {
-			tree.replace<DropVar>(node, identifier);
-			return node;
-		}
+		tree.get<Drop>(node).identifier = identifier;
 
 
 		lex.advance();  // Skip `(`.
@@ -781,7 +784,7 @@ namespace wpp { namespace {
 
 		// Consume list of identifiers.
 		while (lex.peek() == TOKEN_IDENTIFIER) {
-			tree.get<DropFunc>(node).n_args++;
+			tree.get<Drop>(node).n_args++;
 			lex.advance();
 
 			// If the next token is a comma, skip it.
@@ -793,8 +796,9 @@ namespace wpp { namespace {
 				wpp::error(lex.position(), env, "expected identifier or `)`", "expecting identifier  or `)` to follow `,`");
 		}
 
+
 		if (lex.peek() == TOKEN_STAR) {
-			tree.replace<DropVarFunc>(node, identifier, tree.get<DropFunc>(node).n_args);
+			tree.get<Drop>(node).is_variadic = true;
 			lex.advance();
 
 			// Make sure parameter list is terminated by `)`.
@@ -817,37 +821,40 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t use(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t intrinsic(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
 		DBG();
 
-		const wpp::node_t node = tree.add<Use>();
 		pos.emplace_back(lex.position());
+		const wpp::Token tok = lex.advance();
 
-		lex.advance();
-
-		if (not peek_is_string(lex.peek()))
-			wpp::error(lex.position(), env, "expected string", "expecting a string as path name for `use`");
-
-		const wpp::node_t path = wpp::string(lex, tree, pos, env);
-		tree.get<Use>(node).path = path;
-
-		return node;
-	}
-
-
-	wpp::node_t push(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
-		DBG();
-
-		const wpp::node_t node = tree.add<Push>();
-		pos.emplace_back(lex.position());
-
-		lex.advance(); // skip `push`.
-
-		if (not peek_is_expr(lex.peek()))
-			wpp::error(lex.position(), env, "expected expression", "expecting an expression to follow `push`");
+		wpp::node_t node;
 
 		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
-		tree.get<Push>(node).expr = expr;
+
+		if (tok == TOKEN_INTRINSIC_USE)
+			node = tree.add<IntrinsicUse>(expr);
+
+		else if (tok == TOKEN_INTRINSIC_RUN)
+			node = tree.add<IntrinsicRun>(expr);
+
+		else if (tok == TOKEN_INTRINSIC_FILE)
+			node = tree.add<IntrinsicFile>(expr);
+
+		else if (tok == TOKEN_INTRINSIC_ERROR)
+			node = tree.add<IntrinsicError>(expr);
+
+		else if (tok == TOKEN_INTRINSIC_LOG)
+			node = tree.add<IntrinsicLog>(expr);
+
+		else if (tok == TOKEN_INTRINSIC_ASSERT) {
+			const wpp::node_t expr2 = wpp::expression(lex, tree, pos, env);
+			node = tree.add<IntrinsicAssert>(expr, expr2);
+		}
+
+		else if (tok == TOKEN_INTRINSIC_PIPE) {
+			const wpp::node_t expr2 = wpp::expression(lex, tree, pos, env);
+			node = tree.add<IntrinsicPipe>(expr, expr2);
+		}
 
 		return node;
 	}
@@ -922,11 +929,11 @@ namespace wpp { namespace {
 		wpp::node_t node = tree.add<FnInvoke>();
 		pos.emplace_back(lex.position());
 
-		const auto fn_token = lex.advance();
+		tree.get<FnInvoke>(node).identifier = lex.advance().view;
 
 		// Optional arguments.
 		if (lex.peek() != TOKEN_LPAREN) {
-			tree.replace<VarRef>(node, fn_token.view);
+			tree.replace<VarRef>(node, tree.get<FnInvoke>(node).identifier);
 			return node;
 		}
 
@@ -956,21 +963,7 @@ namespace wpp { namespace {
 			);
 
 
-		// Check if function call is an intrinsic.
-		// If it is an intrinsic, we replace the FnInvoke node type with
-		// the Intrinsic node type and forward the arguments.
-		if (peek_is_intrinsic(fn_token)) {
-			const auto args = tree.get<FnInvoke>(node).arguments;
-			const auto identifier = tree.get<FnInvoke>(node).identifier;
-
-			tree.replace<Intrinsic>(node, args, identifier, fn_token.type);
-			DBG(tree.get<Intrinsic>(node).identifier, " (", tree.get<Intrinsic>(node).arguments.size(), " args)");
-		}
-
-		else {
-			tree.get<FnInvoke>(node).identifier = fn_token.view;
-			DBG(tree.get<FnInvoke>(node).identifier, " (", tree.get<FnInvoke>(node).arguments.size(), " args)");
-		}
+		DBG(tree.get<FnInvoke>(node).identifier, " (", tree.get<FnInvoke>(node).arguments.size(), " args)");
 
 		return node;
 	}
@@ -1025,7 +1018,7 @@ namespace wpp { namespace {
 		if (lex.peek() == TOKEN_ARROW)
 			wpp::error(lex.position(), env, "unexpected `->`",
 				"found `->` inside a block expression",
-				"did you forget the test expression for map?"
+				"did you forget the test expression for match?"
 			);
 
 		// Expect '}'.
@@ -1043,38 +1036,38 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t map(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
-		const wpp::node_t node = tree.add<Map>();
+	wpp::node_t match(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+		const wpp::node_t node = tree.add<Match>();
 		pos.emplace_back(lex.position());
 
-		lex.advance(); // Skip `map`.
+		lex.advance(); // Skip `match`.
 
 
 		// Check for test expression.
 		if (not peek_is_expr(lex.peek()))
 			wpp::error(lex.position(), env, "expected expression",
-				"expecting an expression to follow `map`",
-				"insert a test expression for `map` to match on"
+				"expecting an expression to follow `match`",
+				"insert a test expression for `match` to match on"
 			);
 
 
 		const auto expr = wpp::expression(lex, tree, pos, env); // Consume test expression.
-		tree.get<Map>(node).expr = expr;
+		tree.get<Match>(node).expr = expr;
 
 
 		if (lex.peek() != TOKEN_LBRACE)
-			wpp::error(lex.position(), env, "expected `{`", "expecting `{` to begin map expression body");
+			wpp::error(lex.position(), env, "expected `{`", "expecting `{` to begin match expression body");
 
 		lex.advance();
 
 
-		// Collect all arms of the map.
+		// Collect all arms of the match.
 		while (peek_is_expr(lex.peek())) {
 			const auto arm = wpp::expression(lex, tree, pos, env);
 
 			if (lex.peek() != TOKEN_ARROW)
 				wpp::error(lex.position(), env, "expected `->`",
-					"expecting `->` to denote right hand side of map arm"
+					"expecting `->` to denote right hand side of match arm"
 				);
 
 			lex.advance();
@@ -1084,7 +1077,7 @@ namespace wpp { namespace {
 
 			const auto hand = wpp::expression(lex, tree, pos, env);
 
-			tree.get<Map>(node).cases.emplace_back(std::pair{ arm, hand });
+			tree.get<Match>(node).cases.emplace_back(std::pair{ arm, hand });
 		}
 
 
@@ -1094,7 +1087,7 @@ namespace wpp { namespace {
 
 			if (lex.peek() != TOKEN_ARROW)
 				wpp::error(lex.position(), env, "expected `->`",
-					"expecting `->` to denote right hand side of map arm"
+					"expecting `->` to denote right hand side of match arm"
 				);
 
 			lex.advance();
@@ -1103,22 +1096,22 @@ namespace wpp { namespace {
 				wpp::error(lex.position(), env, "expected expression", "expecting an expression after `->`");
 
 			const auto default_case = wpp::expression(lex, tree, pos, env);
-			tree.get<Map>(node).default_case = default_case;
+			tree.get<Match>(node).default_case = default_case;
 		}
 
 		else {
-			tree.get<Map>(node).default_case = wpp::NODE_EMPTY;
+			tree.get<Match>(node).default_case = wpp::NODE_EMPTY;
 		}
 
 
 		if (lex.peek() != TOKEN_RBRACE)
 			wpp::error(node, env, "expected `}`",
-				"expecting `}` to terminate map expression that begins here"
+				"expecting `}` to terminate match expression that begins here"
 			);
 
 		lex.advance();
 
-		DBG("cases: ", tree.get<Map>(node).cases.size(), ", has default: ", tree.get<Map>(node).default_case != NODE_EMPTY);
+		DBG("cases: ", tree.get<Match>(node).cases.size(), ", has default: ", tree.get<Match>(node).default_case != NODE_EMPTY);
 
 		return node;
 	}
@@ -1154,20 +1147,23 @@ namespace wpp { namespace {
 
 		const auto lookahead = lex.peek();
 
-		if (peek_is_call(lookahead))
+		if (lookahead == TOKEN_IDENTIFIER)
 			lhs = wpp::fninvoke(lex, tree, pos, env);
 
 		else if (peek_is_string(lookahead))
 			lhs = wpp::string(lex, tree, pos, env);
 
+		else if (peek_is_intrinsic_expr(lookahead))
+			lhs = wpp::intrinsic(lex, tree, pos, env);
+
 		else if (lookahead == TOKEN_LBRACE)
 			lhs = wpp::block(lex, tree, pos, env);
 
-		else if (lookahead == TOKEN_MAP)
-			lhs = wpp::map(lex, tree, pos, env);
-
 		else if (lookahead == TOKEN_EVAL)
 			lhs = wpp::codeify(lex, tree, pos, env);
+
+		else if (lookahead == TOKEN_MATCH)
+			lhs = wpp::match(lex, tree, pos, env);
 
 		else if (lookahead == TOKEN_POP)
 			lhs = wpp::pop(lex, tree, pos, env);
@@ -1254,11 +1250,8 @@ namespace wpp { namespace {
 		else if (lookahead == TOKEN_DROP)
 			return wpp::drop(lex, tree, pos, env);
 
-		else if (lookahead == TOKEN_USE)
-			return wpp::use(lex, tree, pos, env);
-
-		else if (lookahead == TOKEN_PUSH)
-			return wpp::push(lex, tree, pos, env);
+		else if (peek_is_intrinsic_stmt(lookahead))
+			return wpp::intrinsic(lex, tree, pos, env);
 
 		else if (peek_is_expr(lookahead))
 			return wpp::expression(lex, tree, pos, env);
