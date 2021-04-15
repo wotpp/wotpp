@@ -698,32 +698,19 @@ namespace wpp { namespace {
 					wpp::error(lex.position(), env, "expected identifier or `)`", "expecting identifier or `)` to follow `,`");
 			}
 
-			// Check if `*` is the last param.
-			// If so, this function is variadic.
-			if (lex.peek() == TOKEN_STAR) {
-				tree.get<Fn>(node).is_variadic = true;
-				lex.advance();
-			}
-
 			// Check if there's a keyword conflict.
 			// We check if the next token is a reserved name and throw an error
 			// if it is. The reason we don't check this in the while loop body is
 			// because the loop condition checks for an identifier and so breaks
 			// out if the next token is an intrinsic.
-			else if (peek_is_reserved_name(lex.peek()))
+			if (peek_is_reserved_name(lex.peek()))
 				wpp::error(lex.position(), env, "invalid name",
 					wpp::cat("parameter name '", lex.peek().str(), "' conflicts with keyword of the same name")
 				);
 		}
 
 		// Make sure parameter list is terminated by `)`.
-		if (lex.peek() != TOKEN_RPAREN and tree.get<Fn>(node).is_variadic)
-			wpp::error(lex.position(), env, "expected `)`",
-				"expecting `)` to terminate parameter list",
-				"`*` must come at the end of the parameter list"
-			);
-
-		else if (lex.peek() != TOKEN_RPAREN)
+		if (lex.peek() != TOKEN_RPAREN)
 			wpp::error(lex.position(), env, "expected `)`",
 				"expecting `)` to terminate parameter list",
 				"there might be a non-identifier token in the parameter list"
@@ -796,20 +783,7 @@ namespace wpp { namespace {
 				wpp::error(lex.position(), env, "expected identifier or `)`", "expecting identifier  or `)` to follow `,`");
 		}
 
-
-		if (lex.peek() == TOKEN_STAR) {
-			tree.get<Drop>(node).is_variadic = true;
-			lex.advance();
-
-			// Make sure parameter list is terminated by `)`.
-			if (lex.peek() != TOKEN_RPAREN)
-				wpp::error(lex.position(), env, "expected `)`",
-					"expecting `)` to terminate parameter list",
-					"`*` must come at the end of the parameter list"
-				);
-		}
-
-		else if (lex.peek() != TOKEN_RPAREN)
+		if (lex.peek() != TOKEN_RPAREN)
 			wpp::error(lex.position(), env, "expected `)`",
 				"expecting `)` to follow argument list",
 				"there might be a non-identifier token in the argument list"

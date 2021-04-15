@@ -85,18 +85,15 @@ namespace wpp {
 		std::vector<wpp::View> parameters{};
 		wpp::View identifier{};
 		wpp::node_t body{};
-		bool is_variadic{};
 
 		Fn(
 			const std::vector<wpp::View>& parameters_,
 			const wpp::View& identifier_,
-			const wpp::node_t body_,
-			const bool is_variadic_
+			const wpp::node_t body_
 		):
 			parameters(parameters_),
 			identifier(identifier_),
-			body(body_),
-			is_variadic(is_variadic_) {}
+			body(body_) {}
 
 		Fn() {}
 	};

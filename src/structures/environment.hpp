@@ -42,9 +42,8 @@ namespace wpp {
 	};
 
 
-	using Variables         = std::unordered_map<wpp::View, std::string>;
-	using Functions         = std::unordered_map<wpp::View, std::unordered_map<int, std::vector<wpp::node_t>>>;
-	using VariadicFunctions = std::unordered_map<wpp::View, std::map<int, std::vector<wpp::node_t>, std::greater<int>>>;
+	using Variables = std::unordered_map<wpp::View, std::string>;
+	using Functions = std::unordered_map<wpp::View, std::map<int, std::vector<wpp::node_t>, std::greater<int>>>;
 
 	using Arguments = std::unordered_map<wpp::View, std::string>;
 	using Positions = std::vector<wpp::Pos>;
@@ -88,7 +87,6 @@ namespace wpp {
 		wpp::AST ast{};
 
 		wpp::Functions functions{};
-		wpp::VariadicFunctions vfunctions{};
 		wpp::Variables variables{};
 
 		std::vector<std::vector<std::string>> stack{};

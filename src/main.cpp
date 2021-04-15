@@ -61,6 +61,9 @@ int main(int argc, const char* argv[]) {
 		else if (x == "deep-recursion")
 			flags |= wpp::WARN_DEEP_RECURSION;
 
+		else if (x == "extra-args")
+			flags |= wpp::WARN_EXTRA_ARGS;
+
 
 		// Unset warning flags.
 		else if (x == "no-param-shadow-var")
@@ -78,10 +81,16 @@ int main(int argc, const char* argv[]) {
 		else if (x == "no-deep-recursion")
 			flags &= ~wpp::WARN_DEEP_RECURSION;
 
+		else if (x == "no-extra-args")
+			flags &= ~wpp::WARN_EXTRA_ARGS;
+
 
 		// Enable all warnings.
 		else if (x == "all")
 			flags = wpp::WARN_ALL;
+
+		else if (x == "useful")
+			flags = wpp::WARN_USEFUL;
 
 
 		// Unknown warning flag.

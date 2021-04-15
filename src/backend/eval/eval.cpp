@@ -51,24 +51,24 @@ namespace wpp { namespace {
 		wpp::Env& env
 	) {
 		auto& functions = env.functions;
-		auto& vfunctions = env.vfunctions;
-
 		const auto& ast = env.ast;
+		const auto& flags = env.flags;
 
-		// Lookup normal function first.
+		// No normal function found, we look up a variadic function.
 		if (auto it = functions.find(name); it != functions.end()) {
 			auto& arities = it->second;
 
-			if (auto it = arities.find(n_args); it != arities.end())
-				return ast.get<wpp::Fn>(it->second.back());
-		}
+			if (auto it = arities.lower_bound(n_args); it != arities.end()) {
+				auto& [min_args, entry] = *it;
 
-		// No normal function found, we look up a variadic function.
-		if (auto it = vfunctions.find(name); it != vfunctions.end()) {
-			auto& arities = it->second;
+				if (flags & wpp::WARN_EXTRA_ARGS)
+					wpp::warn(node_id, env, "extra arguments",
+						wpp::cat("got ", n_args - min_args, " extra arguments (function expects >= ", min_args, " arguments)"),
+						"this may be intentional behaviour, extra arguments will be pushed to the stack"
+					);
 
-			if (auto it = arities.lower_bound(n_args); it != arities.end())
-				return ast.get<wpp::Fn>(it->second.back());
+				return ast.get<wpp::Fn>(entry.back());
+			}
 		}
 
 		// No function found.
@@ -91,9 +91,7 @@ namespace wpp { namespace {
 		const auto& ast = env.ast;
 		const auto& flags = env.flags;
 
-
 		wpp::Fn func = wpp::find_func(node_id, name, args, arg_strings.size(), env);
-		const bool is_variadic = func.is_variadic;
 
 
 		// Set up Arguments to pass down to function body.
@@ -239,75 +237,38 @@ namespace wpp { namespace {
 
 	std::string eval_fn(wpp::node_t node_id, const Fn& func, wpp::Env& env, wpp::FnEnv* fn_env) {
 		auto& functions = env.functions;
-		auto& vfunctions = env.vfunctions;
-
 		const auto& flags = env.flags;
 
 		const auto& name = func.identifier;
 		const auto& params = func.parameters;
 		const auto n_params = params.size();
-		const auto is_variadic = func.is_variadic;
 
-		DBG("fn: ", name, ", n param: ", n_params, ", is variadic: ", is_variadic);
+		DBG("fn: ", name, ", n param: ", n_params);
 
-		if (is_variadic) {
-			// Check if function already exists.
-			if (auto it = vfunctions.find(name); it != vfunctions.end()) {
-				auto& arities = it->second;
+		// Check if function already exists.
+		if (auto it = functions.find(name); it != functions.end()) {
+			auto& arities = it->second;
 
-				if (auto it = arities.lower_bound(n_params); it != arities.end()) {
-					auto& generations = it->second;
+			if (auto it = arities.lower_bound(n_params); it != arities.end()) {
+				auto& generations = it->second;
 
-					if (flags & wpp::WARN_FUNC_REDEFINED)
-						wpp::warn(node_id, env, "variadic function redefined",
-							wpp::cat("variadic function '", name, "' (>=", n_params, " parameters) redefined")
-						);
+				if (flags & wpp::WARN_FUNC_REDEFINED)
+					wpp::warn(node_id, env, "function redefined",
+						wpp::cat("function '", name, "' (>=", n_params, " parameters) redefined")
+					);
 
-					generations.emplace_back(node_id);
-				}
-
-				else {
-					arities.emplace(n_params, std::initializer_list{node_id});
-				}
+				generations.emplace_back(node_id);
 			}
 
-			// Otherwise, create it.
-			else {
-				vfunctions.emplace(name, std::map<int, std::vector<node_t>, std::greater<int>>{
-					{n_params, std::initializer_list{node_id}}
-				});
-			}
+			else
+				arities.emplace(n_params, std::initializer_list{node_id});
 		}
 
-		// Normal function.
-		else {
-			// Check if function already exists.
-			if (auto it = functions.find(name); it != functions.end()) {
-				auto& arities = it->second;
-
-				if (auto it = arities.find(n_params); it != arities.end()) {
-					auto& generations = it->second;
-
-					if (flags & wpp::WARN_FUNC_REDEFINED)
-						wpp::warn(node_id, env, "function redefined",
-							wpp::cat("function '", name, "' (", n_params ," parameters) redefined")
-						);
-
-					generations.emplace_back(node_id);
-				}
-
-				else {
-					arities.emplace(n_params, std::initializer_list{node_id});
-				}
-			}
-
-			// Otherwise, create it.
-			else {
-				functions.emplace(name, std::unordered_map<int, std::vector<node_t>>{
-					{n_params, std::initializer_list{node_id}}
-				});
-			}
-		}
+		// Otherwise, create it.
+		else
+			functions.emplace(name, std::map<int, std::vector<node_t>, std::greater<int>>{
+				{n_params, std::initializer_list{node_id}}
+			});
 
 		return "";
 	}
@@ -416,17 +377,10 @@ namespace wpp { namespace {
 		DBG();
 
 		auto& functions = env.functions;
-		auto& vfunctions = env.vfunctions;
 
-		if (drop.is_variadic)
-			drop_func(node_id, drop.identifier, drop.n_args, vfunctions, env, [&] (auto&& x, auto&& y) {
-				return x.lower_bound(y);
-			});
-
-		else
-			drop_func(node_id, drop.identifier, drop.n_args, functions, env, [&] (auto&& x, auto&& y) {
-				return x.find(y);
-			});
+		drop_func(node_id, drop.identifier, drop.n_args, functions, env, [&] (auto&& x, auto&& y) {
+			return x.lower_bound(y);
+		});
 
 		return "";
 	}
