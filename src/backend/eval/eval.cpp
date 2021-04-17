@@ -54,14 +54,14 @@ namespace wpp { namespace {
 		const auto& ast = env.ast;
 		const auto& flags = env.flags;
 
-		// No normal function found, we look up a variadic function.
+		// Lookup function which accepts at least n_args.
 		if (auto it = functions.find(name); it != functions.end()) {
 			auto& arities = it->second;
 
-			if (auto it = arities.lower_bound(n_args); it != arities.end()) {
-				auto& [min_args, entry] = *it;
+			if (auto arity_it = arities.lower_bound(n_args); arity_it != arities.end()) {
+				auto& [min_args, entry] = *arity_it;
 
-				if (flags & wpp::WARN_EXTRA_ARGS)
+				if (flags & wpp::WARN_EXTRA_ARGS and n_args > min_args)
 					wpp::warn(node_id, env, "extra arguments",
 						wpp::cat("got ", n_args - min_args, " extra arguments (function expects >= ", min_args, " arguments)"),
 						"this may be intentional behaviour, extra arguments will be pushed to the stack"
@@ -83,7 +83,7 @@ namespace wpp { namespace {
 		wpp::node_t node_id,
 		const View& name,
 		const std::vector<node_t>& args,
-		const std::vector<std::string>& arg_strings,
+		std::vector<std::string>& arg_strings,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
@@ -104,25 +104,23 @@ namespace wpp { namespace {
 		const auto& params = func.parameters;
 
 		// Handle variadic arguments.
-		for (auto it = arg_strings.rbegin(); it != (arg_strings.rend() - params.size()); ++it)
+		auto it = arg_strings.begin();
+
+		for (; it != (arg_strings.end() - params.size()); ++it)
 			env.stack.back().emplace_back(*it);
 
 
 		// Setup normal arguments.
-		for (auto it = params.rbegin(); it != params.rend(); ++it) {
-			// Calculate distance from end of params to current iterator -1
-			const auto index = std::distance(it, params.rend()) - 1;
-			const auto& result = arg_strings[index];
-
-			const auto arg_it = new_fn_env.arguments.find(*it);
+		for (auto rit = params.rbegin(); rit != params.rend() and it != arg_strings.end(); ++rit, ++it) {
+			const auto arg_it = new_fn_env.arguments.find(*rit);
 
 			// If parameter is not already in environment, insert it.
 			if (arg_it == new_fn_env.arguments.end())
-				new_fn_env.arguments.emplace(*it, result);
+				new_fn_env.arguments.emplace(*rit, *it);
 
 			// If parameter exists, overwrite it.
 			else {
-				arg_it->second = result;
+				arg_it->second = *it;
 
 				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
 					wpp::warn(node_id, env, "parameter shadows parameter",
@@ -144,43 +142,6 @@ namespace wpp { namespace {
 		env.call_depth--;
 
 		return str;
-	}
-
-
-	template <typename T>
-	void drop_func(
-		wpp::node_t node_id,
-		const View& identifier,
-		size_t n_args,
-		T& functions,
-		wpp::Env& env,
-		const auto& fn
-	) {
-		if (auto it = functions.find(identifier); it != functions.end()) {
-			auto& arities = it->second;
-
-			if (auto it = fn(arities, n_args); it != arities.end()) {
-				// If we have found a function, drop the latest
-				// generation and return to a previous definition.
-				if (not it->second.empty())
-					it->second.pop_back();
-
-				// If there are no generations, erase the entry.
-				if (it->second.empty())
-					arities.erase(it);
-
-				return;
-			}
-
-			// If no functions exist under this name, remove the entire entry.
-			if (arities.empty())
-				functions.erase(it);
-		}
-
-		wpp::error(node_id, env, "undefined function",
-			wpp::cat("cannot drop undefined function '", identifier, "' (", n_args, " parameters)"),
-			"are you passing the correct number of arguments?"
-		);
 	}
 }}
 
@@ -227,9 +188,10 @@ namespace wpp { namespace {
 
 		// Evaluate arguments.
 		std::vector<std::string> arg_strings;
+		const auto& args = call.arguments;
 
-		for (const wpp::node_t node: call.arguments)
-			arg_strings.emplace_back(wpp::evaluate(node, env, fn_env));
+		for (auto it = args.rbegin(); it != args.rend(); ++it)
+			arg_strings.emplace_back(wpp::evaluate(*it, env, fn_env));
 
 		return wpp::call_func(node_id, call.identifier, call.arguments, arg_strings, env, fn_env);
 	}
@@ -249,8 +211,8 @@ namespace wpp { namespace {
 		if (auto it = functions.find(name); it != functions.end()) {
 			auto& arities = it->second;
 
-			if (auto it = arities.lower_bound(n_params); it != arities.end()) {
-				auto& generations = it->second;
+			if (auto arity_it = arities.lower_bound(n_params); arity_it != arities.end()) {
+				auto& generations = arity_it->second;
 
 				if (flags & wpp::WARN_FUNC_REDEFINED)
 					wpp::warn(node_id, env, "function redefined",
@@ -261,13 +223,13 @@ namespace wpp { namespace {
 			}
 
 			else
-				arities.emplace(n_params, std::initializer_list{node_id});
+				arities.emplace(n_params, std::initializer_list<node_t>{node_id});
 		}
 
 		// Otherwise, create it.
 		else
-			functions.emplace(name, std::map<int, std::vector<node_t>, std::greater<int>>{
-				{n_params, std::initializer_list{node_id}}
+			functions.emplace(name, std::map<size_t, std::vector<node_t>, std::greater<size_t>>{
+				{n_params, std::initializer_list<node_t>{node_id}}
 			});
 
 		return "";
@@ -342,11 +304,12 @@ namespace wpp { namespace {
 
 		DBG("pop: ", func, ", args: ", args.size(), ", popped args: ", n_popped_args);
 
+
 		// Evaluate arguments.
 		std::vector<std::string> arg_strings;
 
-		for (const wpp::node_t node: args)
-			arg_strings.emplace_back(wpp::evaluate(node, env, fn_env));
+		for (auto it = args.begin(); it != args.end(); ++it)
+			arg_strings.emplace_back(wpp::evaluate(*it, env, fn_env));
 
 		// Loop to collect as many strings from the stack as possible until we reach `n_popped_args`
 		// or the stack is empty.
@@ -357,6 +320,8 @@ namespace wpp { namespace {
 			arg_strings.emplace_back(stack.back().back());
 			stack.back().pop_back();
 		}
+
+		std::reverse(arg_strings.begin(), arg_strings.end());
 
 		return wpp::call_func(node_id, func, args, arg_strings, env, fn_env);
 	}
@@ -378,11 +343,34 @@ namespace wpp { namespace {
 
 		auto& functions = env.functions;
 
-		drop_func(node_id, drop.identifier, drop.n_args, functions, env, [&] (auto&& x, auto&& y) {
-			return x.lower_bound(y);
-		});
+		const auto& name = drop.identifier;
+		const auto n_args = drop.n_args;
 
-		return "";
+		if (auto it = functions.find(name); it != functions.end()) {
+			auto& arities = it->second;
+
+			if (auto arity_it = arities.lower_bound(n_args); arity_it != arities.end()) {
+				// If we have found a function, drop the latest
+				// generation and return to a previous definition.
+				if (not arity_it->second.empty())
+					arity_it->second.pop_back();
+
+				// If there are no generations, erase the entry.
+				if (arity_it->second.empty())
+					arities.erase(arity_it);
+
+				return "";
+			}
+
+			// If no functions exist under this name, remove the entire entry.
+			if (arities.empty())
+				functions.erase(it);
+		}
+
+		wpp::error(node_id, env, "undefined function",
+			wpp::cat("cannot drop undefined function '", name, "' (", n_args, " parameters)"),
+			"are you passing the correct number of arguments?"
+		);
 	}
 
 
@@ -455,6 +443,7 @@ namespace wpp { namespace {
 
 			str.erase(0, erase_from_front);
 		}
+
 
 		return str;
 	}
