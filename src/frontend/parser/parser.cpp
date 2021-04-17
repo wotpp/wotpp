@@ -801,7 +801,7 @@ namespace wpp { namespace {
 		pos.emplace_back(lex.position());
 		const wpp::Token tok = lex.advance();
 
-		wpp::node_t node;
+		wpp::node_t node = NODE_EMPTY;
 
 		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
 
@@ -1163,47 +1163,47 @@ namespace wpp { namespace {
 			lex.advance(); // Skip `[`.
 
 
-			if (lex.peek(lexer_modes::slice) == TOKEN_RBRACKET)
-				wpp::error(lex.position(), env, "empty slice", "expecting slice operation");
-
-
-			// Start
+			// Index/Start
 			if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
 				tree.get<Slice>(node).start = view_to_int(lex.advance(lexer_modes::slice).view);
-				tree.get<Slice>(node).set = Slice::SLICE_START;
+
+				// Check for `:`. If we find one, the first integer literal was
+				// actually the start index of a slice and not an index.
+				if (lex.peek(lexer_modes::slice) == TOKEN_COLON) {
+					tree.get<Slice>(node).set = Slice::SLICE_START;
+					lex.advance(lexer_modes::slice); // Skip `:`.
+
+					// Stop
+					if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
+						tree.get<Slice>(node).stop = view_to_int(lex.advance(lexer_modes::slice).view);
+						tree.get<Slice>(node).set |= Slice::SLICE_STOP;
+					}
+				}
+
+				else
+					tree.get<Slice>(node).set = Slice::SLICE_INDEX;
 			}
 
+			else if (lex.peek(lexer_modes::slice) == TOKEN_COLON) {
+				tree.get<Slice>(node).set = Slice::SLICE_STOP;
+				lex.advance(lexer_modes::slice); // Skip `:`.
 
+				if (lex.peek(lexer_modes::slice) != TOKEN_INT)
+					wpp::error(lex.position(), env, "expected integer literal",
+						"expecting an integer literal for stop index"
+					);
 
-			if (lex.peek(lexer_modes::slice) == TOKEN_COLON)
-				lex.advance(lexer_modes::slice);
-
-			// Index
-			else if (lex.peek(lexer_modes::slice) == TOKEN_RBRACKET) {
-				tree.get<Slice>(node).set = Slice::SLICE_INDEX;
-				lex.advance(lexer_modes::slice);
-				return node;
-			}
-
-			else
-				wpp::error(lex.position(), env, "expected `:`, integer literal or `]`",
-					"expecting `:`, integer literal or `]` to follow integer literal"
-				);
-
-
-
-
-			// Stop
-			if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
 				tree.get<Slice>(node).stop = view_to_int(lex.advance(lexer_modes::slice).view);
-				tree.get<Slice>(node).set |= Slice::SLICE_STOP;
 			}
 
-			if (lex.peek(lexer_modes::slice) != TOKEN_RBRACKET)
-				wpp::error(lex.position(), env, "expected `]`", "expecting `]` to terminate end of slice");
 
 			if (tree.get<Slice>(node).set == 0)
-				wpp::error(node, env, "no range defined", "slice does not have any indices defined");
+				wpp::error(lex.position(), env, "empty slice", "expecting slice indices or range");
+
+
+			if (lex.peek(lexer_modes::slice) != TOKEN_RBRACKET)
+				wpp::error(lex.position(), env, "expected `]`", "expecting `]` to terminate string slice");
+
 
 			lex.advance(lexer_modes::slice);
 
