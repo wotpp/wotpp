@@ -30,21 +30,21 @@ new_directive(\day)
 
 #[ Functions to generate pre-filled information. ]
 let generate_id()
-	run(\uuidgen)
+	run \uuidgen
 
-let generate_year()   run("date +'%Y'")
-let generate_month()  run("date +'%-m'")
-let generate_day()    run("date +'%-d'")
+let generate_year()   run "date +'%Y'"
+let generate_month()  run "date +'%-m'"
+let generate_day()    run "date +'%-d'"
 
 
 #[ Helpers. ]
 let /n \\n
 
 let generate_header()
-	id(generate_id) ..
-	year(generate_year) ..
-	month(generate_month) ..
-	day(generate_day)
+	id(generate_id()) ..
+	year(generate_year()) ..
+	month(generate_month()) ..
+	day(generate_day())
 
 
 #[The actual note.]

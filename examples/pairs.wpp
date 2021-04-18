@@ -18,7 +18,7 @@ let rec_1(x) pop rec_2(x, *)
 let rec_1() ""
 
 # Variadic wrapper func.
-let pairs(*) pop rec_1(*)
+let pairs() pop rec_1(*)
 
 pairs(\a, \b) # `a. b`
 pairs(\a)     # `a. <null>`

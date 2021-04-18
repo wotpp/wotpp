@@ -5,7 +5,7 @@ let take() pop impl/take(*)
 
 
 #[ a -- a b ]
-let push(*) ""
+let push() ""
 
 
 #[ a -- a a ]
