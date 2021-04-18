@@ -5,7 +5,6 @@
 #include <vector>
 #include <iostream>
 #include <utility>
-#include <chrono>
 
 #include <misc/flags.hpp>
 #include <misc/util/util.hpp>
@@ -16,8 +15,6 @@
 
 
 int main(int argc, const char* argv[]) {
-	auto t1 = std::chrono::steady_clock::now();
-
 	constexpr auto ver = "alpha-git";
 	constexpr auto desc = "A small macro language for producing and manipulating strings.";
 
@@ -160,10 +157,6 @@ int main(int argc, const char* argv[]) {
 
 	else
 		std::cout << out;
-
-	auto t2 = std::chrono::steady_clock::now();
-
-	std::cerr << "took: " << std::fixed << std::setprecision(4) << std::chrono::duration<double>(t2 - t1).count() << "s\n";
 
 	return 0;
 }
