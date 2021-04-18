@@ -49,7 +49,9 @@ namespace wpp {
 				str.erase(str.end() - 1, str.end());
 
 			if (rc)
-				wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
+				wpp::error(node_id, env, "subcommand failed",
+					wpp::cat("subprocess exited with non-zero status `", cmd, "`")
+				);
 
 			return str;
 		#endif
@@ -83,7 +85,9 @@ namespace wpp {
 				out.erase(out.end() - 1, out.end());
 
 			if (rc)
-				wpp::error(node_id, env, "subcommand failed", "subprocess exited with non-zero status");
+				wpp::error(node_id, env, "subcommand failed",
+					wpp::cat("subprocess exited with non-zero status `", cmd, "`")
+				);
 
 			return out;
 		#endif
