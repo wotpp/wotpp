@@ -46,7 +46,6 @@ namespace wpp { namespace {
 	wpp::Fn find_func(
 		wpp::node_t node_id,
 		const View& name,
-		const std::vector<node_t>& args,
 		size_t n_args,
 		wpp::Env& env
 	) {
@@ -82,7 +81,6 @@ namespace wpp { namespace {
 	std::string call_func(
 		wpp::node_t node_id,
 		const View& name,
-		const std::vector<node_t>& args,
 		std::vector<std::string>& arg_strings,
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
@@ -91,7 +89,7 @@ namespace wpp { namespace {
 		const auto& ast = env.ast;
 		const auto& flags = env.flags;
 
-		wpp::Fn func = wpp::find_func(node_id, name, args, arg_strings.size(), env);
+		wpp::Fn func = wpp::find_func(node_id, name, arg_strings.size(), env);
 
 
 		// Set up Arguments to pass down to function body.
@@ -193,7 +191,7 @@ namespace wpp { namespace {
 		for (auto it = args.rbegin(); it != args.rend(); ++it)
 			arg_strings.emplace_back(wpp::evaluate(*it, env, fn_env));
 
-		return wpp::call_func(node_id, call.identifier, call.arguments, arg_strings, env, fn_env);
+		return wpp::call_func(node_id, call.identifier, arg_strings, env, fn_env);
 	}
 
 
@@ -323,7 +321,7 @@ namespace wpp { namespace {
 
 		std::reverse(arg_strings.begin(), arg_strings.end());
 
-		return wpp::call_func(node_id, func, args, arg_strings, env, fn_env);
+		return wpp::call_func(node_id, func, arg_strings, env, fn_env);
 	}
 
 

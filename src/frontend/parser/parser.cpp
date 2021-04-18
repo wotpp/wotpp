@@ -1151,9 +1151,16 @@ namespace wpp { namespace {
 			wpp::error(lex.position(), env, "expected expression", "expecting an expression to appear here");
 
 		if (lex.peek() == TOKEN_CAT) {
+			const wpp::node_t node = tree.add<Concat>();
 			pos.emplace_back(lex.position());
+
 			lex.advance(); // Skip `..`.
-			return tree.add<Concat>(lhs, expression(lex, tree, pos, env));
+			tree.get<Concat>(node).lhs = lhs;
+
+			const node_t rhs = expression(lex, tree, pos, env);
+			tree.get<Concat>(node).rhs = rhs;
+
+			return node;
 		}
 
 		else if (lex.peek() == TOKEN_LBRACKET) {
