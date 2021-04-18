@@ -346,8 +346,10 @@ namespace wpp { namespace {
 
 					// If this newline has whitespace after it, we have to check
 					// how much whitespace there is to track indentation level.
-					if (chunks.back().str.size() > 0 and lex.peek(wpp::lexer_modes::string_para) == TOKEN_WHITESPACE)
+					if (lex.peek(wpp::lexer_modes::string_para) == TOKEN_WHITESPACE) {
 						lex.advance(wpp::lexer_modes::string_para);
+						chunks.emplace_back(" ", true);
+					}
 				}
 
 				// Collapse repeated whitespace of the same type.
