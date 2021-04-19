@@ -1,20 +1,78 @@
-let pair(x, y)
+let impl/take(x) x
+let impl/take() ""
+let stack/take() pop impl/take(*)
+
+
+let stack/push() ""
+
+
+
+let stack/dup() {
+	let tmp stack/take()
+	stack/push(tmp, tmp)
+	""
+}
+
+
+let stack/peek() {
+	stack/dup()
+	stack/take()
+}
+
+
+
+
+
+
+
+let mkpair(x, y)
 	"(" .. x .. ", " .. y .. ")"
 
-let pair/pair_iter(a, b)
-	", " .. pair(a, b) ..
-	pop pair/pair_iter(*, *)
 
-let pair/pair_iter() ""
+let pair/pair_iter(default, a, b) {
+	log "iter -> (" .. a .. ", " .. b .. ")\n"
 
-let pair/pair_first(x, y) pair(x, y)
-let pair/pair_first() ""
+	", " .. mkpair(a, b) ..
+	pop pair/pair_iter(default, *, *)
+}
 
-let pairs()
+let pair/pair_iter(default, x) {
+	log "iter -> (" .. a .. ", " .. default .. ")\n"
+
+	", " .. mkpair(x, default) ..
+	pop pair/pair_iter(default, *, *)
+}
+
+let pair/pair_iter(default) {
+	log "iter -> empty\n"
+	""
+}
+
+
+
+let pair/pair_first(x, y) {
+	log "first -> (" .. x .. ", " .. y .. ")\n"
+	mkpair(x, y)
+}
+
+let pair/pair_first() {
+	log "first -> empty\n"
+	""
+}
+
+
+
+let pairs(default)
 	"[" ..
 		pop pair/pair_first(*, *) ..
-		pop pair/pair_iter(*, *) ..
+		pop pair/pair_iter(default, *, *) ..
 	"]"
 
-pairs(\a, \b, \c, \d, \e) '\n'
-pairs(\a, \b, \c, \d, \e, \f) '\n'
+let default "~"
+
+pairs(default, \a, \b, \c, \d, \e, \f, \g) '\n'
+pairs(default, \a, \b, \c, \d, \e, \f) '\n'
+pairs(default, \a, \b, \c, \d, \e) '\n'
+pairs(default, \a, \b, \c, \d) '\n'
+
+stack/peek()
