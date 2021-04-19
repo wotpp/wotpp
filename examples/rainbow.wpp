@@ -52,7 +52,7 @@ let impl/rainbow(str, offset, colour, out) {
 		~ -> ~  # Empty string (base case)
 
 		# Don't shift colour on space.
-		' ' -> impl/rainbow(str[1:], offset, colour, out)
+		# ' ' -> impl/rainbow(str[1:], offset, colour, out)
 
 		# Reset colour shift on newlines so we get a diagonal rainbow effect.
 		'\n' -> impl/rainbow(str[1:], rainbow/shift_colours(offset), rainbow/shift_colours(offset), out)
@@ -75,16 +75,20 @@ let rainbow(str)
 
 
 
-rainbow(c/"lorem ipsum dolor sit amet, consectetur
-adipiscing elit. morbi ac nunc vitae sem feugiat
-ultricies. vivamus bibendum vulputate velit, sit
-amet pellentesque velit hendrerit eget. in tortor
-ante, pretium sit amet dictum non, tempor quis orci.
-fusce malesuada pretium gravida. vestibulum pretium
-eros justo, ut tempus massa imperdiet scelerisque.
-maecenas eu felis aliquam, placerat ligula ac,
-vulputate nunc. donec efficitur, nulla vel fermentum
-eleifend, tortor sem bibendum risus, in mattis sem ex
-vitae arcu. maecenas a leo semper, dignissim ex non,
-mattis quam. nam sed metus lectus. integer nec accumsan
-ante."/) '\n'
+rainbow(c/"
+	lorem ipsum dolor sit amet, consectetur
+	adipiscing elit. morbi ac nunc vitae sem feugiat
+	ultricies. vivamus bibendum vulputate velit, sit
+	amet pellentesque velit hendrerit eget. in tortor
+	ante, pretium sit amet dictum non, tempor quis orci.
+	fusce malesuada pretium gravida. vestibulum pretium
+	eros justo, ut tempus massa imperdiet scelerisque.
+	maecenas eu felis aliquam, placerat ligula ac,
+	vulputate nunc. donec efficitur, nulla vel fermentum
+	eleifend, tortor sem bibendum risus, in mattis sem ex
+	vitae arcu. maecenas a leo semper, dignissim ex non,
+	mattis quam. nam sed metus lectus. integer nec accumsan
+	ante.
+"/) '\n'
+
+
