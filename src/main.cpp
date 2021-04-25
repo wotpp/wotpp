@@ -92,7 +92,7 @@ int main(int argc, const char* argv[]) {
 
 		// Unknown warning flag.
 		else {
-			std::cerr << "unrecognized warning: '" << x << "'.\n";
+			std::cerr << "error: unrecognized warning '" << x << "'\n";
 			return 1;
 		}
 	}
@@ -113,7 +113,7 @@ int main(int argc, const char* argv[]) {
 
 
 	if (positional.empty()) {
-		std::cerr << "no input files.\n";
+		std::cerr << "error: no input files\n";
 		return 1;
 	}
 
@@ -122,23 +122,30 @@ int main(int argc, const char* argv[]) {
 	const auto initial_path = std::filesystem::current_path();
 
 	for (const auto& fname: positional) {
-		try {
-			// Set current path to path of file.
-			const auto path = initial_path / std::filesystem::path{fname};
-			std::filesystem::current_path(path.parent_path());
+		// Set current path to path of file.
+		const auto path = initial_path / std::filesystem::path{fname};
+		std::filesystem::current_path(path.parent_path());
 
-			wpp::Env env{ initial_path, search_path, flags };
+		wpp::Env env{ initial_path, search_path, flags };
+
+		try {
 			env.sources.push(path, wpp::read_file(path), wpp::modes::normal);
-			out += wpp::evaluate(wpp::parse(env), env);
+
+			wpp::node_t root = wpp::parse(env);
+
+			if (env.state & wpp::INTERNAL_ERROR_STATE)
+				return 1;
+
+			out += wpp::evaluate(root, env);
 		}
 
-		catch (const wpp::Error& e) {
-			e.show();
+		catch (const wpp::Report& e) {
+			std::cerr << e.str();
 			return 1;
 		}
 
-		catch (...) {
-			std::cerr << "file '" << fname << "' not found.\n";
+		catch (const wpp::FileError&) {
+			std::cerr << "error: file '" << fname << "' not found\n";
 			return 1;
 		}
 
@@ -147,8 +154,9 @@ int main(int argc, const char* argv[]) {
 
 	if (not outputf.empty()) {
 		std::error_code ec;
+
 		if (not force and std::filesystem::exists(outputf, ec)) {
-			std::cerr << "file '" << outputf << "' exists.\n";
+			std::cerr << "error: file '" << outputf << "' exists\n";
 			return 1;
 		}
 

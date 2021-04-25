@@ -45,7 +45,7 @@ namespace wpp {
 	using Variables = std::unordered_map<wpp::View, std::string>;
 	using Functions = std::unordered_map<wpp::View, std::map<size_t, std::vector<wpp::node_t>, std::greater<size_t>>>;
 
-	using Arguments = std::unordered_map<wpp::View, std::string>;
+	using Arguments = std::vector<std::unordered_map<wpp::View, std::string>>;
 	using Positions = std::vector<wpp::Pos>;
 
 
@@ -90,6 +90,7 @@ namespace wpp {
 		wpp::Variables variables{};
 
 		std::vector<std::vector<std::string>> stack{};
+		std::unordered_set<wpp::node_t> seen_warnings{};
 
 		wpp::Positions positions{};
 		wpp::Sources sources{};

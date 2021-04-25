@@ -2,6 +2,7 @@
 #include <vector>
 #include <filesystem>
 
+#include <misc/dbg.hpp>
 #include <misc/util/util.hpp>
 #include <misc/flags.hpp>
 #include <frontend/ast.hpp>
@@ -17,12 +18,24 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		const std::string source = wpp::evaluate(expr, env, fn_env);
 
 		const auto& [file, base, mode] = env.sources.top();
 		env.sources.push(file, source, modes::eval);
 
-		return wpp::evaluate(wpp::parse(env), env, fn_env);
+		std::string str;
+
+		try {
+			str = wpp::evaluate(wpp::parse(env), env, fn_env);
+		}
+
+		catch (wpp::Report& e) {
+			wpp::error(node_id, env, e.overview, e.detail, e.suggestion);
+		}
+
+		return str;
 	}
 
 
@@ -32,6 +45,8 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		#if defined(WPP_DISABLE_RUN)
 			wpp::error(node_id, env, "instrinsic disabled", "`run` not available");
 
@@ -65,6 +80,8 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		#if defined(WPP_DISABLE_RUN)
 			wpp::error(node_id, env, "intrinsic disabled", "`pipe` not available");
 
@@ -100,6 +117,8 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		#if defined(WPP_DISABLE_FILE)
 			wpp::error(node_id, env, "instrinsic disabled", "`file` not available");
 
@@ -113,7 +132,7 @@ namespace wpp {
 				return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
 			}
 
-			catch (...) {
+			catch (const wpp::FileError&) {
 				wpp::error(node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 			}
 
@@ -128,6 +147,8 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		#if defined(WPP_DISABLE_FILE)
 			wpp::error(node_id, env, "instrinsic disabled", "`use` not available");
 
@@ -153,7 +174,7 @@ namespace wpp {
 				std::filesystem::current_path(new_path.parent_path());
 			}
 
-			catch (...) {
+			catch (const wpp::FileError&) {
 				wpp::error(node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 			}
 
@@ -161,7 +182,7 @@ namespace wpp {
 				source = wpp::read_file(old_path / new_path);
 			}
 
-			catch (...) {
+			catch (const wpp::FileError&) {
 				wpp::error(node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
 			}
 
@@ -182,6 +203,8 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		// Check if strings are equal.
 		const auto str_a = evaluate(lhs, env, fn_env);
 		const auto str_b = evaluate(rhs, env, fn_env);
@@ -199,6 +222,8 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		const auto msg = evaluate(expr, env, fn_env);
 		wpp::error(node_id, env, "user error", msg);
 
@@ -212,6 +237,7 @@ namespace wpp {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
 		std::cerr << evaluate(expr, env, fn_env);
 		return "";
 	}

@@ -14,9 +14,12 @@ namespace wpp {
 
 	using flags_t = uint32_t;
 	using node_t = int32_t;
+
 	using token_type_t = uint8_t;
+
 	using mode_type_t = uint8_t;
 	using lexer_mode_type_t = uint8_t;
+	using error_mode_type_t = uint8_t;
 
 
 	namespace modes {
@@ -32,6 +35,24 @@ namespace wpp {
 
 		#define MODE(x) #x,
 			constexpr const char* mode_to_str[] = { MODES };
+		#undef MODE
+
+		#undef MODES
+	}
+
+
+	namespace error_modes {
+		#define MODES \
+			MODE(error) \
+			MODE(warning) \
+			MODE(utf8)
+
+		#define MODE(x) x,
+			enum: error_mode_type_t { MODES };
+		#undef MODE
+
+		#define MODE(x) #x,
+			constexpr const char* error_mode_to_str[] = { MODES };
 		#undef MODE
 
 		#undef MODES
