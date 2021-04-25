@@ -1,0 +1,437 @@
+let ~ ""
+
+let /n '\n'
+let /t '\t'
+
+let nl /n
+let endl /n
+let tab /t
+
+
+
+
+#[ Enclose a string in 2 other strings ]
+let util/enclose(lhs x rhs)
+	lhs .. x .. rhs
+
+#[ Surround a string with another string ]
+let util/surr(outer inner)
+	outer .. inner .. outer
+
+
+
+
+
+#[ Function composition ]
+let impl/pipeline(arg)
+	new meta/paren(arg)
+
+let impl/pipeline(arg fn)
+	meta/paren(fn .. pop impl/pipeline(arg *))
+
+let util/pipeline(fn) {
+	stack/reverse()
+	!meta/let_fn(
+		fn
+		new meta/paren(\x)
+		stack/take() .. pop impl/pipeline(\x *)
+	)
+}
+
+
+
+#[ Create a function but eagerly evaluate the body first ]
+let util/set(name str) {
+	!new meta/let_fn(name new meta/str(str))
+}
+
+
+
+#[ fold to the left ]
+let impl/foldl(fn str)
+	new meta/str(str)
+
+let impl/foldl(fn str x) {
+	meta/invoke(fn
+		pop impl/foldl(fn str *)
+		new meta/str(x)
+	)
+}
+
+let util/foldl(fn str) {
+	stack/reverse()
+	!pop impl/foldl(fn str *)
+}
+
+
+#[ fold to the right ]
+let impl/foldr(fn str)
+	new meta/str(str)
+
+let impl/foldr(fn str x)
+	meta/invoke(fn
+		new meta/str(x)
+		pop impl/foldr(fn str *)
+	)
+
+let util/foldr(fn str) {
+	stack/reverse()
+	!pop impl/foldr(fn str *)
+}
+
+
+
+
+
+let impl/map(fn x) {
+	new !meta/invoke(fn \x)
+	pop impl/map(fn *)
+}
+
+let impl/map(fn) ~
+
+let util/map(fn)
+	pop impl/map(fn *)
+
+
+
+
+
+#[ stack operations ]
+#[ a -- ]
+let impl/take(x) x
+let impl/take() ""
+let stack/take() pop impl/take(*)
+
+
+#[ a b -- a b c ]
+let stack/push() ""
+
+
+#[ a -- a a ]
+let stack/dup() {
+	let tmp stack/take()
+	stack/push(tmp tmp)
+	""
+}
+
+#[ a -- a ]
+let stack/peek() {
+	stack/dup()
+	stack/take()
+}
+
+#[ a -- ]
+let stack/drp() {
+	stack/take()
+	""
+}
+
+#[ a b -- b a ]
+let stack/swap() {
+	let a stack/take()
+	let b stack/take()
+
+	stack/push(b a)
+
+	""
+}
+
+#[ a b -- a b a ]
+let stack/over() {
+	let a stack/take()
+	let b stack/take()
+
+	stack/push(b a b)
+
+	""
+}
+
+#[ a b -- b ]
+let stack/nip() {
+	stack/swap()
+	stack/drp()
+	""
+}
+
+#[ a b -- b a b ]
+let stack/tuck() {
+	stack/swap()
+	stack/over()
+	""
+}
+
+
+#[ rotate the stack/move top item to bottom ]
+#[ a b c d -- b c d a ]
+let impl/rot(top x) {
+	pop impl/rot(top *)
+	stack/push(x)
+	~
+}
+
+let impl/rot(top) {
+	stack/push(top)
+	~
+}
+
+let stack/rot()
+	pop impl/rot(stack/take() *)
+
+
+#[ reverse the stack ]
+#[ a b c d -- d c b a ]
+let impl/reverse(x) {
+	pop impl/reverse(*)
+	pop stack/rot(x *)
+}
+
+let impl/reverse() ~
+
+let stack/reverse()
+	pop impl/reverse(*)
+
+
+
+
+
+#[ define function overloads ]
+let impl/templates_fn(name params body)
+	new {
+		meta/let_fn("impl/" .. name params body)
+	} .. '\n'
+
+let impl/templates(name params body)
+	impl/templates_fn(name params body) ..
+	pop impl/templates(name * *)
+
+let impl/templates()
+	""
+
+let meta/templates(name)
+	pop impl/templates(name * *)
+
+
+
+
+
+#[ join a stack of elements by a user specified delimiter ]
+let impl/rest(s x) s .. x .. pop impl/rest(s *)
+let impl/rest(s) ""
+
+let impl/first(x) x
+let impl/first() ""
+
+let join(s)
+	pop impl/first(*) .. pop impl/rest(s *)
+
+
+
+#[ meta cat joins a bunch of strings with `..` it can then be
+   evaluated to become an actual cat ]
+let meta/cat()
+	join(" .. ")
+
+#[ join strings into a block which can later be used with eval ]
+let meta/block()
+	util/enclose("{ " join(" ") " }")
+
+#[ parenthesise a bunch of strings ]
+let meta/paren()
+	util/enclose("(" join(" ") ")")
+
+#[ enclose a stack of catted strings in quotes ]
+let meta/str() util/surr('"' cat())
+
+#[ cat a stack of strings ]
+let cat() join("")
+
+
+#[ meta functions ]
+let meta/let_fn(name body)
+	cat("let " name "() " meta/block(body))
+
+let meta/let_fn(name args body)
+	cat("let " name args " " meta/block(body))
+
+let meta/let_var(name value)
+	cat("let " name " " meta/str(value))
+
+
+#[ invoke a function ]
+let meta/invoke(name) {
+	name .. meta/paren()
+}
+
+
+let meta/ref(name)
+	block(name)
+
+
+
+#[ ANSI control sequences ]
+let ansi/ansi()
+	0x1b .. "[" .. join(";") .. "m"  #[\ESC[a;b;cm]
+
+let ansi/reset
+	ansi/ansi(\0)
+
+let ansi/bold(str)
+	new ansi/ansi(\1) .. str .. ansi/reset
+
+let ansi/rgb(r g b)
+	new ansi/ansi(\38 \2 r g b)
+
+let ansi/fg/black   ansi/ansi(\30)
+let ansi/fg/red     ansi/ansi(\31)
+let ansi/fg/green   ansi/ansi(\32)
+let ansi/fg/yellow  ansi/ansi(\33)
+let ansi/fg/blue    ansi/ansi(\34)
+let ansi/fg/magenta ansi/ansi(\35)
+let ansi/fg/cyan    ansi/ansi(\36)
+let ansi/fg/white   ansi/ansi(\37)
+
+let ansi/bg/black   ansi/ansi(\40)
+let ansi/bg/red     ansi/ansi(\41)
+let ansi/bg/green   ansi/ansi(\42)
+let ansi/bg/yellow  ansi/ansi(\43)
+let ansi/bg/blue    ansi/ansi(\44)
+let ansi/bg/magenta ansi/ansi(\45)
+let ansi/bg/cyan    ansi/ansi(\46)
+let ansi/bg/white   ansi/ansi(\47)
+
+let ansi/fg/bright_black   ansi/ansi(\90)
+let ansi/fg/bright_red     ansi/ansi(\91)
+let ansi/fg/bright_green   ansi/ansi(\92)
+let ansi/fg/bright_yellow  ansi/ansi(\93)
+let ansi/fg/bright_blue    ansi/ansi(\94)
+let ansi/fg/bright_magenta ansi/ansi(\95)
+let ansi/fg/bright_cyan    ansi/ansi(\96)
+let ansi/fg/bright_white   ansi/ansi(\97)
+
+let ansi/bg/bright_black   ansi/ansi(\100)
+let ansi/bg/bright_red     ansi/ansi(\101)
+let ansi/bg/bright_green   ansi/ansi(\102)
+let ansi/bg/bright_yellow  ansi/ansi(\103)
+let ansi/bg/bright_blue    ansi/ansi(\104)
+let ansi/bg/bright_magenta ansi/ansi(\105)
+let ansi/bg/bright_cyan    ansi/ansi(\106)
+let ansi/bg/bright_white   ansi/ansi(\107)
+
+
+
+
+#[ common shell commmands ]
+let impl/transform(str) str
+let impl/transform(str cmd)
+	pipe cmd pop impl/transform(str *)
+
+let impl/transform_first(x) x
+let impl/transform_first() ""
+
+let shell/transform(str) {
+	stack/reverse()
+	pipe
+		pop impl/transform_first(*)
+		pop impl/transform(str *)
+
+}
+
+
+let shell/sed(pat)
+	"sed " .. meta/str(pat)
+
+let shell/tr(from to)
+	new cat("tr " meta/str(from) " " meta/str(to))
+
+
+#[ replace `<` and `>` with `&lt;` and `&gt;` ]
+let html/escape_tags(x)
+	pipe c#"
+		sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&#39;/g'
+	"# x
+
+
+
+
+
+#[
+html/escape_tags("std::cout << 'hello world';") /n
+
+shell/transform("hello world!"
+	shell/sed("s/hello/hey/g")
+	shell/sed("s/world/everyone/g")
+	shell/tr("!" "?")
+) /n
+
+
+meta/cat(\a \b \c) /n
+meta/cat(\a \b \c \d) /n
+
+
+meta/str(\foo \bar) /n
+meta/str(\foo \bar \baz) /n
+
+meta/paren(\a \b \c) /n
+meta/paren(\a \b \c \d) /n
+
+meta/block(
+	\foo
+	\bar
+) /n
+
+meta/block(
+	\foo
+	\bar
+	\baz
+) /n
+
+
+
+meta/let_fn(\foo meta/paren(\a \b \c) meta/cat(
+	meta/str(\bar)
+	meta/str(\baz)
+)) /n
+
+meta/let_fn(\foo meta/paren(\a \b) meta/cat(
+	meta/str(\bar)
+	meta/str(\bar)
+	meta/str(\baz)
+)) /n
+
+
+
+meta/templates("func"
+	meta/paren(\1 \2 \3) meta/cat(\a \b)
+	meta/paren(\1 \2) meta/cat(\a \b \c)
+) /n
+
+
+
+meta/invoke("foo" \a \b \c)
+
+let foo(x) {
+	log "here is x: " .. x .. /n
+	~
+}
+util/map(\foo \a \b \c)
+
+
+]
+let foo(x y) { "(" .. x .. " + " .. y .. ")" }
+
+util/foldl(\foo \x \a \b \c \d \e) '\n'
+util/foldr(\foo \x \a \b \c \d \e) '\n'
+#[
+
+
+
+let a(x) x .. "a\n"
+let b(x) x .. "b\n"
+let c(x) x .. "c\n"
+
+util/pipeline(\foo \a \b \c)
+
+foo(\arg)
+
+]

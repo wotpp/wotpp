@@ -34,19 +34,19 @@ namespace wpp {
 		DBG();
 
 		int n = 0;
+		int mul = 1;
 
 		auto ptr = v.ptr;
 
-		if (*ptr == '-')
+		if (*ptr == '-') {
+			mul = -1;
 			++ptr;
+		}
 
 		for (; ptr != v.ptr + v.length; ++ptr)
 			n = (n * 10) + (*ptr - '0');
 
-		if (*v.ptr == '-')
-			n *= -1;
-
-		return n;
+		return n * mul;
 	}
 
 
