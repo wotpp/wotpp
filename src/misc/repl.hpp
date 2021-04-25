@@ -44,15 +44,20 @@ namespace wpp {
 				env.sources.push(initial_path, input, modes::repl);
 
 				try {
-					std::string out = wpp::evaluate(wpp::parse(env), env);
+					wpp::node_t root = wpp::parse(env);
+
+					if (env.state & wpp::INTERNAL_ERROR_STATE)
+						return 1;
+
+					std::string out = wpp::evaluate(root, env);
 
 					if (not out.empty() and out.back() != '\n')
 						out += '\n';
 
 					std::cout << out << std::flush;
 
-				} catch (const wpp::Error& e) {
-					e.show();
+				} catch (const wpp::Report& e) {
+					std::cerr << e.str();
 				}
 
 				std::free(input);

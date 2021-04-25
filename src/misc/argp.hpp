@@ -390,21 +390,21 @@ namespace wpp {
 					)
 				) {
 					if (flag & ERR_TAKES_ARG)
-						std::cerr << "option '" << arg_name << "' takes an argument." << '\n';
+						std::cerr << "error: option '" << arg_name << "' takes an argument" << '\n';
 
 					else if (flag & ERR_NO_ARG)
-						std::cerr << "argument passed to flag: '" << arg_name << "'.\n";
+						std::cerr << "error: argument passed to flag: '" << arg_name << "'\n";
 
 					else if (flag & ERR_NO_INLINE)
-						std::cerr << "long options do not support inline arguments: '" << arg_name << "'.\n";
+						std::cerr << "error: long options do not support inline arguments: '" << arg_name << "'\n";
 
 					else if (flag & ERR_NO_EQUAL)
-						std::cerr << "short options do not support equal arguments: '" << arg_name << "'.\n";
+						std::cerr << "error: short options do not support equal arguments: '" << arg_name << "'\n";
 
 					// Must check this last because while the ERR_UNKNOWN_ARG flag might be set,
 					// it could just be because one of the parsers failed to pick it up.
 					else if (flag & ERR_UNKNOWN_ARG and argv[i][0] == '-')
-						std::cerr << "unknown option '" << arg_name << "'.\n";
+						std::cerr << "error: unknown option '" << arg_name << "'\n";
 
 					// If no errors occured and SHOW_HELP is not set, this must
 					// be a positional argument.

@@ -222,11 +222,11 @@ namespace wpp {
 		Pop() {}
 	};
 
-	struct Ctx {
+	struct New {
 		wpp::node_t expr{};
 
-		Ctx(const wpp::node_t expr_): expr(expr_) {}
-		Ctx() {}
+		New(const wpp::node_t expr_): expr(expr_) {}
+		New() {}
 	};
 
 	struct Slice {
@@ -258,7 +258,7 @@ namespace wpp {
 		IntrinsicError,
 		IntrinsicLog,
 		IntrinsicAssert,
-		Ctx,
+		New,
 		Slice,
 		Pop,
 		FnInvoke,
