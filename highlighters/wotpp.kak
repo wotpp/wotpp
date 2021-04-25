@@ -12,7 +12,7 @@ provide-module -override wpp %{
 
 	add-highlighter shared/wpp/other/ regex %{\b(0x[_0-9a-fA-F]+|0b[_01]+)} 0:value
 
-	add-highlighter shared/wpp/other/ regex "\b(pop|drop|match|let|run|file|use|assert|pipe|error|log|ctx)\b" 0:keyword
+	add-highlighter shared/wpp/other/ regex "\b(pop|drop|match|let|run|file|use|assert|pipe|error|log|new)\b" 0:keyword
 	add-highlighter shared/wpp/other/ regex "\B(!|\*|\.\.|->)" 0:operator
 
 	add-highlighter shared/wpp/other/ regex "\B\\([^\s,(\.\.)\)])+" 0:string
