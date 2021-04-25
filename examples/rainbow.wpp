@@ -1,32 +1,32 @@
-let ~ ""      # Shorthand for empty string
-let push() ~  # Push arguments to stack
+let ~ ""      #[ Shorthand for empty string ]
+let push() ~  #[ Push arguments to stack ]
 
 #[ Join arguments together with passed delimiter ]
-let impl/rest(s, x) s .. x .. pop impl/rest(s, *)
+let impl/rest(s x) s .. x .. pop impl/rest(s *)
 let impl/rest(s) ""
 
 let impl/first(x) x
 let impl/first() ""
 
 let join(s)
-	pop impl/first(*) .. pop impl/rest(s, *)
+	pop impl/first(*) .. pop impl/rest(s *)
 
 #[ ANSI control sequences ]
 let ansi()
-	0x1b .. "[" .. join(";") .. "m"  # \ESC[a;b;cm
+	0x1b .. "[" .. join(";") .. "m"  #[ \ESC[a;b;cm ]
 
-let ansi/reset        ansi(\0)                           # Reset everything
-let ansi/bold(str)    ctx ansi(\1) .. str .. ansi/reset  # Embolden a string
-let ansi/rgb(r, g, b) ctx ansi(\38, \2, r, g, b)         # 24bit colour
+let ansi/reset      ansi(\0)                           #[ Reset everything ]
+let ansi/bold(str)  new ansi(\1) .. str .. ansi/reset  #[ Embolden a string ]
+let ansi/rgb(r g b) new ansi(\38 \2 r g b)         #[ 24bit colour ]
 
 #[ Rainbow colours ]
-let rainbow/red     ansi/rgb(\255,  \0  ,  \0)
-let rainbow/orange  ansi/rgb(\255,  \127,  \0)
-let rainbow/yellow  ansi/rgb(\255,  \255,  \0)
-let rainbow/green   ansi/rgb(\0  ,  \255,  \0)
-let rainbow/blue    ansi/rgb(\0  ,  \0  ,  \255)
-let rainbow/indigo  ansi/rgb(\46 ,  \43 ,  \95)
-let rainbow/violet  ansi/rgb(\139,  \0  ,  \255)
+let rainbow/red     ansi/rgb(\255  \0    \0)
+let rainbow/orange  ansi/rgb(\255  \127  \0)
+let rainbow/yellow  ansi/rgb(\255  \255  \0)
+let rainbow/green   ansi/rgb(\0    \255  \0)
+let rainbow/blue    ansi/rgb(\0    \0    \255)
+let rainbow/indigo  ansi/rgb(\46   \43   \95)
+let rainbow/violet  ansi/rgb(\139  \0    \255)
 
 
 
@@ -43,32 +43,39 @@ let rainbow/shift_colours(colour) match colour {
 	* -> rainbow/red
 }
 
-let impl/rainbow(str, offset, colour, out) {
-	# Cat `out` with all of the recursive calls
+let impl/rainbow(str offset colour out) {
+	#[ Cat `out` with all of the recursive calls ]
 	out .. { colour .. str[:1] } ..
 
-	# Taste the rainbow
+	#[ Taste the rainbow ]
 	match str[:1] {
-		~ -> ~  # Empty string (base case)
+		~ -> ~  #[ Empty string (base case) ]
 
-		# Don't shift colour on space.
-		# ' ' -> impl/rainbow(str[1:], offset, colour, out)
+		#[ Reset colour shift on newlines so we get a diagonal rainbow effect. ]
+		'\n' -> impl/rainbow(
+			str[1:]
+			rainbow/shift_colours(offset)
+			rainbow/shift_colours(offset)
+			out
+		)
 
-		# Reset colour shift on newlines so we get a diagonal rainbow effect.
-		'\n' -> impl/rainbow(str[1:], rainbow/shift_colours(offset), rainbow/shift_colours(offset), out)
-
-		# Everything else we just colour it.
-		* -> impl/rainbow(str[1:], offset, rainbow/shift_colours(colour), out)
+		#[ Everything else we just colour it. ]
+		* -> impl/rainbow(
+			str[1:]
+			offset
+			rainbow/shift_colours(colour)
+			out
+		)
 	}
 }
 
-# Entry function
+#[ Entry function ]
 let rainbow(str)
 	ansi/bold(
 		impl/rainbow(
-			str,
-			rainbow/shift_colours(~),
-			rainbow/shift_colours(~),
+			str
+			rainbow/shift_colours(~)
+			rainbow/shift_colours(~)
 			""
 		)
 	)
