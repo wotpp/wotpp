@@ -32,6 +32,7 @@ namespace wpp {
 		std::string eval_pop(wpp::node_t, const Pop&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_drop(wpp::node_t, const Drop&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_string(wpp::node_t, const String&, wpp::Env&, wpp::FnEnv*);
+		std::string eval_new(wpp::node_t, const String&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_cat(wpp::node_t, const Concat&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_slice(wpp::node_t, const Concat&, wpp::Env&, wpp::FnEnv*);
 		std::string eval_block(wpp::node_t, const Block&, wpp::Env&, wpp::FnEnv*);
@@ -49,6 +50,8 @@ namespace wpp { namespace {
 		size_t n_args,
 		wpp::Env& env
 	) {
+		DBG();
+
 		auto& functions = env.functions;
 		const auto& ast = env.ast;
 		const auto& flags = env.flags;
@@ -61,7 +64,7 @@ namespace wpp { namespace {
 				auto& [min_args, entry] = *arity_it;
 
 				if (flags & wpp::WARN_EXTRA_ARGS and n_args > min_args)
-					wpp::warn(node_id, env, "extra arguments",
+					wpp::warning(node_id, env, "extra arguments",
 						wpp::cat("got ", n_args - min_args, " extra arguments (function expects >= ", min_args, " arguments)"),
 						"this may be intentional behaviour, extra arguments will be pushed to the stack"
 					);
@@ -85,6 +88,8 @@ namespace wpp { namespace {
 		wpp::Env& env,
 		wpp::FnEnv* fn_env
 	) {
+		DBG();
+
 		auto& functions = env.functions;
 		const auto& ast = env.ast;
 		const auto& flags = env.flags;
@@ -95,8 +100,11 @@ namespace wpp { namespace {
 		// Set up Arguments to pass down to function body.
 		wpp::FnEnv new_fn_env;
 
+		new_fn_env.arguments.emplace_back();
+
 		if (fn_env)
-			new_fn_env.arguments = fn_env->arguments;
+			new_fn_env.arguments.back() = fn_env->arguments.back();
+
 
 
 		const auto& params = func.parameters;
@@ -104,24 +112,24 @@ namespace wpp { namespace {
 		// Handle variadic arguments.
 		auto it = arg_strings.begin();
 
-		for (; it != (arg_strings.end() - params.size()); ++it)
+		for (; it != arg_strings.end() - params.size(); ++it)
 			env.stack.back().emplace_back(*it);
 
 
 		// Setup normal arguments.
 		for (auto rit = params.rbegin(); rit != params.rend() and it != arg_strings.end(); ++rit, ++it) {
-			const auto arg_it = new_fn_env.arguments.find(*rit);
+			const auto arg_it = new_fn_env.arguments.back().find(*rit);
 
 			// If parameter is not already in environment, insert it.
-			if (arg_it == new_fn_env.arguments.end())
-				new_fn_env.arguments.emplace(*rit, *it);
+			if (arg_it == new_fn_env.arguments.back().end())
+				new_fn_env.arguments.back().emplace(*rit, *it);
 
 			// If parameter exists, overwrite it.
 			else {
 				arg_it->second = *it;
 
 				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
-					wpp::warn(node_id, env, "parameter shadows parameter",
+					wpp::warning(node_id, env, "parameter shadows parameter",
 						wpp::cat("parameter '", arg_it->first, "' inside function '", name, "' shadows parameter from enclosing function")
 					);
 			}
@@ -132,12 +140,15 @@ namespace wpp { namespace {
 		env.call_depth++;
 
 		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth % 128 == 0)
-			wpp::warn(node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of ", env.call_depth),
+			wpp::warning(node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of ", env.call_depth),
 				"a large call depth may indicate recursion without an exit condition"
 			);
 
-		const std::string str = evaluate(func.body, env, &new_fn_env);
+		std::string str = evaluate(func.body, env, &new_fn_env);
+
 		env.call_depth--;
+
+		new_fn_env.arguments.pop_back();
 
 		return str;
 	}
@@ -182,7 +193,7 @@ namespace wpp { namespace {
 
 
 	std::string eval_fninvoke(wpp::node_t node_id, const FnInvoke& call, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG(call.identifier);
+		DBG();
 
 		// Evaluate arguments.
 		std::vector<std::string> arg_strings;
@@ -196,6 +207,8 @@ namespace wpp { namespace {
 
 
 	std::string eval_fn(wpp::node_t node_id, const Fn& func, wpp::Env& env, wpp::FnEnv* fn_env) {
+		DBG();
+
 		auto& functions = env.functions;
 		const auto& flags = env.flags;
 
@@ -203,17 +216,16 @@ namespace wpp { namespace {
 		const auto& params = func.parameters;
 		const auto n_params = params.size();
 
-		DBG("fn: ", name, ", n param: ", n_params);
 
 		// Check if function already exists.
 		if (auto it = functions.find(name); it != functions.end()) {
 			auto& arities = it->second;
 
-			if (auto arity_it = arities.lower_bound(n_params); arity_it != arities.end()) {
+			if (auto arity_it = arities.find(n_params); arity_it != arities.end()) {
 				auto& generations = arity_it->second;
 
 				if (flags & wpp::WARN_FUNC_REDEFINED)
-					wpp::warn(node_id, env, "function redefined",
+					wpp::warning(node_id, env, "function redefined",
 						wpp::cat("function '", name, "' (>=", n_params, " parameters) redefined")
 					);
 
@@ -241,23 +253,24 @@ namespace wpp { namespace {
 
 
 	std::string eval_varref(wpp::node_t node_id, const VarRef& varref, wpp::Env& env, wpp::FnEnv* fn_env) {
+		DBG();
+
 		const auto& flags = env.flags;
 		auto& variables = env.variables;
 
 		const auto& name = varref.identifier;
 
-		DBG(name);
 
 		// Check if parameter.
-		if (fn_env)
-			if (const auto it = fn_env->arguments.find(name); it != fn_env->arguments.end()) {
+		if (fn_env) {
+			if (const auto it = fn_env->arguments.back().find(name); it != fn_env->arguments.back().end()) {
 				// Check if it's shadowing a variable.
 				if (flags & wpp::WARN_PARAM_SHADOW_VAR and variables.find(name) != variables.end())
-					wpp::warn(node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
+					wpp::warning(node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
 
 				return it->second; // Return str.
 			}
-
+		}
 
 		// Check if variable.
 		if (const auto it = variables.find(name); it != variables.end())
@@ -272,16 +285,17 @@ namespace wpp { namespace {
 
 
 	std::string eval_var(wpp::node_t node_id, const Var& var, wpp::Env& env, wpp::FnEnv* fn_env) {
+		DBG();
+
 		const auto& flags = env.flags;
 		auto& variables = env.variables;
 
 		const auto name = var.identifier;
-		DBG("var: ", name);
 
 
 		if (auto it = variables.find(name); it != variables.end()) {
 			if (flags & wpp::WARN_VAR_REDEFINED)
-				wpp::warn(node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
+				wpp::warning(node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
 
 			it->second = wpp::evaluate(var.body, env, fn_env);
 		}
@@ -294,13 +308,14 @@ namespace wpp { namespace {
 
 
 	std::string eval_pop(wpp::node_t node_id, const Pop& pop, wpp::Env& env, wpp::FnEnv* fn_env) {
+		DBG();
+
 		auto& stack = env.stack;
 
 		const auto& func = pop.identifier;
 		const auto& args = pop.arguments;
 		auto n_popped_args = pop.n_popped_args;
 
-		DBG("pop: ", func, ", args: ", args.size(), ", popped args: ", n_popped_args);
 
 
 		// Evaluate arguments.
@@ -325,11 +340,11 @@ namespace wpp { namespace {
 	}
 
 
-	std::string eval_ctx(wpp::node_t node_id, const Ctx& ctx, wpp::Env& env, wpp::FnEnv* fn_env) {
+	std::string eval_new(wpp::node_t node_id, const New& nnew, wpp::Env& env, wpp::FnEnv* fn_env) {
 		DBG();
 
 		env.stack.emplace_back();
-		const std::string str = wpp::evaluate(ctx.expr, env, fn_env);
+		const std::string str = wpp::evaluate(nnew.expr, env, fn_env);
 		env.stack.pop_back();
 
 		return str;
@@ -347,7 +362,7 @@ namespace wpp { namespace {
 		if (auto it = functions.find(name); it != functions.end()) {
 			auto& arities = it->second;
 
-			if (auto arity_it = arities.lower_bound(n_args); arity_it != arities.end()) {
+			if (auto arity_it = arities.find(n_args); arity_it != arities.end()) {
 				// If we have found a function, drop the latest
 				// generation and return to a previous definition.
 				if (not arity_it->second.empty())
@@ -373,13 +388,13 @@ namespace wpp { namespace {
 
 
 	std::string eval_string(wpp::node_t node_id, const String& str, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG("str: ", str.value);
+		DBG();
 		return str.value;
 	}
 
 
 	std::string eval_cat(wpp::node_t node_id, const Concat& cat, wpp::Env& env, wpp::FnEnv* fn_env) {
-		DBG("lhs: ", cat.lhs, ", rhs: ", cat.rhs);
+		DBG();
 		std::string str;
 
 		str += evaluate(cat.lhs, env, fn_env);
@@ -396,9 +411,6 @@ namespace wpp { namespace {
 		int start = s.start;
 		int stop = s.stop;
 
-		const char* const begin = str.data();
-		const char* const end = str.data() + str.size();
-
 
 		if (start < 0)
 			start = str.size() + start;
@@ -409,6 +421,9 @@ namespace wpp { namespace {
 
 		// Just get character at index.
 		if (s.set & Slice::SLICE_INDEX) {
+			const char* const begin = str.data();
+			const char* const end = str.data() + str.size();
+
 			int i = 0;
 			auto ptr = begin;
 
@@ -422,6 +437,9 @@ namespace wpp { namespace {
 
 		// If we have a stop index, remove chars from the end of the string.
 		if (s.set & Slice::SLICE_STOP) {
+			const char* const begin = str.data();
+			const char* const end = str.data() + str.size();
+
 			int erase_from_back = 0;
 
 			// Translate stop index into UTF-8 index.
@@ -433,6 +451,9 @@ namespace wpp { namespace {
 
 		// If we have a start index, remove chars from the beginning of the string.
 		if (s.set & Slice::SLICE_START) {
+			const char* const begin = str.data();
+			const char* const end = str.data() + str.size();
+
 			int erase_from_front = 0;
 
 			// Translate start index into UTF-8 index.
@@ -494,12 +515,9 @@ namespace wpp { namespace {
 
 
 	std::string eval_document(wpp::node_t node_id, const Document& doc, wpp::Env& env, wpp::FnEnv* fn_env) {
-		std::string str;
-
-		if (env.state & wpp::INTERNAL_ERROR_STATE)
-			throw wpp::Error{};
-
 		DBG();
+
+		std::string str;
 
 		for (const wpp::node_t node: doc.statements)
 			str += evaluate(node, env, fn_env);
@@ -527,7 +545,7 @@ namespace wpp {
 			[&] (const VarRef& x)   { return eval_varref   (node_id, x, env, fn_env); },
 			[&] (const Var& x)      { return eval_var      (node_id, x, env, fn_env); },
 			[&] (const Pop& x)      { return eval_pop      (node_id, x, env, fn_env); },
-			[&] (const Ctx& x)      { return eval_ctx      (node_id, x, env, fn_env); },
+			[&] (const New& x)      { return eval_new      (node_id, x, env, fn_env); },
 			[&] (const Drop& x)     { return eval_drop     (node_id, x, env, fn_env); },
 			[&] (const String& x)   { return eval_string   (node_id, x, env, fn_env); },
 			[&] (const Concat& x)   { return eval_cat      (node_id, x, env, fn_env); },
