@@ -92,22 +92,27 @@ namespace wpp {
 		return is_alpha(c) or is_digit(c);
 	}
 
-	inline bool is_whitespace_utf8(int32_t c) {
+	constexpr bool is_grouping(const char* c) {
+		return in_group(c, '[', ']', '(', ')', '{', '}');
+	}
+
+	inline bool is_whitespace_utf8(const char* c) {
+		int32_t chr = decode_utf8(c);
 		return
-			c == 0x0085 or
-			c == 0x00A0 or
-			c == 0x1680 or
-			(c >= 0x2000 and c <= 0x200A) or
-			c == 0x2028 or
-			c == 0x2029 or
-			c == 0x202F or
-			c == 0x205F or
-			c == 0x3000
+			chr == 0x0085 or
+			chr == 0x00A0 or
+			chr == 0x1680 or
+			(chr >= 0x2000 and chr <= 0x200A) or
+			chr == 0x2028 or
+			chr == 0x2029 or
+			chr == 0x202F or
+			chr == 0x205F or
+			chr == 0x3000
 		;
 	}
 
 	constexpr bool is_whitespace(const char* c) {
-		return *c == ' ' or in_range(c, '\t', '\r') or is_whitespace_utf8(decode_utf8(c));
+		return *c == ' ' or in_range(c, '\t', '\r') or is_whitespace_utf8(c);
 	}
 
 	constexpr bool is_hex(const char* c) {
@@ -124,10 +129,6 @@ namespace wpp {
 
 	constexpr bool is_escape(const char* c) {
 		return in_group(c, '\\', 'n', 'r', 't', 'b', 'x') or is_quote(c);
-	}
-
-	constexpr bool is_identifier(const char* c) {
-		return is_lower(c) or is_upper(c) or is_digit(c) or in_group(c, '_', '.', ':', '/');
 	}
 
 

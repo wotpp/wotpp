@@ -344,7 +344,6 @@ namespace wpp { namespace {
 
 				// Collapse pairs of newlines into a single newline and strip any loner newlines.
 				if (token == TOKEN_WHITESPACE_NEWLINE) {
-					// chunks.emplace_back(std::string((token.str().size() + 1) / 2, '\n'), true);
 					if (not chunks.empty() and chunks.back().is_whitespace)
 						chunks.pop_back();
 

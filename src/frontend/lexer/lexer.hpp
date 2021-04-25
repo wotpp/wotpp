@@ -27,6 +27,7 @@ namespace wpp {
 		TOKEN(TOKEN_NONE) \
 		TOKEN(TOKEN_EOF) \
 		TOKEN(TOKEN_CHAR) \
+		TOKEN(TOKEN_OTHER) \
 		\
 		TOKEN(TOKEN_WHITESPACE) \
 		TOKEN(TOKEN_WHITESPACE_SPACE) \
@@ -37,7 +38,6 @@ namespace wpp {
 		TOKEN(TOKEN_BACKSLASH) \
 		TOKEN(TOKEN_CAT) \
 		TOKEN(TOKEN_ARROW) \
-		TOKEN(TOKEN_COMMA) \
 		TOKEN(TOKEN_STAR) \
 		TOKEN(TOKEN_BAR) \
 		TOKEN(TOKEN_STRINGIFY) \
@@ -50,7 +50,7 @@ namespace wpp {
 		TOKEN(TOKEN_LET) \
 		TOKEN(TOKEN_DROP) \
 		TOKEN(TOKEN_POP) \
-		TOKEN(TOKEN_CTX) \
+		TOKEN(TOKEN_NEW) \
 		\
 		TOKEN(TOKEN_INTRINSIC_USE) \
 		TOKEN(TOKEN_INTRINSIC_RUN) \
@@ -102,7 +102,7 @@ namespace wpp {
 
 namespace wpp {
 	struct Lexer {
-		const wpp::Env& env;
+		wpp::Env& env;
 		const char* ptr = nullptr;
 
 		wpp::Token lookahead{};
@@ -110,7 +110,7 @@ namespace wpp {
 
 
 		Lexer(
-			const wpp::Env& env_,
+			wpp::Env& env_,
 			wpp::lexer_mode_type_t mode_ = lexer_modes::normal
 		):
 			env(env_),
@@ -131,11 +131,14 @@ namespace wpp {
 
 
 		wpp::Pos position() const {
+			DBG();
 			return { env.sources.top(), lookahead.view };
 		}
 
 
 		const wpp::Token& peek(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
+			DBG();
+
 			// If the current mode is different from the lookahead mode
 			// then we update the lookahead token and set the new
 			// lookahead mode.
@@ -161,6 +164,8 @@ namespace wpp {
 		}
 
 		wpp::Token advance(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
+			DBG();
+
 			auto tok = peek(mode);
 			lookahead = next_token(mode);
 			return tok;
