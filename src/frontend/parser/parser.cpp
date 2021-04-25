@@ -1145,7 +1145,7 @@ namespace wpp { namespace {
 
 			// Index/Start
 			if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
-				tree.get<Slice>(node).start = view_to_int(lex.advance(lexer_modes::slice).view);
+				tree.get<Slice>(node).start = lex.advance(lexer_modes::slice).view;
 
 				// Check for `:`. If we find one, the first integer literal was
 				// actually the start index of a slice and not an index.
@@ -1155,7 +1155,7 @@ namespace wpp { namespace {
 
 					// Stop
 					if (lex.peek(lexer_modes::slice) == TOKEN_INT) {
-						tree.get<Slice>(node).stop = view_to_int(lex.advance(lexer_modes::slice).view);
+						tree.get<Slice>(node).stop = lex.advance(lexer_modes::slice).view;
 						tree.get<Slice>(node).set |= Slice::SLICE_STOP;
 					}
 				}
@@ -1173,7 +1173,7 @@ namespace wpp { namespace {
 						"expecting an integer literal for stop index"
 					);
 
-				tree.get<Slice>(node).stop = view_to_int(lex.advance(lexer_modes::slice).view);
+				tree.get<Slice>(node).stop = lex.advance(lexer_modes::slice).view;
 			}
 
 

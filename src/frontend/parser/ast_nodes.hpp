@@ -232,8 +232,8 @@ namespace wpp {
 	struct Slice {
 		wpp::node_t expr{};
 
-		int start{};
-		int stop{};
+		wpp::View start{};
+		wpp::View stop{};
 
 		enum {
 			SLICE_INDEX = 0b0000'0001,
@@ -243,7 +243,7 @@ namespace wpp {
 
 		uint8_t set;
 
-		Slice(const wpp::node_t expr_, int start_, int stop_):
+		Slice(const wpp::node_t expr_, const wpp::View& start_, const wpp::View& stop_):
 			expr(expr_), start(start_), stop(stop_) {}
 
 		Slice() {}

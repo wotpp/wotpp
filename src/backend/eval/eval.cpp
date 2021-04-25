@@ -408,8 +408,18 @@ namespace wpp { namespace {
 		DBG();
 		std::string str = evaluate(s.expr, env, fn_env);
 
-		int start = s.start;
-		int stop = s.stop;
+		int start = 0;
+		int stop = 0;
+
+
+		if (s.set & Slice::SLICE_STOP)
+			stop = wpp::view_to_int(s.stop);
+
+		if (s.set & Slice::SLICE_START)
+			start = wpp::view_to_int(s.start);
+
+		if (s.set & Slice::SLICE_INDEX)
+			start = wpp::view_to_int(s.start);
 
 
 		if (start < 0)
