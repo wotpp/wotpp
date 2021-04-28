@@ -64,7 +64,7 @@ namespace wpp { namespace {
 				auto& [min_args, entry] = *arity_it;
 
 				if (flags & wpp::WARN_EXTRA_ARGS and n_args > min_args)
-					wpp::warning(node_id, env, "extra arguments",
+					wpp::warning_once(WARN_EXTRA_ARGS, node_id, env, "extra arguments",
 						wpp::cat("got ", n_args - min_args, " extra arguments (function expects >= ", min_args, " arguments)"),
 						"this may be intentional behaviour, extra arguments will be pushed to the stack"
 					);
@@ -129,7 +129,7 @@ namespace wpp { namespace {
 				arg_it->second = *it;
 
 				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
-					wpp::warning(node_id, env, "parameter shadows parameter",
+					wpp::warning_once(WARN_PARAM_SHADOW_PARAM, node_id, env, "parameter shadows parameter",
 						wpp::cat("parameter '", arg_it->first, "' inside function '", name, "' shadows parameter from enclosing function")
 					);
 			}
@@ -139,9 +139,9 @@ namespace wpp { namespace {
 		// Call function.
 		env.call_depth++;
 
-		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth % 128 == 0)
-			wpp::warning(node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of ", env.call_depth),
-				"a large call depth may indicate recursion without an exit condition"
+		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth >= 256)
+			wpp::warning_once(WARN_DEEP_RECURSION, node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of >= 256"),
+				"this may indicate recursion without an exit condition"
 			);
 
 		std::string str = evaluate(func.body, env, &new_fn_env);
@@ -225,7 +225,7 @@ namespace wpp { namespace {
 				auto& generations = arity_it->second;
 
 				if (flags & wpp::WARN_FUNC_REDEFINED)
-					wpp::warning(node_id, env, "function redefined",
+					wpp::warning_once(WARN_FUNC_REDEFINED, node_id, env, "function redefined",
 						wpp::cat("function '", name, "' (>=", n_params, " parameters) redefined")
 					);
 
@@ -266,7 +266,7 @@ namespace wpp { namespace {
 			if (const auto it = fn_env->arguments.back().find(name); it != fn_env->arguments.back().end()) {
 				// Check if it's shadowing a variable.
 				if (flags & wpp::WARN_PARAM_SHADOW_VAR and variables.find(name) != variables.end())
-					wpp::warning(node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
+					wpp::warning_once(WARN_PARAM_SHADOW_VAR, node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
 
 				return it->second; // Return str.
 			}
@@ -295,7 +295,7 @@ namespace wpp { namespace {
 
 		if (auto it = variables.find(name); it != variables.end()) {
 			if (flags & wpp::WARN_VAR_REDEFINED)
-				wpp::warning(node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
+				wpp::warning_once(WARN_VAR_REDEFINED, node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
 
 			it->second = wpp::evaluate(var.body, env, fn_env);
 		}
@@ -415,10 +415,7 @@ namespace wpp { namespace {
 		if (s.set & Slice::SLICE_STOP)
 			stop = wpp::view_to_int(s.stop);
 
-		if (s.set & Slice::SLICE_START)
-			start = wpp::view_to_int(s.start);
-
-		if (s.set & Slice::SLICE_INDEX)
+		if (s.set & Slice::SLICE_START or s.set & Slice::SLICE_INDEX)
 			start = wpp::view_to_int(s.start);
 
 

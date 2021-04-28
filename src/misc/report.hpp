@@ -289,10 +289,21 @@ namespace wpp {
 
 	template <typename... Ts>
 	inline void warning(wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		if (env.seen_warnings.find(node_id) != env.seen_warnings.end())
+		std::cerr << wpp::generate_warning(node_id, env, std::forward<Ts>(args)...).str();
+	}
+
+	template <typename T, typename... Ts>
+	inline void warning_once(T warning_type, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
+		// https://stackoverflow.com/questions/56923254/c-map-or-unordered-map-when-key-is-two-integers
+		size_t hash = 0;
+
+		hash ^= warning_type + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+		hash ^= node_id + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+
+		if (env.seen_warnings.find(hash) != env.seen_warnings.end())
 			return;
 
-		env.seen_warnings.emplace(node_id);
+		env.seen_warnings.emplace(hash);
 		std::cerr << wpp::generate_warning(node_id, env, std::forward<Ts>(args)...).str();
 	}
 }
