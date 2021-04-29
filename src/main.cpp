@@ -1,63 +1,115 @@
+#include <string_view>
+#include <iomanip>
+#include <filesystem>
 #include <string>
+#include <vector>
 #include <iostream>
 #include <utility>
-#include <chrono>
 
-#include <cstdint>
-#include <cstring>
-#include <ctime>
-
-#include <misc/warnings.hpp>
-#include <backend/eval/eval.hpp>
+#include <misc/flags.hpp>
+#include <misc/util/util.hpp>
 #include <misc/repl.hpp>
 #include <misc/argp.hpp>
-
-
-constexpr auto ver = "alpha-git";
-constexpr auto desc = "A small macro language for producing and manipulating strings.";
+#include <backend/eval/eval.hpp>
+#include <frontend/parser/parser.hpp>
 
 
 int main(int argc, const char* argv[]) {
+	constexpr auto ver = "alpha-git";
+	constexpr auto desc = "A small macro language for producing and manipulating strings.";
+
+
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
-	bool repl = false;
-
+	std::vector<std::string_view> path_dirs;
+	bool repl = false, disable_run = false, disable_file = false, force = false;
 
 	std::vector<const char*> positional;
 
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,  "output file",       "--output",   "-o"},
-		wpp::Opt{repl,     "repl mode",         "--repl",     "-R"},
-		wpp::Opt{warnings, "toggle warnings",   "--warnings", "-W"}
+		wpp::Opt{outputf,      "output file",                                       "--output",       "-o"},
+		wpp::Opt{warnings,     "toggle warnings",                                   "--warnings",     "-W"},
+		wpp::Opt{repl,         "repl mode",                                         "--repl",         "-r"},
+		wpp::Opt{disable_run,  "disable run & pipe intrinsics",                     "--disable-run",  "-R"},
+		wpp::Opt{disable_file, "disable file & use intrinsics",                     "--disable-file", "-F"},
+		wpp::Opt{force,        "overwrite file if it exists",                       "--force",        "-f"},
+		wpp::Opt{path_dirs,    "specify directories to search when sourcing files", "--search-path",  "-s"}
 	))
 		return 0;
 
 
-	wpp::warning_t warning_flags = 0;
+	wpp::flags_t flags = 0;
 
 	for (const auto& x: warnings) {
-		if (x == "param-shadow-func")
-			warning_flags |= wpp::WARN_PARAM_SHADOW_FUNC;
+		// Set warnings flags.
+		if (x == "param-shadow-var")
+			flags |= wpp::WARN_PARAM_SHADOW_VAR;
 
 		else if (x == "param-shadow-param")
-			warning_flags |= wpp::WARN_PARAM_SHADOW_PARAM;
+			flags |= wpp::WARN_PARAM_SHADOW_PARAM;
 
 		else if (x == "func-redefined")
-			warning_flags |= wpp::WARN_FUNC_REDEFINED;
+			flags |= wpp::WARN_FUNC_REDEFINED;
 
-		else if (x == "varfunc-redefined")
-			warning_flags |= wpp::WARN_VARFUNC_REDEFINED;
+		else if (x == "var-redefined")
+			flags |= wpp::WARN_VAR_REDEFINED;
 
+		else if (x == "deep-recursion")
+			flags |= wpp::WARN_DEEP_RECURSION;
+
+		else if (x == "extra-args")
+			flags |= wpp::WARN_EXTRA_ARGS;
+
+
+		// Unset warning flags.
+		else if (x == "no-param-shadow-var")
+			flags &= ~wpp::WARN_PARAM_SHADOW_VAR;
+
+		else if (x == "no-param-shadow-param")
+			flags &= ~wpp::WARN_PARAM_SHADOW_PARAM;
+
+		else if (x == "no-func-redefined")
+			flags &= ~wpp::WARN_FUNC_REDEFINED;
+
+		else if (x == "no-var-redefined")
+			flags &= ~wpp::WARN_VAR_REDEFINED;
+
+		else if (x == "no-deep-recursion")
+			flags &= ~wpp::WARN_DEEP_RECURSION;
+
+		else if (x == "no-extra-args")
+			flags &= ~wpp::WARN_EXTRA_ARGS;
+
+
+		// Enable all warnings.
 		else if (x == "all")
-			warning_flags = wpp::WARN_ALL;
+			flags = wpp::WARN_ALL;
 
+		else if (x == "useful")
+			flags = wpp::WARN_USEFUL;
+
+
+		// Unknown warning flag.
 		else {
-			std::cerr << "unrecognized warning: '" << x << "'.\n";
+			std::cerr << "error: unrecognized warning '" << x << "'\n";
 			return 1;
 		}
 	}
+
+
+	if (disable_run)
+		flags |= wpp::FLAG_DISABLE_RUN;
+
+	if (disable_file)
+		flags |= wpp::FLAG_DISABLE_FILE;
+
+
+	// Build search path.
+	wpp::SearchPath search_path;
+	for (auto& path: path_dirs)
+		search_path.emplace_back(path);
 
 
 	if (repl)
@@ -65,7 +117,7 @@ int main(int argc, const char* argv[]) {
 
 
 	if (positional.empty()) {
-		std::cerr << "no input files.\n";
+		std::cerr << "error: no input files\n";
 		return 1;
 	}
 
@@ -74,42 +126,49 @@ int main(int argc, const char* argv[]) {
 	const auto initial_path = std::filesystem::current_path();
 
 	for (const auto& fname: positional) {
+		// Set current path to path of file.
+		const auto path = initial_path / std::filesystem::path{fname};
+		std::filesystem::current_path(path.parent_path());
+
+		wpp::Env env{ initial_path, search_path, flags };
+
 		try {
-			std::string file = wpp::read_file(fname);
+			env.sources.push(path, wpp::read_file(path), wpp::modes::normal);
 
-			// Set current path to path of file.
-			const auto path = std::filesystem::current_path() / std::filesystem::path{fname};
-			std::filesystem::current_path(path.parent_path());
+			wpp::node_t root = wpp::parse(env);
 
-			wpp::Lexer lex{std::filesystem::relative(path, initial_path), file.c_str()};
-			wpp::AST tree;
-			wpp::Environment env{initial_path, tree, warning_flags};
+			if (env.state & wpp::INTERNAL_ERROR_STATE)
+				return 1;
 
-			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
-
-			auto root = wpp::document(lex, tree);
-			out += wpp::eval_ast(root, env) + "\n";
+			out += wpp::evaluate(root, env);
 		}
 
-		catch (const wpp::Exception& e) {
-			wpp::error(e.pos, e.what());
+		catch (const wpp::Report& e) {
+			std::cerr << e.str();
 			return 1;
 		}
 
-		catch (const std::filesystem::filesystem_error& e) {
-			std::cerr << "file '" << fname << "' not found.\n";
+		catch (const wpp::FileError&) {
+			std::cerr << "error: file '" << fname << "' not found\n";
 			return 1;
 		}
 
 		std::filesystem::current_path(initial_path);
 	}
 
-	if (not outputf.empty())
+	if (not outputf.empty()) {
+		std::error_code ec;
+
+		if (not force and std::filesystem::exists(outputf, ec)) {
+			std::cerr << "error: file '" << outputf << "' exists\n";
+			return 1;
+		}
+
 		wpp::write_file(outputf, out);
+	}
 
 	else
 		std::cout << out;
-
 
 	return 0;
 }

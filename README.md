@@ -61,7 +61,6 @@ eu rhoncus iaculis, justo erat efficitur purus, et dictum mi lorem sit amet nequ
 - A C++17 compliant compiler. (GCC & Clang work)
 - Meson & Ninja
 - libasan (optional, required for sanitizer support)
-- libreadline (optional, required for REPL)
 - Python3 (optional, required for running test suite)
 
 ### Build & Run

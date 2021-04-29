@@ -1,4 +1,4 @@
 #[expect(heyhey)]
-var foo "hey"
-var foo foo .. "hey"
+let foo "hey"
+let foo foo .. "hey"
 foo

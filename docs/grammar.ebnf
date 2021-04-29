@@ -28,51 +28,74 @@ bin_literal ::= '0b' ( <bin_chars> | '_' )*
 string ::= <basic_string> | <paragraph_string> | <raw_string> | <code_string> | <hex_literal> | <bin_literal>
 
 
-/// Functions/Variables/Drop
+/// String slicing
+// `"hello world"[6:]`
+slice_index ::= <integer>
+slice_start_only ::= <integer> ':'
+slice_stop_only ::= ':' <integer>
+slice_both ::= <integer> ':' <integer>
+
+slice_alts ::= <slice_index> | ( <slice_start_only> | <slice_both> | <slice_stop_only> )
+
+slice ::= <expression> '[' <slice_alts> ']'
+
+
+/// Functions/Variables/Intrinsics/Drop/Pop
 //
 // `foo("bar", baz())`
 // `let greeting(name) "hello " .. name`
 // `let name "jack"`
 // `name`
 //
-fn_args ::= '(' <identifier> ( ',' <identifier> )* ')' [ ',' ]
-fn ::= 'let' <identifier> [ <fn_args> ] <expression>
+let_params ::= '(' [ <identifier> ( ',' <identifier> )* [ ',' ] ] ')'
+let ::= 'let' <identifier> [ <let_params> ] <expression>
 
-fn_intrinsic ::=
-	'run' | 'file' | 'eval' | 'assert' | 'source' | 'escape' |
-	'pipe' | 'error' | 'log' | 'slice' | 'find' | 'length'
+// Intrinsic functions
+intrinsic_expr ::=
+	'run'    <expression>               |
+	'file'   <expression>               |
+	'eval'   <expression>               |
+	'use'    <expression>               |
+	'pipe'   <expression> <expression>
 
-fn_invoke ::= ( <identifier> | <fn_intrinsic> ) [ '(' <expression> ( ',' <expression> )* [ ',' ] ')' ]
+intrinsic_stmt ::=
+	'assert' <expression> <expression>  |
+	'error'  <expression>               |
+	'log'    <expression>
+
+// Function call/Variable reference
+call ::= <identifier> '(' [ <expression> ( ',' <expression> )* [ ',' ] ] ')'
+varref ::= <identifier>
 
 // `drop foo(x)`
-drop ::= 'drop' <fn_invoke>
+// `drop foo`
+drop ::= 'drop' ( <call> | <varref> )
 
-// `var foo "bar"`
-var ::= 'var' <identifier> <expression>
+// `pop foo(x, *)`
+pop_substitutions ::= '*' [ ',' '*' ]
+pop_identifiers ::= <identifier> [ ',' <identifier> ]
+pop_body ::= ( <pop_identifiers> <pop_substitutions> ) | <pop_substitutions>
 
-codeify ::= '=' <expression>
-stringify ::= '!' <identifier>
+pop ::= 'pop' <identifier> '(' <pop_body> [ ',' ] ')'
+
+// `!"'hey'"`
+// `\hey`
+codeify ::= '!' <expression>
+stringify ::= '\\' <identifier>
 
 
-/// Prefixes
-//
-// `prefix "foo/bar/" { let name "jack" }`
-//
-pre ::= 'prefix' <expression> '{' <statement>* '}'
-
-
-/// Map
-// map "foo" {
+/// Match
+// match "foo" {
 //     "foo" -> "bar"
 //     "bar" -> "foo"
 // }
-map_or ::= ( <expression> ( '|' <expression> )* ) | '*'
-map_also ::= <map_or> ( ',' <map_or> )*
-map_arm ::= <map_also> '->' <expression>
+match_or ::= ( <expression> ( '|' <expression> )* ) | '*'
+match_also ::= <match_or> ( ',' <match_or> )*
+match_arm ::= <match_also> '->' <expression>
 
-map_test ::= <expression> ( ',' <expression> )*
+match_test ::= <expression> ( ',' <expression> )*
 
-map ::= 'map' <map_test> '{' <map_arm>* '}'
+match ::= 'match' <match_test> '{' <match_arm>* '}'
 
 
 /// Misc.
@@ -96,15 +119,19 @@ concat ::= <expression> '..' <expression>
 
 /// Document
 expression ::= (
-		<fn_invoke> |
-		<block> |
-		<concat> |
-		<string> |
-		<map> |
-		<codeify> |
-		<stringify>
+		<call>      |
+		<varref>    |
+		<block>     |
+		<concat>    |
+		<string>    |
+		<match>     |
+		<codeify>   |
+		<stringify> |
+		<pop>       |
+		<slice>     |
+		<intrinsic_expr>
 	)
 
 
-statement ::= <fn> | <pre> | <drop> | <var> | <expression>
+statement ::= <let> | <drop> | <expression> | <intrinsic_stmt>
 document ::= <statement>*

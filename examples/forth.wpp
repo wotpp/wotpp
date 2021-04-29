@@ -1,0 +1,66 @@
+#[ a -- ]
+let impl/take(x) x
+let impl/take() ""
+let take() pop impl/take(*)
+
+
+#[ a -- a b ]
+let push() ""
+
+
+#[ a -- a a ]
+let dup() {
+	let tmp take()
+	push(tmp, tmp)
+	""
+}
+
+#[ a -- a ]
+let peek() {
+	dup()
+	take()
+}
+
+#[ a -- ]
+let drp() {
+	take()
+	""
+}
+
+#[ a b -- b a ]
+let swap() {
+	let a take()
+	let b take()
+
+	push(b, a)
+
+	""
+}
+
+#[ a b -- a b a ]
+let over() {
+	let a take()
+	let b take()
+
+	push b
+	push a
+	push b
+
+	push(b, a, b)
+
+	""
+}
+
+#[ a b -- b ]
+let nip() {
+	swap()
+	drp()
+	""
+}
+
+#[ a b -- b a b ]
+let tuck() {
+	swap()
+	over()
+	""
+}

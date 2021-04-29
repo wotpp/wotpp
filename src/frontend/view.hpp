@@ -5,17 +5,13 @@
 
 #include <string>
 #include <iostream>
-
 #include <cstring>
 #include <cstdint>
 
-#include <misc/util/util.hpp>
-
-// A view is a non-owning way to view a string.
 
 namespace wpp {
 	struct View {
-		const char *ptr = nullptr;
+		const char* ptr = nullptr;
 		uint32_t length = 0;
 
 
@@ -24,12 +20,17 @@ namespace wpp {
 		constexpr View(const char* const ptr_, const char* const end_):
 			ptr(ptr_), length(end_ - ptr_) {}
 
-		constexpr View(const char* const ptr_, int length_):
+		constexpr View(const char* const ptr_, uint32_t length_):
 			ptr(ptr_), length(length_) {}
 
 
 		constexpr char at(int n) const {
 			return *(ptr + n);
+		}
+
+		constexpr View& extend(const View& other) {
+			length += (other.ptr - ptr) + other.length + length;
+			return *this;
 		}
 
 
@@ -88,11 +89,26 @@ namespace wpp {
 		}
 	};
 
-	inline std::ostream& operator<<(std::ostream& os, const View& v) {
-		const auto& [vptr, vlength] = v;
-		os.write(vptr, vlength);
-		return os;
+
+	// FNV-1a hash.
+	// Calculate a hash of a range of bytes.
+	inline uint64_t hash_bytes(const char* begin, const char* const end) {
+		uint64_t offset_basis = 0;
+		uint64_t prime = 0;
+
+		offset_basis = 14'695'981'039'346'656'037u;
+		prime = 1'099'511'628'211u;
+
+		uint64_t hash = offset_basis;
+
+		while (begin != end) {
+			hash = (hash ^ static_cast<uint64_t>(*begin)) * prime;
+			begin++;
+		}
+
+		return hash;
 	}
+
 
 	// Hashing function for `View` so that we can insert
 	// it into unordered_map.
@@ -101,6 +117,22 @@ namespace wpp {
 			return wpp::hash_bytes(v.ptr, v.ptr + v.length);
 		}
 	};
+
+
+	inline std::ostream& operator<<(std::ostream& os, const View& v) {
+		os.write(v.ptr, v.length);
+		return os;
+	}
 }
+
+
+namespace std {
+	template<> struct hash<wpp::View> {
+		std::size_t operator()(const wpp::View& v) const noexcept {
+			return wpp::hash_bytes(v.ptr, v.ptr + v.length);
+		}
+	};
+}
+
 
 #endif

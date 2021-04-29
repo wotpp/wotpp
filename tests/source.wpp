@@ -1,3 +1,7 @@
 #[expect(start\n12345)]
 "start\n"
-source("data/source1")
+use "data/source1"
+use "data/source1"
+use "data/source1"
+use "data/source1"
+use "data/source1"

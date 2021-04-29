@@ -1,1 +1,1 @@
-error("uh oh")
+error "uh oh"

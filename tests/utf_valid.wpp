@@ -1,0 +1,3 @@
+#[expect(foo)]
+let κόσμε \foo
+κόσμε

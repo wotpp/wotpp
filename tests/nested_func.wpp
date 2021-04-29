@@ -1,12 +1,12 @@
-let foo {
-	let foo {
+let foo() {
+	let foo() {
 		"b"
 	}
 	"a"
 }
 
 #[ expect(a) ]
-foo
+foo()
 
 #[ expect(b) ]
-foo
+foo()

@@ -1,1 +1,1 @@
-assert("a", "b")
+assert "a" "b"

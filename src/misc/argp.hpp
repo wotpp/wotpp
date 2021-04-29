@@ -6,7 +6,7 @@
 #include <string>
 #include <array>
 #include <vector>
-#include <iostream>
+#include <iosfwd>
 #include <utility>
 #include <string_view>
 #include <type_traits>
@@ -225,15 +225,20 @@ namespace wpp {
 		const auto& [ref, desc, lng, shrt] = opt;
 		str.reserve(str.capacity() + padding + std::strlen(desc) + 1);
 
-		// using RefT = std::remove_reference_t<std::remove_cv_t<decltype(ref)>>;
+		using RefT = std::remove_reference_t<std::remove_cv_t<decltype(ref)>>;
 
 		while (padding--)
 			str += ' ';
 
-		// if constexpr(std::is_same_v<RefT, bool>)
-		// 	cat(str, desc, " (default: ", std::array{"false", "true"}[ref], ")\n");
+		if constexpr(std::is_same_v<RefT, bool>) {
+			if (std::strcmp(shrt, "-h") != 0)
+				cat(str, desc, " (default: ", std::array{"false", "true"}[ref], ")\n");
 
-		// else
+			else
+				cat(str, desc, '\n');
+		}
+
+		else
 			cat(str, desc, '\n');
 	}
 
@@ -385,21 +390,21 @@ namespace wpp {
 					)
 				) {
 					if (flag & ERR_TAKES_ARG)
-						std::cerr << "option '" << arg_name << "' takes an argument." << '\n';
+						std::cerr << "error: option '" << arg_name << "' takes an argument" << '\n';
 
 					else if (flag & ERR_NO_ARG)
-						std::cerr << "argument passed to flag: '" << arg_name << "'.\n";
+						std::cerr << "error: argument passed to flag: '" << arg_name << "'\n";
 
 					else if (flag & ERR_NO_INLINE)
-						std::cerr << "long options do not support inline arguments: '" << arg_name << "'.\n";
+						std::cerr << "error: long options do not support inline arguments: '" << arg_name << "'\n";
 
 					else if (flag & ERR_NO_EQUAL)
-						std::cerr << "short options do not support equal arguments: '" << arg_name << "'.\n";
+						std::cerr << "error: short options do not support equal arguments: '" << arg_name << "'\n";
 
 					// Must check this last because while the ERR_UNKNOWN_ARG flag might be set,
 					// it could just be because one of the parsers failed to pick it up.
 					else if (flag & ERR_UNKNOWN_ARG and argv[i][0] == '-')
-						std::cerr << "unknown option '" << arg_name << "'.\n";
+						std::cerr << "error: unknown option '" << arg_name << "'\n";
 
 					// If no errors occured and SHOW_HELP is not set, this must
 					// be a positional argument.

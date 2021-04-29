@@ -1,2 +1,2 @@
 #[expect()]
-assert("a", "a")
+assert "a" "a"

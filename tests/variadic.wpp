@@ -1,0 +1,62 @@
+let impl/cat(x) x .. pop impl/cat(*)
+let impl/cat() ""
+let cat() pop impl/cat(*)
+
+#[expect(abcdabcd)]
+cat(\a \b cat(\c \d cat(\a \b cat(\c \d))))
+
+
+
+
+let render(x y z)
+	x .. ": " .. y .. " -> " .. z .. '\n'
+
+let render(x y)
+	x .. ": " .. y .. " -> <null>\n"
+
+let render(x)
+	x .. ": <null> -> <null>\n"
+
+
+let recurse(x y z) render(x y z) .. triples()
+let recurse(x y)    render(x y) ..    triples()
+let recurse(x)       render(x) ..       triples()
+let recurse()        ""
+
+let triples() pop recurse(* * *)
+
+
+#[expect(a: b -> c\nd: e -> f\n\n)]
+triples(\a \b \c \d \e \f) '\n'
+
+#[expect(a: b -> c\nd: e -> <null>\n\n)]
+triples(\a \b \c \d \e) '\n'
+
+#[expect(a: b -> c\nd: <null> -> <null>\n\n)]
+triples(\a \b \c \d) '\n'
+
+#[expect(a: b -> c\n\n)]
+triples(\a \b \c) '\n'
+
+
+
+
+
+let rest(s x)
+	x .. s .. pop rest(s *)
+
+let rest(s) ""
+
+
+let join(sep)
+	pop rest(sep *)
+
+
+#[expect(a b c \n)]
+join(" " \a \b \c) '\n'
+
+
+
+
+
+

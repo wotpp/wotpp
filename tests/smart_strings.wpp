@@ -1,6 +1,6 @@
-# make sure the lexer doesn't get tripped up
-# on cases that look like smart strings with
-# a whitespace delimiter.
+#[ make sure the lexer doesn't get tripped up
+   on cases that look like smart strings with
+   a whitespace delimiter. ]
 
 #[expect(...)]
 let c "..."

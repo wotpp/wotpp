@@ -6,8 +6,11 @@
 #include <string>
 #include <utility>
 
+#include <misc/fwddecl.hpp>
+#include <misc/util/util.hpp>
 #include <frontend/token.hpp>
-#include <frontend/position.hpp>
+#include <frontend/char.hpp>
+#include <structures/environment.hpp>
 
 // Token types.
 namespace wpp {
@@ -24,42 +27,46 @@ namespace wpp {
 		TOKEN(TOKEN_NONE) \
 		TOKEN(TOKEN_EOF) \
 		TOKEN(TOKEN_CHAR) \
+		TOKEN(TOKEN_OTHER) \
 		\
 		TOKEN(TOKEN_WHITESPACE) \
-		TOKEN(TOKEN_SLASH) \
+		TOKEN(TOKEN_WHITESPACE_SPACE) \
+		TOKEN(TOKEN_WHITESPACE_TAB) \
+		TOKEN(TOKEN_WHITESPACE_CARRIAGERETURN) \
+		TOKEN(TOKEN_WHITESPACE_NEWLINE) \
+		\
 		TOKEN(TOKEN_BACKSLASH) \
 		TOKEN(TOKEN_CAT) \
 		TOKEN(TOKEN_ARROW) \
-		TOKEN(TOKEN_COMMA) \
 		TOKEN(TOKEN_STAR) \
 		TOKEN(TOKEN_BAR) \
-		TOKEN(TOKEN_EQUAL) \
-		TOKEN(TOKEN_EXCLAIM) \
+		TOKEN(TOKEN_STRINGIFY) \
+		TOKEN(TOKEN_EVAL) \
+		TOKEN(TOKEN_COLON) \
+		TOKEN(TOKEN_COMMA) \
 		\
 		TOKEN(TOKEN_IDENTIFIER) \
-		TOKEN(TOKEN_MAP) \
-		TOKEN(TOKEN_PREFIX) \
+		TOKEN(TOKEN_INT) \
+		TOKEN(TOKEN_MATCH) \
 		TOKEN(TOKEN_LET) \
 		TOKEN(TOKEN_DROP) \
-		TOKEN(TOKEN_VAR) \
+		TOKEN(TOKEN_POP) \
+		TOKEN(TOKEN_NEW) \
 		\
-		TOKEN(TOKEN_RUN) \
-		TOKEN(TOKEN_FILE) \
-		TOKEN(TOKEN_EVAL) \
-		TOKEN(TOKEN_LENGTH) \
-		TOKEN(TOKEN_SLICE) \
-		TOKEN(TOKEN_FIND) \
-		TOKEN(TOKEN_ASSERT) \
-		TOKEN(TOKEN_ERROR) \
-		TOKEN(TOKEN_PIPE) \
-		TOKEN(TOKEN_SOURCE) \
-		TOKEN(TOKEN_ESCAPE) \
-		TOKEN(TOKEN_LOG) \
+		TOKEN(TOKEN_INTRINSIC_USE) \
+		TOKEN(TOKEN_INTRINSIC_RUN) \
+		TOKEN(TOKEN_INTRINSIC_FILE) \
+		TOKEN(TOKEN_INTRINSIC_ASSERT) \
+		TOKEN(TOKEN_INTRINSIC_ERROR) \
+		TOKEN(TOKEN_INTRINSIC_PIPE) \
+		TOKEN(TOKEN_INTRINSIC_LOG) \
 		\
 		TOKEN(TOKEN_LPAREN) \
 		TOKEN(TOKEN_RPAREN) \
 		TOKEN(TOKEN_LBRACE) \
 		TOKEN(TOKEN_RBRACE) \
+		TOKEN(TOKEN_LBRACKET) \
+		TOKEN(TOKEN_RBRACKET) \
 		\
 		TOKEN(TOKEN_ESCAPE_NEWLINE) \
 		TOKEN(TOKEN_ESCAPE_TAB) \
@@ -75,7 +82,10 @@ namespace wpp {
 		TOKEN(TOKEN_QUOTE) \
 		TOKEN(TOKEN_HEX) \
 		TOKEN(TOKEN_BIN) \
-		TOKEN(TOKEN_SMART) \
+		\
+		TOKEN(TOKEN_RAWSTR) \
+		TOKEN(TOKEN_CODESTR) \
+		TOKEN(TOKEN_PARASTR) \
 		\
 		TOKEN(TOKEN_TOTAL)
 
@@ -84,71 +94,59 @@ namespace wpp {
 	#undef TOKEN
 
 	#define TOKEN(x) #x,
-		constexpr const char* to_str[] = { TOKEN_TYPES };
+		constexpr const char* token_to_str[] = { TOKEN_TYPES };
 	#undef TOKEN
 
 	#undef TOKEN_TYPES
 }
 
-namespace wpp {
-	struct Lexer;
-
-	void lex_literal(wpp::token_type_t, bool(*)(char), wpp::Lexer&, wpp::Token&);
-	void lex_simple(wpp::token_type_t, int, wpp::Lexer&, wpp::Token&);
-
-	void lex_comment(wpp::Lexer&, wpp::Token&);
-	void lex_single_comment(wpp::Lexer&, wpp::Token&);
-	void lex_whitespace(wpp::Lexer&, wpp::Token&);
-
-	void lex_identifier(wpp::Lexer&, wpp::Token&);
-
-	void lex_smart(wpp::Lexer&, wpp::Token&);
-	void lex_string_escape(wpp::Lexer&, wpp::Token&);
-	void lex_string_other(wpp::Lexer&, wpp::Token&);
-
-	void lex_mode_string(wpp::Lexer&, wpp::Token&);
-	void lex_mode_normal(wpp::Lexer&, wpp::Token&);
-}
-
-namespace wpp::modes {
-	enum {
-		normal,
-		string,
-		character,
-	};
-}
 
 namespace wpp {
 	struct Lexer {
-		std::string fname;
-		const char* const start = nullptr;
-		const char* str = nullptr;
+		wpp::Env& env;
+		const char* ptr = nullptr;
 
 		wpp::Token lookahead{};
-		int lookahead_mode = modes::normal;
+		wpp::lexer_mode_type_t lookahead_mode = lexer_modes::normal;
 
 
-		Lexer(const std::string& fname_, const char* const str_, int mode_ = modes::normal):
-			fname(fname_),
-			start(str_),
-			str(str_),
-			lookahead(),
+		Lexer(
+			wpp::Env& env_,
+			wpp::lexer_mode_type_t mode_ = lexer_modes::normal
+		):
+			env(env_),
+			ptr(env_.sources.top().base),
+			lookahead({ptr, 1}, TOKEN_NONE),
 			lookahead_mode(mode_)
 		{
+			if (not wpp::validate_utf8(ptr))
+				wpp::error_utf8(wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
+					"invalid UTF-8",
+					"malformed bytes appear in source"
+				);
+
+			ptr = env_.sources.top().base;
+
 			advance(mode_);
 		}
 
 
-		std::pair<decltype(start), decltype(str)&> get_ptrs() {
-			return { start, str };
+		wpp::Pos position() const {
+			DBG();
+			return { env.sources.top(), lookahead.view };
 		}
 
-		const wpp::Token& peek(int mode = modes::normal) {
+
+		const wpp::Token& peek(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
+			DBG();
+
 			// If the current mode is different from the lookahead mode
 			// then we update the lookahead token and set the new
 			// lookahead mode.
 			if (mode != lookahead_mode) {
-				str = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
+				DBG(ANSI_FG_RED, lexer_modes::lexer_mode_to_str[lookahead_mode], " -> ", lexer_modes::lexer_mode_to_str[mode]);
+
+				ptr = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
 
 				lookahead = next_token(mode);
 				lookahead_mode = mode;
@@ -158,28 +156,23 @@ namespace wpp {
 		}
 
 		char next(int n = 1) {
-			char c = *str;
-			str += n;
+			char c = *ptr;
+
+			while (n--)
+				ptr += wpp::size_utf8(ptr);
+
 			return c;
 		}
 
-		char prev(int n = 1) {
-			char c = *str;
-			str -= n;
-			return c;
-		}
+		wpp::Token advance(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
+			DBG();
 
-		wpp::Token advance(int mode = modes::normal) {
 			auto tok = peek(mode);
 			lookahead = next_token(mode);
 			return tok;
 		}
 
-		wpp::Position position(int line_offset = 0, int column_offset = 0) const {
-			return wpp::position(fname, start, lookahead.view.ptr, line_offset, column_offset);
-		}
-
-		wpp::Token next_token(int mode = modes::normal);
+		wpp::Token next_token(wpp::lexer_mode_type_t mode = lexer_modes::normal);
 	};
 }
 

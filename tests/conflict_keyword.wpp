@@ -1,1 +1,1 @@
-let foo(prefix, suffix) ""
+let foo(map, source) ""

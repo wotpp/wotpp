@@ -1,2 +1,2 @@
 "3"
-source("../source4")
+use "../source4"

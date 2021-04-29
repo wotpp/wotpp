@@ -23,9 +23,9 @@ $ pip3 install --user meson
 $ export PATH=$PATH:~/.local/bin
 ```
 
-Install Ninja and libreadline:
+Install Ninja:
 ```
-# apt install libreadline7 libreadline-dev ninja-build
+# apt install ninja-build
 ```
 
 Clone:
@@ -46,9 +46,9 @@ $ cd build/
 ```
 
 ### Void Linux
-Install Meson, Ninja and libreadline:
+Install Meson and Ninja:
 ```
-# xbps-install -S meson ninja readline readline-devel
+# xbps-install -S meson ninja
 ```
 
 Clone:

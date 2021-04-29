@@ -6,12 +6,13 @@
 #include <vector>
 #include <variant>
 #include <utility>
-#include <cstdint>
+
+#include <misc/fwddecl.hpp>
+#include <misc/dbg.hpp>
 
 // A vector of variants.
 
 namespace wpp {
-	using node_t = int32_t;
 	constexpr node_t NODE_EMPTY = -1;
 
 	template <typename... Ts>
@@ -22,12 +23,14 @@ namespace wpp {
 			// Construct element in place and return its index.
 			template <typename T, typename... Xs>
 			node_t add(Xs&&... args) {
+				DBG();
 				this->emplace_back(std::in_place_type<T>, std::forward<Xs>(args)...);
 				return static_cast<int64_t>(this->size() - 1);
 			}
 
 			template <typename T, typename... Xs>
 			auto& replace(node_t i, Xs&&... args) {
+				DBG();
 				return (*this)[i].template emplace<T>(std::forward<Xs>(args)...);
 			}
 
@@ -35,11 +38,13 @@ namespace wpp {
 			// the variant.
 			template <typename T>
 			T& get(node_t i) {
+				DBG();
 				return std::get<T>((*this)[i]);
 			}
 
 			template <typename T>
 			const T& get(node_t i) const {
+				DBG();
 				return std::get<T>((*this)[i]);
 			}
 	};

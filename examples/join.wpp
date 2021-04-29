@@ -1,0 +1,31 @@
+let join_back/rest(s, x, y)
+	x .. s .. pop join_back/rest(s, y, *)
+
+let join_back/rest(s, x)
+	x
+
+let join_back/rest(s) ""
+
+let join_back(sep)
+	pop join_back/rest(sep, *, *)
+
+
+let join_front/rest(s, x) s .. x .. pop join_front/rest(s, *)
+let join_front/rest(s) ""
+
+let join_front/first(x) x
+let join_front/first() ""
+
+let join_front(s)
+	pop join_front/first(*) .. pop join_front/rest(s, *)
+
+
+join_back(", ", \a, \b, \c, \d) '\n'
+join_back(", ", \a, \b, \c) '\n'
+
+'\n'
+
+join_front(", ", \a, \b, \c, \d) '\n'
+join_front(", ", \a, \b, \c) '\n'
+
+

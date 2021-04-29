@@ -1,0 +1,17 @@
+let push() ""
+
+push(\a \b \c)
+
+
+let printer(x)
+	x
+
+let printer()
+	""
+
+
+#[expect(abc)]
+pop printer(*)
+pop printer(*)
+pop printer(*)
+pop printer(*)

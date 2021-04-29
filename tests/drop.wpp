@@ -1,7 +1,19 @@
-let x "a"
-let x "b"
+#[expect(ba)]
+let x() "a"
+let x() "b"
+
+x()
+drop x()
+x()
+drop x()
+
+
 
 #[expect(ba)]
-x
-drop x
-x
+let x(a, b) "a"
+let x(a, b) "b"
+
+x(\a, \b)
+drop x(., .)
+x(\b, \a)
+drop x(., .)

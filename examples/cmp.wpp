@@ -1,0 +1,52 @@
+let ~ ""
+
+let push() ~
+
+let car(str)
+	str[:1]
+
+let cdr(str)
+	str[1:]
+
+let impl/starts_with(eq not_eq orig_pat orig_str sofar pat str) {
+	match orig_pat {
+		#[
+			`sofar` == `orig_pat`, therefore we have looked at
+			all of the characters of the string and they are
+			the same
+		]
+		sofar ->
+			!eq .. "(sofar str)\n"
+
+		#[ `sofar` != `orig_pat`, therefore we have not looked at the entire string yet ]
+		* -> match car(pat) {
+			#[ check if `pat` == `str` and recurse if so ]
+			car(str) ->
+				impl/starts_with(
+					eq
+					not_eq
+					orig_pat
+					orig_str
+					sofar .. car(pat)
+					cdr(pat)
+					cdr(str)
+				)
+
+			#[ pat != str, therefore strings differ ]
+			* ->
+				!not_eq .. "(sofar str)\n"
+		}
+	}
+}
+
+let starts_with(eq not_eq pat str)
+	impl/starts_with(eq not_eq pat str ~ pat str)
+
+
+let not_eq(consumed leftover) { log "found! consumed: '" .. consumed .. "', leftover: '" .. leftover .. "'\n" ~ }
+let eq(consumed leftover) { log "not found! consumed: '" .. consumed .. "', leftover: '" .. leftover .. "'\n" ~ }
+
+starts_with(\eq \not_eq "bar" "barbar")
+starts_with(\eq \not_eq "bar" "bazfoo")
+starts_with(\eq \not_eq "bar" "foobaz")
+

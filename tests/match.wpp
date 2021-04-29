@@ -1,5 +1,5 @@
 #[expect(bar)]
-map "foo" {
+match "foo" {
 	"foo" -> "bar"
 	"bar" -> "foo"
 }
@@ -14,7 +14,7 @@ let z "z"
 let identity(a) a
 
 #[expect(z)]
-map thing {
+match thing {
 	x -> y
 	y -> z
 	z -> x
@@ -22,25 +22,25 @@ map thing {
 
 
 #[expect(abc)]
-map "123" {
+match "123" {
 	"1" .. "2" .. "3" -> "abc"
 }
 
 #[expect(abc)]
-map "123" {
+match "123" {
 	"123" -> "a" .. "b" .. "c"
 }
 
 
 #[expect(ok)]
-map "a" .. "b" {
+match "a" .. "b" {
 	"ab" -> "ok"
 }
 
 
 
 #[expect(ok)]
-map identity("foo") {
+match identity("foo") {
 	"foo" -> "ok"
 }
 
@@ -48,6 +48,6 @@ let a "a"
 let b "b"
 
 #[expect(ok)]
-map a {
-	"a" -> map b { "b" -> "ok" }
+match a {
+	"a" -> match b { "b" -> "ok" }
 }

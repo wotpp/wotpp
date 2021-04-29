@@ -1,41 +1,35 @@
-#[expect(paragraph paragraph paragraph paragraph paragraph)]
-p#"
-	 paragraph
-	paragraph   paragraph
-	paragraph
-	 paragraph
-"#
+#[expect(foo	foo foo\nfoo\n\nfoo)]
+p#"    foo	foo   foo
+	foo
+
+	foo"#
 
 
-#[expect(paragraph paragraph paragraph paragraph paragraph)]
-p#" paragraph
-	paragraph   paragraph
-	paragraph
-	 paragraph
-"#
-
-#[expect(paragraph paragraph paragraph paragraph paragraph)]
-p#" paragraph
-	paragraph   paragraph
-	paragraph
-	 paragraph
+#[expect(foo foo foo foo)]
+p/"
+	foo    foo  foo foo
+"/
 
 
 
-"#
-
-
-#[expect(paragraph paragraph paragraph paragraph paragraph)]
-p#"
-paragraph
-paragraph  				paragraph
-paragraph   paragraph
-paragraph
-"#
+#[expect(have a quote: "hello")]
+p~"have a quote: "hello""~
 
 
 
+#[expect(foo\nfoo\nfoo\nfoo)]
+p/"
+foo
+foo
+foo
+foo
+"/
 
 
-
-
+#[expect(foo\n\nfoo\n\tfoo\nfoo)]
+p/"
+foo\n
+foo
+\tfoo
+foo
+"/

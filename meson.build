@@ -3,6 +3,7 @@
 project(
 	'wot++',
 	'cpp',
+	'c',
 	license: 'MPL-2.0',
 	version: '1.0',
 	default_options: [
@@ -17,20 +18,42 @@ project(
 	]
 )
 
+extra_cxx_opts = [
+	'-pedantic',
+	'-Wextra',
+	'-Wnull-dereference',
+	'-Wshadow',
+	'-Wno-unused',
+	'-Wdisabled-optimization',
+	'-Wundef',
+]
+
+if meson.get_compiler('cpp').has_argument('-Wlogical-op')
+	extra_cxx_opts += '-Wlogical-op'
+endif
+
+if meson.get_compiler('cpp').has_argument('-Wduplicated-branches')
+	extra_cxx_opts += '-Wduplicated-branches'
+endif
+
+if meson.get_compiler('cpp').has_argument('-Wduplicated-cond')
+	extra_cxx_opts += '-Wduplicated-cond'
+endif
+
 extra_opts = []
 deps = []
 
 sources = files(
 	'src/main.cpp',
 
-	'src/structures/exception.hpp',
-	'src/structures/error.hpp',
+	'src/misc/fwddecl.hpp',
+	'src/structures/environment.hpp',
 
 	'src/misc/util/util.hpp',
 	'src/misc/util/util.cpp',
 
 	'src/misc/repl.hpp',
-	'src/misc/warnings.hpp',
+	'src/misc/flags.hpp',
 
 	'src/frontend/ast.hpp',
 
@@ -41,23 +64,22 @@ sources = files(
 	'src/frontend/parser/parser.hpp',
 	'src/frontend/parser/parser.cpp',
 
-	'src/frontend/position.hpp',
 	'src/frontend/token.hpp',
 	'src/frontend/view.hpp',
 
 	'src/frontend/char.hpp',
 
+	'src/backend/eval/intrinsics.hpp',
+	'src/backend/eval/intrinsics.cpp',
 	'src/backend/eval/eval.hpp',
 	'src/backend/eval/eval.cpp',
 
-	'src/backend/reconstruct/reconstruct.hpp',
-	'src/backend/reconstruct/reconstruct.cpp',
-
-	'src/backend/sexpr/sexpr.hpp',
-	'src/backend/sexpr/sexpr.cpp',
+	'modules/linenoise/linenoise.h',
+	'modules/linenoise/linenoise.c',
 )
 
 sources_inc = include_directories('src/')
+mod_inc = include_directories('modules/')
 
 
 # Set error limit.
@@ -107,23 +129,28 @@ if get_option('disable_run')
 	add_project_arguments('-DWPP_DISABLE_RUN', language: 'cpp')
 endif
 
+if get_option('disable_colour')
+	add_project_arguments('-DWPP_DISABLE_COLOUR', language: 'cpp')
+endif
+
+if get_option('disable_file')
+	add_project_arguments('-DWPP_DISABLE_FILE', language: 'cpp')
+endif
+
 
 # REPL stuff
-libreadline_dep = dependency('readline', required: false)
-
-if get_option('disable_repl') or not libreadline_dep.found()
+if get_option('disable_repl')
 	add_project_arguments('-DWPP_DISABLE_REPL', language: 'cpp')
-else
-	deps += libreadline_dep
 endif
 
 exe = executable(
 	'w++',
 	sources,
-	include_directories: [sources_inc],
+	include_directories: [sources_inc, mod_inc],
 	dependencies: deps,
 	install: true,
-	override_options: extra_opts
+	override_options: extra_opts,
+	cpp_args: extra_cxx_opts
 )
 
 # Test cases
@@ -142,21 +169,17 @@ test_cases = {
 	'tests/assert.wpp': true,
 	'tests/file.wpp': true,
 	'tests/meta.wpp': true,
-	'tests/prefix.wpp': true,
 	'tests/literals.wpp': true,
 	'tests/paragraph.wpp': true,
 	'tests/raw.wpp': true,
 	'tests/code.wpp': true,
-	'tests/escape.wpp': true,
-	'tests/map.wpp': true,
+	'tests/match.wpp': true,
+	'tests/slice.wpp': true,
 	'tests/error_no_func.wpp': false,
 	'tests/assert_fail.wpp': false,
 	'tests/error.wpp': false,
 	'tests/conflict_keyword.wpp': false,
-	'tests/slice.wpp': true,
 	'tests/slice_fail.wpp': false,
-	'tests/find.wpp': true,
-	'tests/length.wpp': true,
 	'tests/smart_strings.wpp': true,
 	'tests/generational_func.wpp': true,
 	'tests/source.wpp': true,
@@ -165,6 +188,10 @@ test_cases = {
 	'tests/var.wpp': true,
 	'tests/drop.wpp': true,
 	'tests/drop_fail.wpp': false,
+	'tests/utf_invalid.wpp': false,
+	'tests/utf_valid.wpp': true,
+	'tests/variadic.wpp': true,
+	'tests/stack.wpp': true,
 }
 
 if not get_option('disable_run')

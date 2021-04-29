@@ -1,0 +1,12 @@
+let impl/vcat(x)
+	x .. pop impl/vcat(*)
+
+let impl/vcat()
+	""
+
+let vcat() pop impl/vcat(*)
+
+vcat(\a, \b, \c) "\n"
+
+
+

@@ -1,0 +1,24 @@
+let render(x, y, z)
+	x .. ": " .. y .. " -> " .. z .. '\n'
+
+let render(x, y)
+	x .. ": " .. y .. " -> <null>\n"
+
+let render(x)
+	x .. ": <null> -> <null>\n"
+
+
+let recurse(x, y, z) render(x, y, z) .. triples()
+let recurse(x, y)    render(x, y) ..    triples()
+let recurse(x)       render(x) ..       triples()
+let recurse()        ""
+
+let triples() pop recurse(*, *, *)
+
+
+triples(\a, \b, \c, \d, \e, \f) '\n'
+triples(\a, \b, \c, \d, \e) '\n'
+triples(\a, \b, \c, \d) '\n'
+triples(\a, \b, \c)
+
+

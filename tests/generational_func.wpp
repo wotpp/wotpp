@@ -1,7 +1,7 @@
-let \n "\n"
+let nl "\n"
 
-let fn(x) x .. \n
-let fn(x) "hello " .. x .. \n
+let fn(x) x .. nl
+let fn(x) "hello " .. x .. nl
 
 #[expect(hello spock\n)]
 fn("spock")

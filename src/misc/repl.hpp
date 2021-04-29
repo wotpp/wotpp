@@ -3,22 +3,20 @@
 #ifndef WOTPP_REPL
 #define WOTPP_REPL
 
-#include <iostream>
+#include <iosfwd>
 
 #ifndef WPP_DISABLE_REPL
-	#include <readline/readline.h>
-	#include <readline/history.h>
+	extern "C" {
+		#include <linenoise/linenoise.h>
+	}
+
 	#include <cstdlib>
+
+	#include <misc/util/util.hpp>
+	#include <frontend/parser/parser.hpp>
+	#include <backend/eval/eval.hpp>
 #endif
 
-#include <misc/util/util.hpp>
-#include <structures/exception.hpp>
-
-#include <frontend/lexer/lexer.hpp>
-#include <frontend/parser/parser.hpp>
-
-#include <backend/sexpr/sexpr.hpp>
-#include <backend/eval/eval.hpp>
 
 namespace wpp {
 	inline int repl() {
@@ -27,41 +25,40 @@ namespace wpp {
 			return 1;
 
 		#else
-			wpp::AST tree;
-			wpp::Environment env{std::filesystem::current_path(), tree};
-
-			// Reserve 10MiB
-			tree.reserve((1024 * 1024 * 10) / sizeof(decltype(tree)::value_type));
-
 			std::cout << "wot++ repl\n";
 
-			using_history();
+			linenoiseSetMultiLine(true);
+			linenoiseHistorySetMaxLen(50);
 
-			while (true) {
-				auto input = readline(">>> ");
+			const auto initial_path = std::filesystem::current_path();
+			wpp::Env env{ initial_path, {}, wpp::flags_t{wpp::WARN_ALL} };
 
-				if (!input) // EOF
-					break;
 
-				add_history(input);
+			char* input = nullptr;
 
-				// Create a new lexer.
-				wpp::Lexer lex{"<repl>", input};
+			while ((input = linenoise(">>> ")) != nullptr) {
+				// Reset error state.
+				env.state &= ~wpp::INTERNAL_ERROR_STATE;
+
+				linenoiseHistoryAdd(input);
+
+				env.sources.push(initial_path, input, modes::repl);
 
 				try {
-					// Parse.
-					auto root = document(lex, tree);
+					wpp::node_t root = wpp::parse(env);
 
-					// Evaluate.
-					const auto out = wpp::eval_ast(root, env);
+					if (env.state & wpp::INTERNAL_ERROR_STATE)
+						return 1;
+
+					std::string out = wpp::evaluate(root, env);
+
+					if (not out.empty() and out.back() != '\n')
+						out += '\n';
+
 					std::cout << out << std::flush;
 
-					if (out.size() && out[out.size() - 1] != '\n')
-						std::cout << std::endl;
-				}
-
-				catch (const wpp::Exception& e) {
-					wpp::error(e.pos, e.what());
+				} catch (const wpp::Report& e) {
+					std::cerr << e.str();
 				}
 
 				std::free(input);

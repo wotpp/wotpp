@@ -3,73 +3,75 @@
 #ifndef WOTPP_UTIL
 #define WOTPP_UTIL
 
-#include <utility>
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <variant>
+#include <filesystem>
+#include <type_traits>
 
-#include <frontend/position.hpp>
+#include <structures/environment.hpp>
+#include <frontend/view.hpp>
+#include <frontend/char.hpp>
+#include <misc/fwddecl.hpp>
+#include <misc/report.hpp>
+#include <misc/colours.hpp>
+#include <misc/dbg.hpp>
+
 
 namespace wpp {
-	// Concatenate objects with operator<< overload and return string.
-	template <typename... Ts>
-	inline std::string strcat(Ts&&... args) {
-		std::string buf{(sizeof(args) + ...), '\0'};
+	template <typename T, typename... Ts> constexpr bool eq_any(T&& first, Ts&&... rest) {
+		return ((first == rest) or ...);
+	}
 
-		std::stringstream ss{buf};
-		((ss << std::forward<Ts>(args)), ...);
-
-		return ss.str();
+	template <typename T, typename... Ts> constexpr bool eq_all(T&& first, Ts&&... rest) {
+		return ((first == rest) and ...);
 	}
 
 
-	template <typename T, typename... Ts>
-	inline std::string cat(const T& first, Ts&&... args) {
-		if constexpr(sizeof...(Ts) > 0) {
-			const auto tostr = [] (const auto& x) {
-				if constexpr(std::is_same_v<std::decay_t<decltype(x)>, std::string>)
-					return x;
+	inline int view_to_int(const View& v) {
+		DBG();
 
-				else if constexpr(std::is_same_v<std::decay_t<decltype(x)>, const char*>)
-					return x;
+		int n = 0;
+		int mul = 1;
 
-				else
-					return std::to_string(x);
-			};
+		auto ptr = v.ptr;
 
-			return std::string{first} + (tostr(args) + ...);
+		if (*ptr == '-') {
+			mul = -1;
+			++ptr;
 		}
 
-		else {
-			return std::string{first};
-		}
+		for (; ptr != v.ptr + v.length; ++ptr)
+			n = (n * 10) + (*ptr - '0');
+
+		return n * mul;
 	}
 
 
-	// Get the absolute difference between 2 pointers.
-	constexpr ptrdiff_t ptrdiff(const char* a, const char* b) {
-		return
-			(a > b ? a : b) -
-			(a < b ? a : b);
-		;
+	// std::string constructor does not allow repeating a string so
+	// this function implements it.
+	inline std::string repeat(const std::string& c, std::string::size_type n) {
+		if (!n)
+			return ""; // Check for 0.
+
+		std::string out = c;
+		out.reserve(c.size() * n);
+
+		for (n--; n > 0; n--)
+			out += c;
+
+		return out;
 	}
 
 
-	// Print an error with position info.
-	template <typename... Ts>
-	inline void error(const wpp::Position& pos, Ts&&... args) {
-		([&] () -> std::ostream& {
-			return (std::cerr << "error @ " << pos << ": ");
-		} () << ... << std::forward<Ts>(args)) << '\n';
+	template <typename T1, typename T2> constexpr auto max(T1&& a, T2&& b) {
+		return a > b ? a : b;
 	}
 
-	// Print a warning with position info.
-	template <typename... Ts>
-	inline void warn(const wpp::Position& pos, Ts&&... args) {
-		([&] () -> std::ostream& {
-			return (std::cerr << "warning @ " << pos << ": ");
-		} () << ... << std::forward<Ts>(args)) << '\n';
+	template <typename T1, typename T2> constexpr auto min(T1&& a, T2&& b) {
+		return a < b ? a : b;
 	}
 
 
@@ -85,11 +87,6 @@ namespace wpp {
 	}
 
 
-	// FNV-1a hash.
-	// Calculate a hash of a range of bytes.
-	uint64_t hash_bytes(const char*, const char* const);
-
-
 	// Execute a shell command, capture its standard output and return it
 	// https://stackoverflow.com/questions/478898/how-do-i-execute-a-command-and-get-the-output-of-the-command-within-c-using-po
 	std::string exec(const std::string&, int&);
@@ -99,10 +96,51 @@ namespace wpp {
 	std::string exec(const std::string&, const std::string&, int&);
 
 
-	// Read a file into a string relatively quickly.
-	std::string read_file(std::string_view);
+	struct FileError {};
 
-	void write_file(std::string_view, const std::string&);
+
+	inline std::filesystem::path get_file_path(const std::filesystem::path& file, const SearchPath& search_path) {
+		DBG();
+
+		// Check the current directory.
+		if (std::filesystem::exists(std::filesystem::current_path() / file))
+			return file;
+
+		// Otherwise, find it in the search path.
+		for (const auto& dir: search_path) {
+			const auto path = dir / file;
+
+			if (std::filesystem::exists(path))
+				return path;
+		}
+
+		throw wpp::FileError{};
+	}
+
+
+	// Read a file into a string relatively quickly.
+	inline std::string read_file(const std::filesystem::path& path) {
+		DBG();
+
+		std::ifstream is(path);
+
+		if (not is.is_open())
+			throw wpp::FileError{};
+
+		std::stringstream ss;
+		ss << is.rdbuf();
+
+		return ss.str();
+	}
+
+
+	// Write string to file.
+	inline void write_file(const std::filesystem::path& path, const std::string& contents) {
+		DBG();
+		auto file = std::ofstream(path);
+		file << contents;
+		file.close();
+	}
 }
 
 

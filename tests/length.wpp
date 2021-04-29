@@ -1,2 +1,0 @@
-#[expect(13)]
-length("Hello, World!")
