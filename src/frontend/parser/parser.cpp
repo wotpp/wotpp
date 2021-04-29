@@ -694,6 +694,9 @@ namespace wpp { namespace {
 
 				param_vec.emplace_back(param_view);
 				lex.advance();
+
+				if (lex.peek() == TOKEN_COMMA)
+					lex.advance();
 			}
 
 			// Check if there's a keyword conflict.
@@ -769,6 +772,9 @@ namespace wpp { namespace {
 		while (lex.peek() == TOKEN_IDENTIFIER) {
 			tree.get<Drop>(node).n_args++;
 			lex.advance();
+
+			if (lex.peek() == TOKEN_COMMA)
+				lex.advance();
 		}
 
 		if (lex.peek() != TOKEN_RPAREN)
@@ -848,6 +854,9 @@ namespace wpp { namespace {
 			while (peek_is_expr(lex.peek())) {
 				wpp::node_t expr = expression(lex, tree, pos, env);
 				tree.get<Pop>(node).arguments.emplace_back(expr);
+
+				if (lex.peek() == TOKEN_COMMA)
+					lex.advance();
 			}
 		}
 
@@ -862,6 +871,9 @@ namespace wpp { namespace {
 		while (lex.peek() == TOKEN_STAR) {
 			tree.get<Pop>(node).n_popped_args++;
 			lex.advance();
+
+			if (lex.peek() == TOKEN_COMMA)
+				lex.advance();
 		}
 
 
@@ -901,6 +913,9 @@ namespace wpp { namespace {
 			// Parse expr.
 			wpp::node_t expr = expression(lex, tree, pos, env);
 			tree.get<FnInvoke>(node).arguments.emplace_back(expr);
+
+			if (lex.peek() == TOKEN_COMMA)
+				lex.advance();
 		}
 
 		// Make sure parameter list is terminated by `)`.

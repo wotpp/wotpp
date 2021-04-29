@@ -327,6 +327,7 @@ namespace wpp {
 			while (
 				not wpp::is_whitespace(ptr) and
 				not wpp::is_grouping(ptr) and
+				*ptr != ',' and
 				*ptr != '\0'
 			);
 
@@ -443,6 +444,9 @@ namespace wpp {
 
 			else if (*lex.ptr == '*')
 				lex_simple(TOKEN_STAR, 1, lex, tok);
+
+			else if (*lex.ptr == ',')
+				lex_simple(TOKEN_COMMA, 1, lex, tok);
 
 			else if (*lex.ptr == '(')
 				lex_simple(TOKEN_LPAREN, 1, lex, tok);
