@@ -35,7 +35,7 @@ namespace wpp {
 		}
 
 	#else
-		std::string exec(const std::string&, iny&) {
+		std::string exec(const std::string&, int&) {
 			return "";
 		}
 	#endif
