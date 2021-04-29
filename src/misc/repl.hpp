@@ -6,8 +6,10 @@
 #include <iosfwd>
 
 #ifndef WPP_DISABLE_REPL
-	#include <readline/readline.h>
-	#include <readline/history.h>
+	extern "C" {
+		#include <linenoise/linenoise.h>
+	}
+
 	#include <cstdlib>
 
 	#include <misc/util/util.hpp>
@@ -25,21 +27,20 @@ namespace wpp {
 		#else
 			std::cout << "wot++ repl\n";
 
+			linenoiseSetMultiLine(true);
+			linenoiseHistorySetMaxLen(50);
+
 			const auto initial_path = std::filesystem::current_path();
 			wpp::Env env{ initial_path, {}, wpp::flags_t{wpp::WARN_ALL} };
 
-			using_history();
 
-			while (true) {
+			char* input = nullptr;
+
+			while ((input = linenoise(">>> ")) != nullptr) {
 				// Reset error state.
 				env.state &= ~wpp::INTERNAL_ERROR_STATE;
 
-				char* input = readline(">>> ");
-
-				if (not input) // EOF
-					break;
-
-				add_history(input);
+				linenoiseHistoryAdd(input);
 
 				env.sources.push(initial_path, input, modes::repl);
 

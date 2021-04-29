@@ -3,6 +3,7 @@
 project(
 	'wot++',
 	'cpp',
+	'c',
 	license: 'MPL-2.0',
 	version: '1.0',
 	default_options: [
@@ -72,9 +73,13 @@ sources = files(
 	'src/backend/eval/intrinsics.cpp',
 	'src/backend/eval/eval.hpp',
 	'src/backend/eval/eval.cpp',
+
+	'modules/linenoise/linenoise.h',
+	'modules/linenoise/linenoise.c',
 )
 
 sources_inc = include_directories('src/')
+mod_inc = include_directories('modules/')
 
 
 # Set error limit.
@@ -134,18 +139,14 @@ endif
 
 
 # REPL stuff
-libreadline_dep = dependency('readline', required: false)
-
-if get_option('disable_repl') or not libreadline_dep.found()
+if get_option('disable_repl')
 	add_project_arguments('-DWPP_DISABLE_REPL', language: 'cpp')
-else
-	deps += libreadline_dep
 endif
 
 exe = executable(
 	'w++',
 	sources,
-	include_directories: [sources_inc],
+	include_directories: [sources_inc, mod_inc],
 	dependencies: deps,
 	install: true,
 	override_options: extra_opts,
