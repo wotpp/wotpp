@@ -22,7 +22,13 @@ int main(int argc, const char* argv[]) {
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
 	std::vector<std::string_view> path_dirs;
-	bool repl = false, disable_run = false, disable_file = false, disable_colour = false, force = false;
+
+	bool repl = false;
+	bool disable_run = false;
+	bool disable_file = false;
+	bool disable_colour = false;
+	bool inline_reports = false;
+	bool force = false;
 
 	std::vector<const char*> positional;
 
@@ -32,9 +38,10 @@ int main(int argc, const char* argv[]) {
 		wpp::Opt{outputf,        "output file",                                       "--output",         "-o"},
 		wpp::Opt{warnings,       "toggle warnings",                                   "--warnings",       "-W"},
 		wpp::Opt{repl,           "repl mode",                                         "--repl",           "-r"},
-		wpp::Opt{disable_run,    "disable run & pipe intrinsics",                     "--disable-run",    "-R"},
-		wpp::Opt{disable_file,   "disable file & use intrinsics",                     "--disable-file",   "-F"},
-		wpp::Opt{disable_colour, "disable ANSI colour sequences",                     "--disable-colour", "-c"},
+		wpp::Opt{disable_run,    "toggle run & pipe intrinsics",                      "--disable-run",    "-R"},
+		wpp::Opt{disable_file,   "toggle file & use intrinsics",                      "--disable-file",   "-F"},
+		wpp::Opt{disable_colour, "toggle ANSI colour sequences",                      "--disable-colour", "-c"},
+		wpp::Opt{inline_reports, "toggle inline reports",                             "--inline-reports", "-i"},
 		wpp::Opt{force,          "overwrite file if it exists",                       "--force",          "-f"},
 		wpp::Opt{path_dirs,      "specify directories to search when sourcing files", "--search-path",    "-s"}
 	))
@@ -108,6 +115,9 @@ int main(int argc, const char* argv[]) {
 
 	if (disable_colour)
 		flags |= wpp::FLAG_DISABLE_COLOUR;
+
+	if (inline_reports)
+		flags |= wpp::FLAG_INLINE_REPORTS;
 
 
 	// Build search path.
