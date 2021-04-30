@@ -161,7 +161,7 @@ namespace wpp {
 
 		const auto printout_str = std::string(printout_begin, printout_end - printout_begin + 1);
 		const auto column_str = wpp::cat(indent, sloc.line);
-		const auto detail_str = wpp::cat(std::string(offset - printout_begin, ' '), colour, "⤷ ", ANSI_RESET, detail);
+		const auto detail_str = wpp::cat(std::string(offset - printout_begin, ' '), colour, "⤷ ", env.lookup_colour(ANSI_RESET), detail);
 
 		str = wpp::cat(
 			column_str, " | ", printout_str, "\n",
@@ -170,7 +170,12 @@ namespace wpp {
 		);
 
 		if (not suggestion.empty())
-			str += wpp::cat("\n", indent, ANSI_BOLD ANSI_FG_YELLOW "hint: " ANSI_RESET, suggestion, ANSI_RESET "\n");
+			str += wpp::cat(
+				"\n", indent, env.lookup_colour(ANSI_BOLD), env.lookup_colour(ANSI_FG_YELLOW), "hint: ",
+				env.lookup_colour(ANSI_RESET),
+				suggestion,
+				env.lookup_colour(ANSI_RESET), "\n"
+			);
 
 		return str;
 	}
@@ -197,26 +202,26 @@ namespace wpp {
 			const auto sloc = wpp::calculate_coordinates(base, offset);
 
 			const char* error_str = error_modes::error_mode_to_str[error_mode];
-			const char* colour = ANSI_FG_RED;
+			const char* colour = env.lookup_colour(ANSI_FG_RED);
 
 
 			if (error_mode == error_modes::error)
-				colour = ANSI_FG_RED;
+				colour = env.lookup_colour(ANSI_FG_RED);
 
 			else if (error_mode == error_modes::utf8)
-				colour = ANSI_FG_RED;
+				colour = env.lookup_colour(ANSI_FG_RED);
 
 			else if (error_mode == error_modes::warning)
-				colour = ANSI_FG_BLUE;
+				colour = env.lookup_colour(ANSI_FG_BLUE);
 
 
-			const auto position_str   = generate_position_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
-			const auto snippet_str    = generate_snippet_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
+			const auto position_str = generate_position_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
+			const auto snippet_str  = generate_snippet_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
 
 			return wpp::cat(
-				colour, error_str, ANSI_RESET,
-				position_str, " => " ANSI_BOLD,
-				overview, ANSI_RESET "\n",
+				colour, error_str, env.lookup_colour(ANSI_RESET),
+				position_str, " => ", env.lookup_colour(ANSI_BOLD),
+				overview, env.lookup_colour(ANSI_RESET), "\n",
 				snippet_str, "\n"
 			);
 		}

@@ -22,20 +22,21 @@ int main(int argc, const char* argv[]) {
 	std::string_view outputf;
 	std::vector<std::string_view> warnings;
 	std::vector<std::string_view> path_dirs;
-	bool repl = false, disable_run = false, disable_file = false, force = false;
+	bool repl = false, disable_run = false, disable_file = false, disable_colour = false, force = false;
 
 	std::vector<const char*> positional;
 
 	if (wpp::argparser(
 		wpp::Meta{ver, desc},
 		argc, argv, &positional,
-		wpp::Opt{outputf,      "output file",                                       "--output",       "-o"},
-		wpp::Opt{warnings,     "toggle warnings",                                   "--warnings",     "-W"},
-		wpp::Opt{repl,         "repl mode",                                         "--repl",         "-r"},
-		wpp::Opt{disable_run,  "disable run & pipe intrinsics",                     "--disable-run",  "-R"},
-		wpp::Opt{disable_file, "disable file & use intrinsics",                     "--disable-file", "-F"},
-		wpp::Opt{force,        "overwrite file if it exists",                       "--force",        "-f"},
-		wpp::Opt{path_dirs,    "specify directories to search when sourcing files", "--search-path",  "-s"}
+		wpp::Opt{outputf,        "output file",                                       "--output",         "-o"},
+		wpp::Opt{warnings,       "toggle warnings",                                   "--warnings",       "-W"},
+		wpp::Opt{repl,           "repl mode",                                         "--repl",           "-r"},
+		wpp::Opt{disable_run,    "disable run & pipe intrinsics",                     "--disable-run",    "-R"},
+		wpp::Opt{disable_file,   "disable file & use intrinsics",                     "--disable-file",   "-F"},
+		wpp::Opt{disable_colour, "disable ANSI colour sequences",                     "--disable-colour", "-c"},
+		wpp::Opt{force,          "overwrite file if it exists",                       "--force",          "-f"},
+		wpp::Opt{path_dirs,      "specify directories to search when sourcing files", "--search-path",    "-s"}
 	))
 		return 0;
 
@@ -104,6 +105,9 @@ int main(int argc, const char* argv[]) {
 
 	if (disable_file)
 		flags |= wpp::FLAG_DISABLE_FILE;
+
+	if (disable_colour)
+		flags |= wpp::FLAG_DISABLE_COLOUR;
 
 
 	// Build search path.

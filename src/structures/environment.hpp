@@ -103,6 +103,8 @@ namespace wpp {
 
 		size_t call_depth{};
 
+		decltype(&detail::lookup_colour_enabled) lookup_colour{&detail::lookup_colour_enabled};
+
 
 		Env(
 			const std::filesystem::path& root_,
@@ -115,6 +117,9 @@ namespace wpp {
 		{
 			ast.reserve(ast.capacity() + (1024 * 1024 * 10) / sizeof(decltype(ast)::value_type)); // 10MiB tree.
 			stack.emplace_back(); // Root stack.
+
+			if (flags & wpp::FLAG_DISABLE_COLOUR)
+				lookup_colour = &detail::lookup_colour_disabled;
 		}
 	};
 }

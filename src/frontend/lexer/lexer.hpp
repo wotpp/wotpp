@@ -144,7 +144,7 @@ namespace wpp {
 			// then we update the lookahead token and set the new
 			// lookahead mode.
 			if (mode != lookahead_mode) {
-				DBG(ANSI_FG_RED, lexer_modes::lexer_mode_to_str[lookahead_mode], " -> ", lexer_modes::lexer_mode_to_str[mode]);
+				DBG(detail::lookup_colour_enabled(ANSI_FG_RED), lexer_modes::lexer_mode_to_str[lookahead_mode], " -> ", lexer_modes::lexer_mode_to_str[mode]);
 
 				ptr = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
 
