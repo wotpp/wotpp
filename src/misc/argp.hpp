@@ -193,8 +193,8 @@ namespace wpp {
 
 	// Concatenate a variadic pack of strings to an out parameter.
 	template <typename... Ts>
-	inline void cat(std::string& out, Ts&&... strings) {
-		out.reserve(out.capacity() + sizeof...(Ts) * (sizeof(void*) * 2));
+	inline void append(std::string& out, Ts&&... strings) {
+		out.reserve(sizeof...(Ts));
 		((out += strings), ...);
 	}
 
@@ -208,7 +208,7 @@ namespace wpp {
 
 		std::string doc;
 
-		cat(doc, "  ", shrt, ", ", lng);
+		append(doc, "  ", shrt, ", ", lng);
 
 		if constexpr(std::is_same_v<RefT, std::string_view>)
 			doc += " <value>";
@@ -232,14 +232,14 @@ namespace wpp {
 
 		if constexpr(std::is_same_v<RefT, bool>) {
 			if (std::strcmp(shrt, "-h") != 0)
-				cat(str, desc, " (default: ", std::array{"false", "true"}[ref], ")\n");
+				append(str, desc, " (default: ", std::array{"false", "true"}[ref], ")\n");
 
 			else
-				cat(str, desc, '\n');
+				append(str, desc, '\n');
 		}
 
 		else
-			cat(str, desc, '\n');
+			append(str, desc, '\n');
 	}
 
 
@@ -249,7 +249,7 @@ namespace wpp {
 		std::string str;
 
 		// Help header.
-		cat(str, name, " ", ver, ": ", desc, "\n\n");
+		append(str, name, " ", ver, ": ", desc, "\n\n");
 
 		// Generate the first column for all opts.
 		const std::array<std::string, sizeof...(Ts)> help_strs {{
@@ -265,7 +265,7 @@ namespace wpp {
 		int i = 0;
 
 		([&] (const auto& opt) {
-			cat(str, help_strs[i]);
+			append(str, help_strs[i]);
 			option_doc_second_column(str, opt, padding + max - help_strs[i].size());
 			i++;
 		} (std::forward<Ts>(opts)), ...);
@@ -278,7 +278,7 @@ namespace wpp {
 	inline std::string generate_usage(const char* const name, bool has_positional, Ts&&... opts) {
 		std::string str, long_opts, short_opts = " [ ";
 
-		cat(str, "usage: ", name);
+		append(str, "usage: ", name);
 
 		([&] (const auto& opt) {
 			const auto& [ref, desc, lng, shrt] = opt;
@@ -286,22 +286,22 @@ namespace wpp {
 			using RefT = std::remove_reference_t<std::remove_cv_t<decltype(ref)>>;
 
 			if constexpr(std::is_same_v<RefT, bool>)
-				cat(short_opts, shrt, " ");
+				append(short_opts, shrt, " ");
 
 			else {
 				if constexpr(std::is_same_v<RefT, std::string_view>)
-					cat(long_opts, " [ ", shrt, " <value> ]");
+					append(long_opts, " [ ", shrt, " <value> ]");
 
 				else if constexpr(std::is_same_v<RefT, std::vector<std::string_view>>)
-					cat(long_opts, " [ ", shrt, " <values>... ]");
+					append(long_opts, " [ ", shrt, " <values>... ]");
 			}
 
 		} (std::forward<Ts>(opts)), ...);
 
-		cat(str, short_opts, "]", long_opts);
+		append(str, short_opts, "]", long_opts);
 
 		if (has_positional)
-			cat(str, " [ values... ]");
+			append(str, " [ values... ]");
 
 		str += '\n';
 
