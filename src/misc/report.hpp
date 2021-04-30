@@ -101,7 +101,7 @@ namespace wpp {
 	}
 
 
-	inline std::string generate_snippet_str_full(
+	inline std::string generate_snippet_str(
 		wpp::error_mode_type_t error_mode,
 		const char* colour,
 		const wpp::SourceLocation& sloc,
@@ -184,33 +184,6 @@ namespace wpp {
 
 
 
-	inline std::string generate_snippet_str_inline(
-		wpp::error_mode_type_t error_mode,
-		const char* colour,
-		const wpp::SourceLocation& sloc,
-		const wpp::Pos& pos,
-		wpp::Env& env,
-		const std::string& overview,
-		const std::string& detail,
-		const std::string& suggestion
-	) {
-		DBG();
-
-		const auto& [source, view] = pos;
-		const auto& [offset, length] = view;
-		const auto& [file, base, mode] = source;
-
-		if (not suggestion.empty())
-			return wpp::cat(
-				"  ", env.lookup_colour(ANSI_BOLD), env.lookup_colour(ANSI_FG_YELLOW), "hint: ",
-				env.lookup_colour(ANSI_RESET), suggestion, env.lookup_colour(ANSI_RESET)
-			);
-
-		return "";
-	}
-
-
-
 	struct Report {
 		wpp::error_mode_type_t error_mode;
 
@@ -250,18 +223,15 @@ namespace wpp {
 
 
 			if (env.flags & wpp::FLAG_INLINE_REPORTS) {
-				snippet_str = generate_snippet_str_inline(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
-
 				return wpp::cat(
 					colour, error_str, env.lookup_colour(ANSI_RESET),
-					position_str, " => ", env.lookup_colour(ANSI_BOLD),
-					detail, env.lookup_colour(ANSI_RESET), "\n",
-					snippet_str, "\n"
+					position_str, " => ",
+					detail, "\n"
 				);
 			}
 
 
-			snippet_str = generate_snippet_str_full(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
+			snippet_str = generate_snippet_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
 
 			return wpp::cat(
 				colour, error_str, env.lookup_colour(ANSI_RESET),
