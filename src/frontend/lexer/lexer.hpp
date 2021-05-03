@@ -120,7 +120,7 @@ namespace wpp {
 			lookahead_mode(mode_)
 		{
 			if (not wpp::validate_utf8(ptr))
-				wpp::error_utf8(wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
+				wpp::error_utf8(report_modes::utf8, wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
 					"invalid UTF-8",
 					"malformed bytes appear in source"
 				);
@@ -148,7 +148,7 @@ namespace wpp {
 
 				ptr = lookahead.view.ptr; // Reset pointer to beginning of lookahead token.
 
-				lookahead = next_token(mode);
+				lookahead = next_token_wrapper(mode);
 				lookahead_mode = mode;
 			}
 
@@ -168,8 +168,21 @@ namespace wpp {
 			DBG();
 
 			auto tok = peek(mode);
-			lookahead = next_token(mode);
+			lookahead = next_token_wrapper(mode);
 			return tok;
+		}
+
+		// Wrap next_token to catch lexer errors and set the error state
+		// before propagating the error.
+		wpp::Token next_token_wrapper(wpp::lexer_mode_type_t mode = lexer_modes::normal) {
+			try {
+				return next_token(mode);
+			}
+
+			catch (const wpp::Report& e) {
+				env.state |= wpp::ERROR_MODE_LEX;
+				throw;
+			}
 		}
 
 		wpp::Token next_token(wpp::lexer_mode_type_t mode = lexer_modes::normal);

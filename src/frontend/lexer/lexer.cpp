@@ -116,9 +116,6 @@ namespace wpp {
 				}
 			}
 
-			else if (mode == lexer_modes::stringify)
-				lex_stringify(*this, tok);
-
 			else if (*ptr == '#' and *(ptr + 1) == '[') {
 				lex_comment(*this, tok);
 				continue;
@@ -129,7 +126,6 @@ namespace wpp {
 				continue; // Throw away whitespace and get next token.
 			}
 
-			// Normal mode.
 			else if (mode == lexer_modes::slice) {
 				if (*ptr == ':')
 					lex_simple(TOKEN_COLON, 1, *this, tok);
@@ -144,6 +140,7 @@ namespace wpp {
 					lex_int(*this, tok);
 			}
 
+			// Normal mode.
 			else if (mode == lexer_modes::normal) {
 				// If neither comment nor whitespace, handle a normal token.
 				lex_mode_normal(*this, tok);
@@ -186,7 +183,9 @@ namespace wpp {
 			}
 
 			if (*ptr == '\0' and depth != 0)
-				wpp::error(wpp::Pos{ lex.env.sources.top(), view }, lex.env, "unterminated comment", "reached EOF while parsing multiline comment that begins here");
+				wpp::error(report_modes::lexer, wpp::Pos{ lex.env.sources.top(), view }, lex.env, "unterminated comment",
+					"reached EOF while parsing multiline comment that begins here"
+				);
 		}
 
 
@@ -292,15 +291,23 @@ namespace wpp {
 			auto& [view, type] = tok;
 			auto& [vptr, vlen] = view;
 
-			type = TOKEN_STRING;
+			type = TOKEN_STRINGIFY;
+
+			vptr++;
 
 			do
 				lex.next();
 			while (
 				not wpp::is_whitespace(ptr) and
 				not wpp::is_grouping(ptr) and
+				*ptr != ',' and
 				*ptr != '\0'
 			);
+
+			if (ptr == vptr)
+				wpp::error(report_modes::lexer, wpp::Pos{ lex.env.sources.top(), view }, lex.env, "empty stringify",
+					"expecting at least one character to follow `\\`"
+				);
 
 			vlen = ptr - vptr;
 		}
@@ -373,7 +380,7 @@ namespace wpp {
 
 				// Check if nibbles are valid digits.
 				if (not wpp::is_hex(ptr))
-					wpp::error(wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+					wpp::error(report_modes::lexer, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
 						"invalid character",
 						"invalid character in hex escape sequence"
 					);
@@ -381,7 +388,7 @@ namespace wpp {
 				lex.next();
 
 				if (not wpp::is_hex(ptr))
-					wpp::error(wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+					wpp::error(report_modes::lexer, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
 						"invalid character",
 						"invalid character in hex escape sequence"
 					);
@@ -398,7 +405,7 @@ namespace wpp {
 				// Consume 8 characters, check if each one is a valid digit.
 				for (; ptr != vptr + 8; lex.next()) {
 					if (not wpp::is_bin(ptr))
-						wpp::error(wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+						wpp::error(report_modes::lexer, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
 							"invalid character",
 							"invalid character in binary escape sequence"
 						);
@@ -415,6 +422,9 @@ namespace wpp {
 
 			if (wpp::in_group(lex.ptr, 'p', 'r', 'c'))
 				lex_smart(lex, tok);
+
+			else if (*lex.ptr == '\\')
+				lex_stringify(lex, tok);
 
 			else if (*lex.ptr == '0' and *(lex.ptr + 1) == 'b')
 				lex_literal(TOKEN_BIN, wpp::is_bin, lex, tok);
@@ -433,9 +443,6 @@ namespace wpp {
 
 			else if (*lex.ptr == '!')
 				lex_simple(TOKEN_EVAL, 1, lex, tok);
-
-			else if (*lex.ptr == '\\')
-				lex_simple(TOKEN_STRINGIFY, 1, lex, tok);
 
 			else if (*lex.ptr == '*')
 				lex_simple(TOKEN_STAR, 1, lex, tok);

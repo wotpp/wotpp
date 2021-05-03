@@ -63,8 +63,8 @@ namespace wpp { namespace {
 			if (auto arity_it = arities.lower_bound(n_args); arity_it != arities.end()) {
 				auto& [min_args, entry] = *arity_it;
 
-				if (flags & wpp::WARN_EXTRA_ARGS and n_args > min_args)
-					wpp::warning_once(WARN_EXTRA_ARGS, node_id, env, "extra arguments",
+				if (flags & wpp::WARN_EXTRA_ARGS and n_args > min_args and wpp::is_previously_seen_warning(WARN_EXTRA_ARGS, node_id, env))
+					wpp::warning(report_modes::eval, node_id, env, "extra arguments",
 						wpp::cat("got ", n_args - min_args, " extra arguments (function expects >= ", min_args, " arguments)"),
 						"this may be intentional behaviour, extra arguments will be pushed to the stack"
 					);
@@ -74,7 +74,7 @@ namespace wpp { namespace {
 		}
 
 		// No function found.
-		wpp::error(node_id, env, "function not found",
+		wpp::error(report_modes::eval, node_id, env, "function not found",
 			wpp::cat("attempting to invoke function '", name, "' (", n_args, " parameters) which is undefined"),
 			"are you passing the correct number of arguments?"
 		);
@@ -128,8 +128,8 @@ namespace wpp { namespace {
 			else {
 				arg_it->second = *it;
 
-				if (flags & wpp::WARN_PARAM_SHADOW_PARAM)
-					wpp::warning_once(WARN_PARAM_SHADOW_PARAM, node_id, env, "parameter shadows parameter",
+				if (flags & wpp::WARN_PARAM_SHADOW_PARAM and wpp::is_previously_seen_warning(WARN_PARAM_SHADOW_PARAM, node_id, env))
+					wpp::warning(report_modes::eval, node_id, env, "parameter shadows parameter",
 						wpp::cat("parameter '", arg_it->first, "' inside function '", name, "' shadows parameter from enclosing function")
 					);
 			}
@@ -139,8 +139,8 @@ namespace wpp { namespace {
 		// Call function.
 		env.call_depth++;
 
-		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth >= 256)
-			wpp::warning_once(WARN_DEEP_RECURSION, node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of >= 256"),
+		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth >= 256 and wpp::is_previously_seen_warning(WARN_DEEP_RECURSION, node_id, env))
+			wpp::warning(report_modes::eval, node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of >= 256"),
 				"this may indicate recursion without an exit condition"
 			);
 
@@ -224,8 +224,8 @@ namespace wpp { namespace {
 			if (auto arity_it = arities.find(n_params); arity_it != arities.end()) {
 				auto& generations = arity_it->second;
 
-				if (flags & wpp::WARN_FUNC_REDEFINED)
-					wpp::warning_once(WARN_FUNC_REDEFINED, node_id, env, "function redefined",
+				if (flags & wpp::WARN_FUNC_REDEFINED and wpp::is_previously_seen_warning(WARN_FUNC_REDEFINED, node_id, env))
+					wpp::warning(report_modes::eval, node_id, env, "function redefined",
 						wpp::cat("function '", name, "' (>=", n_params, " parameters) redefined")
 					);
 
@@ -265,8 +265,12 @@ namespace wpp { namespace {
 		if (fn_env) {
 			if (const auto it = fn_env->arguments.back().find(name); it != fn_env->arguments.back().end()) {
 				// Check if it's shadowing a variable.
-				if (flags & wpp::WARN_PARAM_SHADOW_VAR and variables.find(name) != variables.end())
-					wpp::warning_once(WARN_PARAM_SHADOW_VAR, node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
+				if (
+					flags & wpp::WARN_PARAM_SHADOW_VAR and
+					wpp::is_previously_seen_warning(WARN_PARAM_SHADOW_VAR, node_id, env) and
+					variables.find(name) != variables.end()
+				)
+					wpp::warning(report_modes::eval, node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
 
 				return it->second; // Return str.
 			}
@@ -276,7 +280,7 @@ namespace wpp { namespace {
 		if (const auto it = variables.find(name); it != variables.end())
 			return it->second;
 
-		wpp::error(node_id, env, "variable not found",
+		wpp::error(report_modes::eval, node_id, env, "variable not found",
 			wpp::cat("attempting to reference variable '", name.str(), "' which is undefined")
 		);
 
@@ -294,8 +298,8 @@ namespace wpp { namespace {
 
 
 		if (auto it = variables.find(name); it != variables.end()) {
-			if (flags & wpp::WARN_VAR_REDEFINED)
-				wpp::warning_once(WARN_VAR_REDEFINED, node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
+			if (flags & wpp::WARN_VAR_REDEFINED and wpp::is_previously_seen_warning(WARN_VAR_REDEFINED, node_id, env))
+				wpp::warning(report_modes::eval, node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
 
 			it->second = wpp::evaluate(var.body, env, fn_env);
 		}
@@ -380,7 +384,7 @@ namespace wpp { namespace {
 				functions.erase(it);
 		}
 
-		wpp::error(node_id, env, "undefined function",
+		wpp::error(report_modes::eval, node_id, env, "undefined function",
 			wpp::cat("cannot drop undefined function '", name, "' (", n_args, " parameters)"),
 			"are you passing the correct number of arguments?"
 		);
@@ -507,9 +511,7 @@ namespace wpp { namespace {
 		// If not found, check for a default arm, otherwise error.
 		else {
 			if (default_case == wpp::NODE_EMPTY)
-				wpp::error(
-					node_id, env,
-					"no matches found",
+				wpp::error(report_modes::eval, node_id, env, "no matches found",
 					"exhausted all checks in match expression"
 				);
 

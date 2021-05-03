@@ -38,7 +38,7 @@ namespace wpp {
 
 			while ((input = linenoise(">>> ")) != nullptr) {
 				// Reset error state.
-				env.state &= ~wpp::INTERNAL_ERROR_STATE;
+				env.state &= ~wpp::ERROR_MODE_PARSE;
 
 				linenoiseHistoryAdd(input);
 
@@ -47,7 +47,7 @@ namespace wpp {
 				try {
 					wpp::node_t root = wpp::parse(env);
 
-					if (env.state & wpp::INTERNAL_ERROR_STATE)
+					if (env.state & wpp::ERROR_MODE_PARSE)
 						return 1;
 
 					std::string out = wpp::evaluate(root, env);

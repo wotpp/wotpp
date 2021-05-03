@@ -19,7 +19,8 @@ namespace wpp {
 
 	using mode_type_t = uint8_t;
 	using lexer_mode_type_t = uint8_t;
-	using error_mode_type_t = uint8_t;
+	using report_mode_type_t = uint8_t;
+	using report_type_type_t = uint8_t;
 
 
 	namespace modes {
@@ -41,18 +42,37 @@ namespace wpp {
 	}
 
 
-	namespace error_modes {
+	namespace report_modes {
+		#define MODES \
+			MODE(eval) \
+			MODE(lexer) \
+			MODE(parser) \
+			MODE(utf8)
+
+		#define MODE(x) x,
+			enum: report_mode_type_t { MODES };
+		#undef MODE
+
+		#define MODE(x) #x,
+			constexpr const char* report_mode_to_str[] = { MODES };
+		#undef MODE
+
+		#undef MODES
+	}
+
+
+	namespace report_types {
 		#define MODES \
 			MODE(error) \
 			MODE(warning) \
 			MODE(utf8)
 
 		#define MODE(x) x,
-			enum: error_mode_type_t { MODES };
+			enum: report_type_type_t { MODES };
 		#undef MODE
 
 		#define MODE(x) #x,
-			constexpr const char* error_mode_to_str[] = { MODES };
+			constexpr const char* report_type_to_str[] = { MODES };
 		#undef MODE
 
 		#undef MODES
@@ -66,7 +86,6 @@ namespace wpp {
 			\
 			MODE(slice) \
 			MODE(args_or_params) \
-			MODE(stringify) \
 			\
 			MODE(string) \
 			MODE(string_raw) \

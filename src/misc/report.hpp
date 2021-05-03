@@ -58,7 +58,8 @@ namespace wpp {
 
 
 	inline std::string generate_position_str(
-		wpp::error_mode_type_t error_mode,
+		wpp::report_type_type_t report_type,
+		wpp::report_mode_type_t report_mode,
 		const char* colour,
 		const wpp::SourceLocation& sloc,
 		const wpp::Pos& pos,
@@ -82,12 +83,12 @@ namespace wpp {
 
 
 		// UTF-8 error. We print byte offset rather than line & column.
-		if (mode != modes::repl and error_mode == error_modes::utf8) {
+		if (mode != modes::repl and report_type == report_types::utf8) {
 			str += wpp::cat(offset - base, "(byte)");
 		}
 
 		// Normal error/warning. We print line & column or EOF.
-		else if (mode != modes::repl and error_mode != error_modes::utf8) {
+		else if (mode != modes::repl and report_type != report_types::utf8) {
 			if (*offset != '\0')
 				str += wpp::cat(line, ":", column);
 
@@ -102,7 +103,8 @@ namespace wpp {
 
 
 	inline std::string generate_snippet_str(
-		wpp::error_mode_type_t error_mode,
+		wpp::report_type_type_t report_type,
+		wpp::report_mode_type_t report_mode,
 		const char* colour,
 		const wpp::SourceLocation& sloc,
 		const wpp::Pos& pos,
@@ -134,7 +136,7 @@ namespace wpp {
 
 
 		// Early out for UTF-8 error.
-		if (error_mode == error_modes::utf8)
+		if (report_type == report_types::utf8)
 			return wpp::cat(indent, offset - base, "(byte) | ", detail);
 
 
@@ -185,7 +187,8 @@ namespace wpp {
 
 
 	struct Report {
-		wpp::error_mode_type_t error_mode;
+		wpp::report_type_type_t report_type;
+		wpp::report_mode_type_t report_mode;
 
 		wpp::Pos pos;
 		wpp::Env& env;
@@ -204,37 +207,37 @@ namespace wpp {
 
 			const auto sloc = wpp::calculate_coordinates(base, offset);
 
-			const char* error_str = error_modes::error_mode_to_str[error_mode];
+			const char* report_str = report_types::report_type_to_str[report_type];
 			const char* colour = env.lookup_colour(ANSI_FG_RED);
 
 
-			if (error_mode == error_modes::error)
+			if (report_type == report_types::error)
 				colour = env.lookup_colour(ANSI_FG_RED);
 
-			else if (error_mode == error_modes::utf8)
+			else if (report_type == report_types::utf8)
 				colour = env.lookup_colour(ANSI_FG_RED);
 
-			else if (error_mode == error_modes::warning)
+			else if (report_type == report_types::warning)
 				colour = env.lookup_colour(ANSI_FG_BLUE);
 
 
 			std::string snippet_str;
-			const std::string position_str = generate_position_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
+			const std::string position_str = generate_position_str(report_type, report_mode, colour, sloc, pos, env, overview, detail, suggestion);
 
 
 			if (env.flags & wpp::FLAG_INLINE_REPORTS) {
 				return wpp::cat(
-					colour, error_str, env.lookup_colour(ANSI_RESET),
+					colour, report_str, env.lookup_colour(ANSI_RESET),
 					position_str, " => ",
 					detail, "\n"
 				);
 			}
 
 
-			snippet_str = generate_snippet_str(error_mode, colour, sloc, pos, env, overview, detail, suggestion);
+			snippet_str = generate_snippet_str(report_type, report_mode, colour, sloc, pos, env, overview, detail, suggestion);
 
 			return wpp::cat(
-				colour, error_str, env.lookup_colour(ANSI_RESET),
+				colour, report_str, env.lookup_colour(ANSI_RESET),
 				position_str, " => ", env.lookup_colour(ANSI_BOLD),
 				overview, env.lookup_colour(ANSI_RESET), "\n",
 				snippet_str, "\n"
@@ -246,6 +249,7 @@ namespace wpp {
 
 	// Print an error with position info.
 	inline wpp::Report generate_error(
+		wpp::report_mode_type_t report_mode,
 		const wpp::Pos& pos,
 		wpp::Env& env,
 		const std::string& overview,
@@ -253,12 +257,12 @@ namespace wpp {
 		const std::string& suggestion = ""
 	) {
 		DBG();
-		return wpp::Report{ error_modes::error, pos, env, overview, detail, suggestion };
+		return wpp::Report{ report_types::error, report_mode, pos, env, overview, detail, suggestion };
 	}
 
 	template <typename... Ts>
-	inline wpp::Report generate_error(wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		return wpp::generate_error(env.positions[node_id], env, std::forward<Ts>(args)...);
+	inline wpp::Report generate_error(wpp::report_mode_type_t report_mode, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
+		return wpp::generate_error(report_mode, env.positions[node_id], env, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
@@ -269,6 +273,7 @@ namespace wpp {
 
 	// Print error with position info in byte offset format.
 	inline wpp::Report generate_error_utf8(
+		wpp::report_mode_type_t report_mode,
 		const wpp::Pos& pos,
 		wpp::Env& env,
 		const std::string& overview,
@@ -276,12 +281,12 @@ namespace wpp {
 		const std::string& suggestion = ""
 	) {
 		DBG();
-		return wpp::Report{ error_modes::utf8, pos, env, overview, detail, suggestion };
+		return wpp::Report{ report_types::utf8, report_mode, pos, env, overview, detail, suggestion };
 	}
 
 	template <typename... Ts>
-	inline wpp::Report generate_error_utf8(wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		return wpp::generate_error_utf8(env.positions[node_id], env, std::forward<Ts>(args)...);
+	inline wpp::Report generate_error_utf8(wpp::report_mode_type_t report_mode, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
+		return wpp::generate_error_utf8(report_mode, env.positions[node_id], env, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
@@ -292,6 +297,7 @@ namespace wpp {
 
 	// Warning
 	inline wpp::Report generate_warning(
+		wpp::report_mode_type_t report_mode,
 		const wpp::Pos& pos,
 		wpp::Env& env,
 		const std::string& overview,
@@ -299,21 +305,21 @@ namespace wpp {
 		const std::string& suggestion = ""
 	) {
 		DBG();
-		return wpp::Report{ error_modes::warning, pos, env, overview, detail, suggestion };
+		return wpp::Report{ report_types::warning, report_mode, pos, env, overview, detail, suggestion };
 	}
 
 	template <typename... Ts>
-	inline wpp::Report generate_warning(wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		return wpp::generate_warning(env.positions[node_id], env, std::forward<Ts>(args)...);
+	inline wpp::Report generate_warning(wpp::report_mode_type_t report_mode, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
+		return wpp::generate_warning(report_mode, env.positions[node_id], env, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
-	inline void warning(wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		std::cerr << wpp::generate_warning(node_id, env, std::forward<Ts>(args)...).str();
+	inline void warning(Ts&&... args) {
+		std::cerr << wpp::generate_warning(std::forward<Ts>(args)...).str();
 	}
 
-	template <typename T, typename... Ts>
-	inline void warning_once(T warning_type, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
+	template <typename T>
+	inline bool is_previously_seen_warning(T warning_type, wpp::node_t node_id, wpp::Env& env) {
 		// https://stackoverflow.com/questions/56923254/c-map-or-unordered-map-when-key-is-two-integers
 		size_t hash = 0;
 
@@ -321,10 +327,11 @@ namespace wpp {
 		hash ^= node_id + 0x9e3779b9 + (hash << 6) + (hash >> 2);
 
 		if (env.seen_warnings.find(hash) != env.seen_warnings.end())
-			return;
+			return true;
 
 		env.seen_warnings.emplace(hash);
-		std::cerr << wpp::generate_warning(node_id, env, std::forward<Ts>(args)...).str();
+
+		return false;
 	}
 }
 
