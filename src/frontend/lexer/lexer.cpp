@@ -40,6 +40,7 @@ namespace wpp {
 			// Update view pointer so if the lexer continues (whitespace/comment),
 			// the token starts at the right location.
 			vptr = ptr;
+			vlen = 1;
 
 			// EOF
 			if (*ptr == '\0')
@@ -167,8 +168,6 @@ namespace wpp {
 			auto& [view, type] = tok;
 			auto& [vptr, vlen] = view;
 
-			const wpp::Pos start_pos = lex.position();
-
 			lex.next(2); // skip `#[`
 
 			// Track matching opening and closing tokens for comments
@@ -187,11 +186,7 @@ namespace wpp {
 			}
 
 			if (*ptr == '\0' and depth != 0)
-				wpp::error(start_pos, lex.env, "unterminated comment", "reached EOF while parsing multiline comment that begins here");
-
-			// Update view pointer so when the lexer continues, the token starts
-			// at the right location.
-			vptr = ptr;
+				wpp::error(wpp::Pos{ lex.env.sources.top(), view }, lex.env, "unterminated comment", "reached EOF while parsing multiline comment that begins here");
 		}
 
 

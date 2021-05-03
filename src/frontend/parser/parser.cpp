@@ -371,17 +371,17 @@ namespace wpp { namespace {
 
 
 		// Trim trailing whitespace.
-		auto it = chunks.rbegin();
-		while (it->is_whitespace)
-			++it;
+		if (not chunks.empty()) {
+			auto it = chunks.rbegin();
+			while (it->is_whitespace)
+				++it;
 
-		chunks.erase(it.base(), chunks.end());
+			chunks.erase(it.base(), chunks.end());
 
-
-		// Join chunks.
-		for (const auto& [chunk, is_whitespace]: chunks)
-			str += chunk;
-
+			// Join chunks.
+			for (const auto& [chunk, is_whitespace]: chunks)
+				str += chunk;
+		}
 
 		return node;
 	}
@@ -1254,17 +1254,12 @@ namespace wpp {
 				std::cerr << e.str();
 				env.state |= wpp::INTERNAL_ERROR_STATE;
 
-				lex.advance();
+				try {
+					wpp::statement(lex, tree, pos, env);
 
-				while (not wpp::eq_any(lex.peek(),
-					TOKEN_RPAREN,
-					TOKEN_RBRACE,
-					TOKEN_LET,
-					TOKEN_EOF
-				))
+				} catch (const wpp::Report&) {
 					lex.advance();
-
-				lex.advance();
+				}
 			}
 		}
 

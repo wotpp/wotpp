@@ -202,7 +202,7 @@ namespace wpp { namespace {
 		for (auto it = args.rbegin(); it != args.rend(); ++it)
 			arg_strings.emplace_back(wpp::evaluate(*it, env, fn_env));
 
-		return wpp::call_func(node_id, call.identifier, arg_strings, env, fn_env);
+		return wpp::call_func(node_id, call.identifier, arg_strings, env, nullptr);
 	}
 
 
@@ -336,7 +336,7 @@ namespace wpp { namespace {
 
 		std::reverse(arg_strings.begin(), arg_strings.end());
 
-		return wpp::call_func(node_id, func, arg_strings, env, fn_env);
+		return wpp::call_func(node_id, func, arg_strings, env, nullptr);
 	}
 
 
