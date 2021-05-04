@@ -114,6 +114,14 @@ $ meson configure --prefix=/usr/local/
 $ DESTDIR=/ meson install
 ```
 
+### Fuzzing with AFL
+```
+$ CC=afl-gcc CXX=afl-g++ meson build
+$ ninja -C build
+$ mkdir findings
+$ afl-fuzz -i tests -x tests/wotpp.dict -o findings ./build/w++ @@
+```
+
 ### Cool Projects
 [wot-goodies](https://github.com/jlagarespo/wot-goodies)
 > A collection of interesting snippets of Wot++ code.
