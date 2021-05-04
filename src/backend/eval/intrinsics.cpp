@@ -128,6 +128,9 @@ namespace wpp {
 
 			const auto fname = wpp::evaluate(expr, env, fn_env);
 
+			if (fname.empty())
+				wpp::error(report_modes::semantic, node_id, env, "empty path", "`file` must be supplied a non-empty string");
+
 			try {
 				return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
 			}
@@ -159,6 +162,10 @@ namespace wpp {
 
 			std::string str;
 			const auto fname = wpp::evaluate(expr, env, fn_env);
+
+			if (fname.empty())
+				wpp::error(report_modes::semantic, node_id, env, "empty path", "`use` must be supplied a non-empty string");
+
 			std::filesystem::path old_path, new_path;
 			std::string source;
 

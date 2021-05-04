@@ -125,7 +125,10 @@ namespace wpp {
 					"malformed bytes appear in source"
 				);
 
-				env.state |= wpp::ERROR_MODE_UTF8;
+				env.state |=
+					wpp::ERROR_MODE_UTF8 &
+					wpp::ABORT_ERROR_RECOVERY &
+					wpp::ABORT_EVALUATION;
 			}
 
 			ptr = env_.sources.top().base;
@@ -183,7 +186,11 @@ namespace wpp {
 			}
 
 			catch (const wpp::Report& e) {
-				env.state |= wpp::ERROR_MODE_LEX;
+				env.state |=
+					wpp::ERROR_MODE_LEX &
+					wpp::ABORT_EVALUATION &
+					wpp::ABORT_ERROR_RECOVERY;
+
 				throw;
 			}
 		}

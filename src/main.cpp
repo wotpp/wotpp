@@ -151,7 +151,7 @@ int main(int argc, const char* argv[]) {
 
 			wpp::node_t root = wpp::parse(env);
 
-			if (env.state & wpp::ERROR_MODE_PARSE)
+			if (env.state & wpp::ABORT_EVALUATION)
 				return 1;
 
 			out += wpp::evaluate(root, env);

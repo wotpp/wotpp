@@ -129,10 +129,10 @@ namespace wpp {
 
 		// Early out for EOF.
 		if (*offset == '\0' and mode == modes::repl)
-			return wpp::cat(indent, " | ", detail);
+			return wpp::cat(indent, " | ", detail, "\n");
 
 		else if (*offset == '\0' and mode != modes::repl)
-			return wpp::cat(indent, "(eof) | ", detail);
+			return wpp::cat(indent, "(eof) | ", detail, "\n");
 
 
 		// Early out for UTF-8 error.
@@ -209,6 +209,7 @@ namespace wpp {
 
 			const char* report_type_str = report_types::report_type_to_str[report_type];
 			const char* report_mode_str = report_modes::report_mode_to_str[report_mode];
+			const char* mode_str = modes::mode_to_str[mode];
 
 			const char* colour = env.lookup_colour(ANSI_FG_RED);
 
@@ -220,7 +221,7 @@ namespace wpp {
 				colour = env.lookup_colour(ANSI_FG_BLUE);
 
 
-			const std::string report_str = wpp::cat(colour, report_mode_str, " ", report_type_str, env.lookup_colour(ANSI_RESET));
+			const std::string report_str = wpp::cat("(", mode_str, ") ", colour, report_mode_str, " ", report_type_str, env.lookup_colour(ANSI_RESET));
 
 
 			std::string snippet_str;

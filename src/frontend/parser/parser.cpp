@@ -1244,15 +1244,15 @@ namespace wpp {
 			}
 
 			catch (const wpp::Report& e) {
-				// Early out if this is a lexer or utf-8 validation error.
-				if (env.state & wpp::ERROR_MODE_LEX)
-					throw; // Propagate error.
+				env.state |= wpp::ABORT_EVALUATION;
 
-				else if (env.state & wpp::ERROR_MODE_UTF8)
+				// Early out if this is a lexer or utf-8 validation error.
+				if (env.state & wpp::ABORT_ERROR_RECOVERY)
 					throw; // Propagate error.
 
 				// If this is a parser error, print it and attempt to continue parsing.
 				std::cerr << e.str();
+
 				env.state |= wpp::ERROR_MODE_PARSE;
 
 				try {
