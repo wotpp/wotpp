@@ -83,12 +83,12 @@ namespace wpp {
 
 
 		// UTF-8 error. We print byte offset rather than line & column.
-		if (mode != modes::repl and report_type == report_types::utf8) {
+		if (mode != modes::repl and report_mode == report_modes::encoding) {
 			str += wpp::cat(offset - base, "(byte)");
 		}
 
 		// Normal error/warning. We print line & column or EOF.
-		else if (mode != modes::repl and report_type != report_types::utf8) {
+		else if (mode != modes::repl and report_mode != report_modes::encoding) {
 			if (*offset != '\0')
 				str += wpp::cat(line, ":", column);
 
@@ -136,7 +136,7 @@ namespace wpp {
 
 
 		// Early out for UTF-8 error.
-		if (report_type == report_types::utf8)
+		if (report_mode == report_modes::encoding)
 			return wpp::cat(indent, offset - base, "(byte) | ", detail);
 
 
@@ -207,18 +207,20 @@ namespace wpp {
 
 			const auto sloc = wpp::calculate_coordinates(base, offset);
 
-			const char* report_str = report_types::report_type_to_str[report_type];
+			const char* report_type_str = report_types::report_type_to_str[report_type];
+			const char* report_mode_str = report_modes::report_mode_to_str[report_mode];
+
 			const char* colour = env.lookup_colour(ANSI_FG_RED);
 
 
 			if (report_type == report_types::error)
 				colour = env.lookup_colour(ANSI_FG_RED);
 
-			else if (report_type == report_types::utf8)
-				colour = env.lookup_colour(ANSI_FG_RED);
-
 			else if (report_type == report_types::warning)
 				colour = env.lookup_colour(ANSI_FG_BLUE);
+
+
+			const std::string report_str = wpp::cat(colour, report_mode_str, " ", report_type_str, env.lookup_colour(ANSI_RESET));
 
 
 			std::string snippet_str;
@@ -227,7 +229,7 @@ namespace wpp {
 
 			if (env.flags & wpp::FLAG_INLINE_REPORTS) {
 				return wpp::cat(
-					colour, report_str, env.lookup_colour(ANSI_RESET),
+					report_str,
 					position_str, " => ",
 					detail, "\n"
 				);
@@ -237,7 +239,7 @@ namespace wpp {
 			snippet_str = generate_snippet_str(report_type, report_mode, colour, sloc, pos, env, overview, detail, suggestion);
 
 			return wpp::cat(
-				colour, report_str, env.lookup_colour(ANSI_RESET),
+				report_str,
 				position_str, " => ", env.lookup_colour(ANSI_BOLD),
 				overview, env.lookup_colour(ANSI_RESET), "\n",
 				snippet_str, "\n"
@@ -268,30 +270,6 @@ namespace wpp {
 	template <typename... Ts>
 	[[noreturn]] inline void error(Ts&&... args) {
 		throw wpp::generate_error(std::forward<Ts>(args)...);
-	}
-
-
-	// Print error with position info in byte offset format.
-	inline wpp::Report generate_error_utf8(
-		wpp::report_mode_type_t report_mode,
-		const wpp::Pos& pos,
-		wpp::Env& env,
-		const std::string& overview,
-		const std::string& detail,
-		const std::string& suggestion = ""
-	) {
-		DBG();
-		return wpp::Report{ report_types::utf8, report_mode, pos, env, overview, detail, suggestion };
-	}
-
-	template <typename... Ts>
-	inline wpp::Report generate_error_utf8(wpp::report_mode_type_t report_mode, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		return wpp::generate_error_utf8(report_mode, env.positions[node_id], env, std::forward<Ts>(args)...);
-	}
-
-	template <typename... Ts>
-	[[noreturn]] inline void error_utf8(Ts&&... args) {
-		throw wpp::generate_error_utf8(std::forward<Ts>(args)...);
 	}
 
 

@@ -44,10 +44,10 @@ namespace wpp {
 
 	namespace report_modes {
 		#define MODES \
-			MODE(eval) \
-			MODE(lexer) \
-			MODE(parser) \
-			MODE(utf8)
+			MODE(semantic) \
+			MODE(lexical) \
+			MODE(syntax) \
+			MODE(encoding)
 
 		#define MODE(x) x,
 			enum: report_mode_type_t { MODES };
@@ -64,8 +64,7 @@ namespace wpp {
 	namespace report_types {
 		#define MODES \
 			MODE(error) \
-			MODE(warning) \
-			MODE(utf8)
+			MODE(warning)
 
 		#define MODE(x) x,
 			enum: report_type_type_t { MODES };

@@ -119,11 +119,14 @@ namespace wpp {
 			lookahead({ptr, 1}, TOKEN_NONE),
 			lookahead_mode(mode_)
 		{
-			if (not wpp::validate_utf8(ptr))
-				wpp::error_utf8(report_modes::utf8, wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
+			if (not wpp::validate_utf8(ptr)) {
+				wpp::error(report_modes::encoding, wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
 					"invalid UTF-8",
 					"malformed bytes appear in source"
 				);
+
+				env.state |= wpp::ERROR_MODE_UTF8;
+			}
 
 			ptr = env_.sources.top().base;
 

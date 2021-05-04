@@ -32,7 +32,7 @@ namespace wpp {
 		}
 
 		catch (wpp::Report& e) {
-			wpp::error(report_modes::eval, node_id, env, e.overview, e.detail, e.suggestion);
+			wpp::error(report_modes::semantic, node_id, env, e.overview, e.detail, e.suggestion);
 		}
 
 		return str;
@@ -48,11 +48,11 @@ namespace wpp {
 		DBG();
 
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(report_modes::eval, node_id, env, "instrinsic disabled", "`run` not available");
+			wpp::error(report_modes::semantic, node_id, env, "instrinsic disabled", "`run` not available");
 
 		#else
 			if (env.flags & wpp::FLAG_DISABLE_RUN)
-				wpp::error(report_modes::eval, node_id, env, "intrinsic disabled", "`run` not available");
+				wpp::error(report_modes::semantic, node_id, env, "intrinsic disabled", "`run` not available");
 
 			const auto cmd = wpp::evaluate(expr, env, fn_env);
 
@@ -64,7 +64,7 @@ namespace wpp {
 				str.erase(str.end() - 1, str.end());
 
 			if (rc)
-				wpp::error(report_modes::eval, node_id, env, "subcommand failed",
+				wpp::error(report_modes::semantic, node_id, env, "subcommand failed",
 					wpp::cat("subprocess exited with non-zero status `", cmd, "`")
 				);
 
@@ -83,11 +83,11 @@ namespace wpp {
 		DBG();
 
 		#if defined(WPP_DISABLE_RUN)
-			wpp::error(report_modes::eval, node_id, env, "intrinsic disabled", "`pipe` not available");
+			wpp::error(report_modes::semantic, node_id, env, "intrinsic disabled", "`pipe` not available");
 
 		#else
 			if (env.flags & wpp::FLAG_DISABLE_RUN)
-				wpp::error(report_modes::eval, node_id, env, "intrinsic disabled", "`pipe` not available");
+				wpp::error(report_modes::semantic, node_id, env, "intrinsic disabled", "`pipe` not available");
 
 			std::string str;
 
@@ -102,7 +102,7 @@ namespace wpp {
 				out.erase(out.end() - 1, out.end());
 
 			if (rc)
-				wpp::error(report_modes::eval, node_id, env, "subcommand failed",
+				wpp::error(report_modes::semantic, node_id, env, "subcommand failed",
 					wpp::cat("subprocess exited with non-zero status `", cmd, "`")
 				);
 
@@ -120,11 +120,11 @@ namespace wpp {
 		DBG();
 
 		#if defined(WPP_DISABLE_FILE)
-			wpp::error(report_modes::eval, node_id, env, "instrinsic disabled", "`file` not available");
+			wpp::error(report_modes::semantic, node_id, env, "instrinsic disabled", "`file` not available");
 
 		#else
 			if (env.flags & wpp::FLAG_DISABLE_FILE)
-				wpp::error(report_modes::eval, node_id, env, "intrinsic disabled", "`file` not available");
+				wpp::error(report_modes::semantic, node_id, env, "intrinsic disabled", "`file` not available");
 
 			const auto fname = wpp::evaluate(expr, env, fn_env);
 
@@ -133,7 +133,7 @@ namespace wpp {
 			}
 
 			catch (const wpp::FileError&) {
-				wpp::error(report_modes::eval, node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+				wpp::error(report_modes::semantic, node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 			}
 
 			return "";
@@ -150,11 +150,11 @@ namespace wpp {
 		DBG();
 
 		#if defined(WPP_DISABLE_FILE)
-			wpp::error(report_modes::eval, node_id, env, "instrinsic disabled", "`use` not available");
+			wpp::error(report_modes::semantic, node_id, env, "instrinsic disabled", "`use` not available");
 
 		#else
 			if (env.flags & wpp::FLAG_DISABLE_FILE)
-				wpp::error(report_modes::eval, node_id, env, "intrinsic disabled", "`use` not available");
+				wpp::error(report_modes::semantic, node_id, env, "intrinsic disabled", "`use` not available");
 
 
 			std::string str;
@@ -175,7 +175,7 @@ namespace wpp {
 			}
 
 			catch (const wpp::FileError&) {
-				wpp::error(report_modes::eval, node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+				wpp::error(report_modes::semantic, node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 			}
 
 			try {
@@ -183,7 +183,7 @@ namespace wpp {
 			}
 
 			catch (const wpp::FileError&) {
-				wpp::error(report_modes::eval, node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
+				wpp::error(report_modes::semantic, node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
 			}
 
 			env.sources.push(new_path, source, wpp::modes::source);
@@ -210,7 +210,7 @@ namespace wpp {
 		const auto str_b = evaluate(rhs, env, fn_env);
 
 		if (str_a != str_b)
-			wpp::error(report_modes::eval, node_id, env, "assertion failed", wpp::cat("lhs='", str_a, "', rhs='", str_b, "'"));
+			wpp::error(report_modes::semantic, node_id, env, "assertion failed", wpp::cat("lhs='", str_a, "', rhs='", str_b, "'"));
 
 		return "";
 	}
@@ -225,7 +225,7 @@ namespace wpp {
 		DBG();
 
 		const auto msg = evaluate(expr, env, fn_env);
-		wpp::error(report_modes::eval, node_id, env, "user error", msg);
+		wpp::error(report_modes::semantic, node_id, env, "user error", msg);
 
 		return "";
 	}

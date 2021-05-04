@@ -183,7 +183,7 @@ namespace wpp {
 			}
 
 			if (*ptr == '\0' and depth != 0)
-				wpp::error(report_modes::lexer, wpp::Pos{ lex.env.sources.top(), view }, lex.env, "unterminated comment",
+				wpp::error(report_modes::lexical, wpp::Pos{ lex.env.sources.top(), view }, lex.env, "unterminated comment",
 					"reached EOF while parsing multiline comment that begins here"
 				);
 		}
@@ -305,7 +305,7 @@ namespace wpp {
 			);
 
 			if (ptr == vptr)
-				wpp::error(report_modes::lexer, wpp::Pos{ lex.env.sources.top(), view }, lex.env, "empty stringify",
+				wpp::error(report_modes::lexical, wpp::Pos{ lex.env.sources.top(), view }, lex.env, "empty stringify",
 					"expecting at least one character to follow `\\`"
 				);
 
@@ -380,7 +380,7 @@ namespace wpp {
 
 				// Check if nibbles are valid digits.
 				if (not wpp::is_hex(ptr))
-					wpp::error(report_modes::lexer, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+					wpp::error(report_modes::lexical, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
 						"invalid character",
 						"invalid character in hex escape sequence"
 					);
@@ -388,7 +388,7 @@ namespace wpp {
 				lex.next();
 
 				if (not wpp::is_hex(ptr))
-					wpp::error(report_modes::lexer, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+					wpp::error(report_modes::lexical, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
 						"invalid character",
 						"invalid character in hex escape sequence"
 					);
@@ -405,7 +405,7 @@ namespace wpp {
 				// Consume 8 characters, check if each one is a valid digit.
 				for (; ptr != vptr + 8; lex.next()) {
 					if (not wpp::is_bin(ptr))
-						wpp::error(report_modes::lexer, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
+						wpp::error(report_modes::lexical, wpp::Pos{lex.env.sources.top(), wpp::View{lex.ptr, 1}}, lex.env,
 							"invalid character",
 							"invalid character in binary escape sequence"
 						);

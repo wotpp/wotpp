@@ -214,7 +214,7 @@ namespace wpp { namespace {
 		// Consume tokens until we reach `delim` or EOF.
 		while (lex.peek(wpp::lexer_modes::string) != delim) {
 			if (lex.peek(wpp::lexer_modes::string) == TOKEN_EOF)
-				wpp::error(report_modes::parser, node, env, "unterminated string", "reached EOF while parsing string literal that begins here");
+				wpp::error(report_modes::syntax, node, env, "unterminated string", "reached EOF while parsing string literal that begins here");
 
 			// Parse escape characters and append "parts" of the string to `str`.
 			if (peek_is_escape(lex.peek(wpp::lexer_modes::string)))
@@ -254,7 +254,7 @@ namespace wpp { namespace {
 
 		while (true) {
 			if (lex.peek(wpp::lexer_modes::string_raw) == TOKEN_EOF)
-				wpp::error(report_modes::parser, node, env, "unterminated string", "reached EOF while parsing raw string literal that begins here");
+				wpp::error(report_modes::syntax, node, env, "unterminated string", "reached EOF while parsing raw string literal that begins here");
 
 			// If we encounter ' or ", we check one character ahead to see
 			// if it matches the user defined delimiter, it if does,
@@ -311,7 +311,7 @@ namespace wpp { namespace {
 
 		while (true) {
 			if (lex.peek(wpp::lexer_modes::string_para) == TOKEN_EOF)
-				wpp::error(report_modes::parser, node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
+				wpp::error(report_modes::syntax, node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
 
 			// If we encounter ' or ", we check one character ahead to see
 			// if it matches the user defined delimiter, it if does,
@@ -424,7 +424,7 @@ namespace wpp { namespace {
 
 		while (true) {
 			if (lex.peek(wpp::lexer_modes::string_code) == TOKEN_EOF)
-				wpp::error(report_modes::parser, node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
+				wpp::error(report_modes::syntax, node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
 
 			// If we encounter ' or ", we check one character ahead to see
 			// if it matches the user defined delimiter, it if does,
@@ -652,7 +652,7 @@ namespace wpp { namespace {
 		// Make sure the next token is an identifier, if it is, set the name
 		// of our `Fn` node to match.
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			wpp::error(report_modes::parser, lex.position(), env, "expected identifier", "expecting an identifier to follow `let`");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected identifier", "expecting an identifier to follow `let`");
 
 		tree.get<Fn>(node).identifier = lex.advance().view;
 
@@ -667,7 +667,7 @@ namespace wpp { namespace {
 
 		// Otherwise, this is a function definition.
 		if (lex.peek() != TOKEN_LPAREN)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `)`", "expecting `)` to open parameter list");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `)`", "expecting `)` to open parameter list");
 
 		lex.advance();  // Skip `(`.
 
@@ -681,7 +681,7 @@ namespace wpp { namespace {
 				auto& param_vec = tree.get<Fn>(node).parameters;
 
 				if (std::find(param_vec.begin(), param_vec.end(), param_view) != param_vec.end())
-					wpp::error(report_modes::parser, lex.position(), env, "duplicate parameter",
+					wpp::error(report_modes::syntax, lex.position(), env, "duplicate parameter",
 						"multiple occurences of the same identifier in parameter list"
 					);
 
@@ -698,14 +698,14 @@ namespace wpp { namespace {
 			// because the loop condition checks for an identifier and so breaks
 			// out if the next token is an intrinsic.
 			if (peek_is_reserved_name(lex.peek()))
-				wpp::error(report_modes::parser, lex.position(), env, "invalid name",
+				wpp::error(report_modes::syntax, lex.position(), env, "invalid name",
 					wpp::cat("parameter name '", lex.peek().str(), "' conflicts with keyword of the same name")
 				);
 		}
 
 		// Make sure parameter list is terminated by `)`.
 		if (lex.peek() != TOKEN_RPAREN)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `)`",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `)`",
 				"expecting `)` to terminate parameter list",
 				"there might be a non-identifier token in the parameter list"
 			);
@@ -729,7 +729,7 @@ namespace wpp { namespace {
 		lex.advance(); // Skip !.
 
 		if (not peek_is_expr(lex.peek()))
-			wpp::error(report_modes::parser, lex.position(), env, "expected expression",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected expression",
 				"expecting an expression to follow `!`",
 				"insert an expression after `!`"
 			);
@@ -751,7 +751,7 @@ namespace wpp { namespace {
 
 
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			wpp::error(report_modes::parser, node, env, "expected identifier", "expecting identifier to follow `drop`");
+			wpp::error(report_modes::syntax, node, env, "expected identifier", "expecting identifier to follow `drop`");
 
 
 		const auto identifier = lex.advance().view;
@@ -771,7 +771,7 @@ namespace wpp { namespace {
 		}
 
 		if (lex.peek() != TOKEN_RPAREN)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `)`",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `)`",
 				"expecting `)` to follow argument list",
 				"there might be a non-identifier token in the argument list"
 			);
@@ -831,13 +831,13 @@ namespace wpp { namespace {
 
 
 		if (lex.peek() != TOKEN_IDENTIFIER)
-			wpp::error(report_modes::parser, lex.position(), env, "expected identifier", "expecting identifier to follow `pop`");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected identifier", "expecting identifier to follow `pop`");
 
 		tree.get<Pop>(node).identifier = lex.advance().view;
 
 
 		if (lex.peek() != TOKEN_LPAREN)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `(`", "expecting `(` to open argument list");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `(`", "expecting `(` to open argument list");
 
 		lex.advance();  // Skip `(`.
 
@@ -855,7 +855,7 @@ namespace wpp { namespace {
 
 
 		if (lex.peek() != TOKEN_STAR)
-			wpp::error(report_modes::parser, node, env, "no substitute argument",
+			wpp::error(report_modes::syntax, node, env, "no substitute argument",
 				"the function template must specify an argument with which to substitute the popped value",
 				"insert `*` somewhere in the argument list to specify that the popped value will be passed to that index"
 			);
@@ -872,7 +872,7 @@ namespace wpp { namespace {
 
 		// Make sure argument list is terminated by `)`.
 		if (lex.peek() != TOKEN_RPAREN)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `)`",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `)`",
 				"expecting `)` to terminate argument list",
 				"`*` must come at the end of the argument list"
 			);
@@ -913,7 +913,7 @@ namespace wpp { namespace {
 
 		// Make sure parameter list is terminated by `)`.
 		if (lex.advance() != TOKEN_RPAREN)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `)`",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `)`",
 				"expecting `)` to follow argument list",
 				"there might be a non-identifier token in the argument list"
 			);
@@ -932,7 +932,7 @@ namespace wpp { namespace {
 		lex.advance(); // Skip '{'.
 
 		if (lex.peek() == TOKEN_RBRACE)
-			wpp::error(report_modes::parser, lex.position(), env, "expected expression",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected expression",
 				"expecting a trailing expression at the end of block"
 			);
 
@@ -964,21 +964,21 @@ namespace wpp { namespace {
 		}
 
 		else {
-			wpp::error(report_modes::parser, node, env, "expected expression",
+			wpp::error(report_modes::syntax, node, env, "expected expression",
 				"expecting a trailing expression at the end of block that begins here"
 			);
 		}
 
 
 		if (lex.peek() == TOKEN_ARROW)
-			wpp::error(report_modes::parser, lex.position(), env, "unexpected `->`",
+			wpp::error(report_modes::syntax, lex.position(), env, "unexpected `->`",
 				"found `->` inside a block expression",
 				"did you forget the test expression for match?"
 			);
 
 		// Expect '}'.
 		if (lex.peek() != TOKEN_RBRACE) {
-			wpp::error(report_modes::parser, node, env, "expected `}`",
+			wpp::error(report_modes::syntax, node, env, "expected `}`",
 				"expecting `}` to terminate block expression that begins here"
 			);
 		}
@@ -1000,7 +1000,7 @@ namespace wpp { namespace {
 
 		// Check for test expression.
 		if (not peek_is_expr(lex.peek()))
-			wpp::error(report_modes::parser, lex.position(), env, "expected expression",
+			wpp::error(report_modes::syntax, lex.position(), env, "expected expression",
 				"expecting an expression to follow `match`",
 				"insert a test expression for `match` to match on"
 			);
@@ -1011,7 +1011,7 @@ namespace wpp { namespace {
 
 
 		if (lex.peek() != TOKEN_LBRACE)
-			wpp::error(report_modes::parser, lex.position(), env, "expected `{`", "expecting `{` to begin match expression body");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected `{`", "expecting `{` to begin match expression body");
 
 		lex.advance();
 
@@ -1021,14 +1021,14 @@ namespace wpp { namespace {
 			const auto arm = wpp::expression(lex, tree, pos, env);
 
 			if (lex.peek() != TOKEN_ARROW)
-				wpp::error(report_modes::parser, lex.position(), env, "expected `->`",
+				wpp::error(report_modes::syntax, lex.position(), env, "expected `->`",
 					"expecting `->` to denote right hand side of match arm"
 				);
 
 			lex.advance();
 
 			if (not peek_is_expr(lex.peek()))
-				wpp::error(report_modes::parser, lex.position(), env, "expected expression", "expecting an expression after `->`");
+				wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression after `->`");
 
 			const auto hand = wpp::expression(lex, tree, pos, env);
 
@@ -1041,14 +1041,14 @@ namespace wpp { namespace {
 			lex.advance();
 
 			if (lex.peek() != TOKEN_ARROW)
-				wpp::error(report_modes::parser, lex.position(), env, "expected `->`",
+				wpp::error(report_modes::syntax, lex.position(), env, "expected `->`",
 					"expecting `->` to denote right hand side of match arm"
 				);
 
 			lex.advance();
 
 			if (not peek_is_expr(lex.peek()))
-				wpp::error(report_modes::parser, lex.position(), env, "expected expression", "expecting an expression after `->`");
+				wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression after `->`");
 
 			const auto default_case = wpp::expression(lex, tree, pos, env);
 			tree.get<Match>(node).default_case = default_case;
@@ -1060,7 +1060,7 @@ namespace wpp { namespace {
 
 
 		if (lex.peek() != TOKEN_RBRACE)
-			wpp::error(report_modes::parser, node, env, "expected `}`",
+			wpp::error(report_modes::syntax, node, env, "expected `}`",
 				"expecting `}` to terminate match expression that begins here"
 			);
 
@@ -1080,7 +1080,7 @@ namespace wpp { namespace {
 
 
 		if (not peek_is_expr(lex.peek()))
-			wpp::error(report_modes::parser, lex.position(), env, "expected expression", "expecting an expression to follow `new`");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression to follow `new`");
 
 		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
 		tree.get<New>(node).expr = expr;
@@ -1127,7 +1127,7 @@ namespace wpp { namespace {
 			lhs = wpp::nnew(lex, tree, pos, env);
 
 		else
-			wpp::error(report_modes::parser, lex.position(), env, "expected expression", "expecting an expression to appear here");
+			wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression to appear here");
 
 		if (lex.peek() == TOKEN_CAT) {
 			const wpp::node_t node = tree.add<Concat>();
@@ -1177,7 +1177,7 @@ namespace wpp { namespace {
 				lex.advance(lexer_modes::slice); // Skip `:`.
 
 				if (lex.peek(lexer_modes::slice) != TOKEN_INT)
-					wpp::error(report_modes::parser, lex.position(), env, "expected integer literal",
+					wpp::error(report_modes::syntax, lex.position(), env, "expected integer literal",
 						"expecting an integer literal for stop index"
 					);
 
@@ -1186,11 +1186,11 @@ namespace wpp { namespace {
 
 
 			if (tree.get<Slice>(node).set == 0)
-				wpp::error(report_modes::parser, lex.position(), env, "empty slice", "expecting slice indices or range");
+				wpp::error(report_modes::syntax, lex.position(), env, "empty slice", "expecting slice indices or range");
 
 
 			if (lex.peek(lexer_modes::slice) != TOKEN_RBRACKET)
-				wpp::error(report_modes::parser, lex.position(), env, "expected `]`", "expecting `]` to terminate string slice");
+				wpp::error(report_modes::syntax, lex.position(), env, "expected `]`", "expecting `]` to terminate string slice");
 
 
 			lex.advance(lexer_modes::slice);
@@ -1220,7 +1220,7 @@ namespace wpp { namespace {
 		else if (peek_is_expr(lookahead))
 			return wpp::expression(lex, tree, pos, env);
 
-		wpp::error(report_modes::parser, lex.position(), env, "expected statement", "expecting a statement to appear here");
+		wpp::error(report_modes::syntax, lex.position(), env, "expected statement", "expecting a statement to appear here");
 
 		return wpp::NODE_EMPTY;
 	}
@@ -1244,8 +1244,11 @@ namespace wpp {
 			}
 
 			catch (const wpp::Report& e) {
-				// Early out if this is a lexer error.
+				// Early out if this is a lexer or utf-8 validation error.
 				if (env.state & wpp::ERROR_MODE_LEX)
+					throw; // Propagate error.
+
+				else if (env.state & wpp::ERROR_MODE_UTF8)
 					throw; // Propagate error.
 
 				// If this is a parser error, print it and attempt to continue parsing.

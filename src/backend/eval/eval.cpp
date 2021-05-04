@@ -64,7 +64,7 @@ namespace wpp { namespace {
 				auto& [min_args, entry] = *arity_it;
 
 				if (flags & wpp::WARN_EXTRA_ARGS and n_args > min_args and not wpp::is_previously_seen_warning(WARN_EXTRA_ARGS, node_id, env))
-					wpp::warning(report_modes::eval, node_id, env, "extra arguments",
+					wpp::warning(report_modes::semantic, node_id, env, "extra arguments",
 						wpp::cat("got ", n_args - min_args, " extra arguments (function expects >= ", min_args, " arguments)"),
 						"this may be intentional behaviour, extra arguments will be pushed to the stack"
 					);
@@ -74,7 +74,7 @@ namespace wpp { namespace {
 		}
 
 		// No function found.
-		wpp::error(report_modes::eval, node_id, env, "function not found",
+		wpp::error(report_modes::semantic, node_id, env, "function not found",
 			wpp::cat("attempting to invoke function '", name, "' (", n_args, " parameters) which is undefined"),
 			"are you passing the correct number of arguments?"
 		);
@@ -129,7 +129,7 @@ namespace wpp { namespace {
 				arg_it->second = *it;
 
 				if (flags & wpp::WARN_PARAM_SHADOW_PARAM and not wpp::is_previously_seen_warning(WARN_PARAM_SHADOW_PARAM, node_id, env))
-					wpp::warning(report_modes::eval, node_id, env, "parameter shadows parameter",
+					wpp::warning(report_modes::semantic, node_id, env, "parameter shadows parameter",
 						wpp::cat("parameter '", arg_it->first, "' inside function '", name, "' shadows parameter from enclosing function")
 					);
 			}
@@ -140,7 +140,7 @@ namespace wpp { namespace {
 		env.call_depth++;
 
 		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth >= 256 and not wpp::is_previously_seen_warning(WARN_DEEP_RECURSION, node_id, env))
-			wpp::warning(report_modes::eval, node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of >= 256"),
+			wpp::warning(report_modes::semantic, node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of >= 256"),
 				"this may indicate recursion without an exit condition"
 			);
 
@@ -225,7 +225,7 @@ namespace wpp { namespace {
 				auto& generations = arity_it->second;
 
 				if (flags & wpp::WARN_FUNC_REDEFINED and not wpp::is_previously_seen_warning(WARN_FUNC_REDEFINED, node_id, env))
-					wpp::warning(report_modes::eval, node_id, env, "function redefined",
+					wpp::warning(report_modes::semantic, node_id, env, "function redefined",
 						wpp::cat("function '", name, "' (>=", n_params, " parameters) redefined")
 					);
 
@@ -270,7 +270,7 @@ namespace wpp { namespace {
 					not wpp::is_previously_seen_warning(WARN_PARAM_SHADOW_VAR, node_id, env) and
 					variables.find(name) != variables.end()
 				)
-					wpp::warning(report_modes::eval, node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
+					wpp::warning(report_modes::semantic, node_id, env, "parameter shadows variable", wpp::cat("parameter '", name.str(), "' is shadowing a variable"));
 
 				return it->second; // Return str.
 			}
@@ -280,7 +280,7 @@ namespace wpp { namespace {
 		if (const auto it = variables.find(name); it != variables.end())
 			return it->second;
 
-		wpp::error(report_modes::eval, node_id, env, "variable not found",
+		wpp::error(report_modes::semantic, node_id, env, "variable not found",
 			wpp::cat("attempting to reference variable '", name.str(), "' which is undefined")
 		);
 
@@ -299,7 +299,7 @@ namespace wpp { namespace {
 
 		if (auto it = variables.find(name); it != variables.end()) {
 			if (flags & wpp::WARN_VAR_REDEFINED and not wpp::is_previously_seen_warning(WARN_VAR_REDEFINED, node_id, env))
-				wpp::warning(report_modes::eval, node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
+				wpp::warning(report_modes::semantic, node_id, env, "variable redefined", wpp::cat("variable '", name, "' redefined"));
 
 			it->second = wpp::evaluate(var.body, env, fn_env);
 		}
@@ -384,7 +384,7 @@ namespace wpp { namespace {
 				functions.erase(it);
 		}
 
-		wpp::error(report_modes::eval, node_id, env, "undefined function",
+		wpp::error(report_modes::semantic, node_id, env, "undefined function",
 			wpp::cat("cannot drop undefined function '", name, "' (", n_args, " parameters)"),
 			"are you passing the correct number of arguments?"
 		);
@@ -511,7 +511,7 @@ namespace wpp { namespace {
 		// If not found, check for a default arm, otherwise error.
 		else {
 			if (default_case == wpp::NODE_EMPTY)
-				wpp::error(report_modes::eval, node_id, env, "no matches found",
+				wpp::error(report_modes::semantic, node_id, env, "no matches found",
 					"exhausted all checks in match expression"
 				);
 
