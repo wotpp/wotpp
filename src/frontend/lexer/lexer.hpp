@@ -126,8 +126,8 @@ namespace wpp {
 				);
 
 				env.state |=
-					wpp::ERROR_MODE_UTF8 &
-					wpp::ABORT_ERROR_RECOVERY &
+					wpp::ERROR_MODE_UTF8 |
+					wpp::ABORT_ERROR_RECOVERY |
 					wpp::ABORT_EVALUATION;
 			}
 
@@ -187,8 +187,8 @@ namespace wpp {
 
 			catch (const wpp::Report& e) {
 				env.state |=
-					wpp::ERROR_MODE_LEX &
-					wpp::ABORT_EVALUATION &
+					wpp::ERROR_MODE_LEX |
+					wpp::ABORT_EVALUATION |
 					wpp::ABORT_ERROR_RECOVERY;
 
 				throw;

@@ -568,7 +568,7 @@ namespace wpp {
 
 		catch (const wpp::Report& e) {
 			env.state |=
-				wpp::ABORT_EVALUATION &
+				wpp::ABORT_EVALUATION |
 				wpp::ERROR_MODE_EVAL;
 
 			throw;
