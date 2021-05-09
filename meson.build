@@ -40,6 +40,10 @@ if meson.get_compiler('cpp').has_argument('-Wduplicated-cond')
 	extra_cxx_opts += '-Wduplicated-cond'
 endif
 
+if meson.get_compiler('cpp').has_argument('-Wno-unused-parameter')
+	extra_cxx_opts += '-Wno-unused-parameter'
+endif
+
 extra_opts = []
 deps = []
 
@@ -192,6 +196,9 @@ test_cases = {
 	'tests/utf_valid.wpp': true,
 	'tests/variadic.wpp': true,
 	'tests/stack.wpp': true,
+	'tests/file_fail.wpp': false,
+	'tests/dir_fail.wpp': false,
+	'tests/symlink_fail.wpp': false,
 }
 
 if not get_option('disable_run')

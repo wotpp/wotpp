@@ -1106,6 +1106,7 @@ namespace wpp { namespace {
 				"this may indicate deeply nested expressions"
 			);
 
+
 		// We use lhs to store the resulting expression
 		// from the following cases and if the next token
 		// is concatenation, we make a new Concat node using

@@ -149,8 +149,28 @@ namespace wpp {
 				return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
 			}
 
-			catch (const wpp::FileError&) {
-				wpp::error(report_modes::semantic, node_id, env, "could not read file", wpp::cat("file '", fname, "' does not exist or could not be found"));
+			catch (const wpp::FileNotFoundError&) {
+				wpp::error(report_modes::semantic, node_id, env, "could not find file",
+					wpp::cat("file '", fname, "' could not be found")
+				);
+			}
+
+			catch (const wpp::NotFileError&) {
+				wpp::error(report_modes::semantic, node_id, env, "not a file",
+					wpp::cat("'", fname, "' is not file")
+				);
+			}
+
+			catch (const wpp::FileReadError&) {
+				wpp::error(report_modes::semantic, node_id, env, "could not read file",
+					wpp::cat("file '", fname, "' could not be read")
+				);
+			}
+
+			catch (const wpp::SymlinkError&) {
+				wpp::error(report_modes::semantic, node_id, env, "invalid symlink",
+					wpp::cat("symlink '", fname, "' resolves to itself")
+				);
 			}
 
 			return "";
@@ -195,16 +215,38 @@ namespace wpp {
 				std::filesystem::current_path(new_path.parent_path());
 			}
 
-			catch (const wpp::FileError&) {
+			catch (const wpp::FileNotFoundError&) {
 				wpp::error(report_modes::semantic, node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
 			}
+
+
 
 			try {
 				source = wpp::read_file(old_path / new_path);
 			}
 
-			catch (const wpp::FileError&) {
-				wpp::error(report_modes::semantic, node_id, env, "could not read file", wpp::cat("there was an error while reading file '", fname, "'"));
+			catch (const wpp::FileNotFoundError&) {
+				wpp::error(report_modes::semantic, node_id, env, "could not find file",
+					wpp::cat("file '", fname, "' could not be found")
+				);
+			}
+
+			catch (const wpp::NotFileError&) {
+				wpp::error(report_modes::semantic, node_id, env, "not a file",
+					wpp::cat("'", fname, "' is not file")
+				);
+			}
+
+			catch (const wpp::FileReadError&) {
+				wpp::error(report_modes::semantic, node_id, env, "could not read file",
+					wpp::cat("file '", fname, "' could not be read")
+				);
+			}
+
+			catch (const wpp::SymlinkError&) {
+				wpp::error(report_modes::semantic, node_id, env, "invalid symlink",
+					wpp::cat("symlink '", fname, "' resolves to itself")
+				);
 			}
 
 			env.sources.push(new_path, source, wpp::modes::source);

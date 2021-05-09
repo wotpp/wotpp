@@ -254,7 +254,7 @@ namespace wpp { namespace {
 
 	std::string eval_codeify(wpp::node_t node_id, const Codeify& colby, wpp::Env& env, wpp::FnEnv* fn_env) {
 		DBG();
-		return wpp::intrinsic_eval(node_id, {colby.expr}, env, fn_env);
+		return wpp::intrinsic_eval(node_id, colby.expr, env, fn_env);
 	}
 
 

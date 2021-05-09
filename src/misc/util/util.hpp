@@ -96,7 +96,10 @@ namespace wpp {
 	std::string exec(const std::string&, const std::string&, int&);
 
 
-	struct FileError {};
+	struct FileNotFoundError {};
+	struct NotFileError {};
+	struct FileReadError {};
+	struct SymlinkError {};
 
 
 	inline std::filesystem::path get_file_path(const std::filesystem::path& file, const SearchPath& search_path) {
@@ -114,7 +117,7 @@ namespace wpp {
 				return path;
 		}
 
-		throw wpp::FileError{};
+		throw wpp::FileNotFoundError{};
 	}
 
 
@@ -122,10 +125,27 @@ namespace wpp {
 	inline std::string read_file(const std::filesystem::path& path) {
 		DBG();
 
-		std::ifstream is(path);
+		auto cur = path;
+
+		while (std::filesystem::is_symlink(cur)) {
+			const auto tmp = std::filesystem::read_symlink(cur);
+
+			if (tmp == cur)
+				throw wpp::SymlinkError{};
+
+			cur = tmp;
+		}
+
+		if (std::filesystem::is_directory(cur) or std::filesystem::is_other(cur))
+			throw wpp::NotFileError{};
+
+		if (not std::filesystem::exists(cur))
+			throw wpp::FileNotFoundError{};
+
+		std::ifstream is(cur);
 
 		if (not is.is_open())
-			throw wpp::FileError{};
+			throw wpp::FileReadError{};
 
 		std::stringstream ss;
 		ss << is.rdbuf();

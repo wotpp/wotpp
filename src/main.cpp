@@ -162,8 +162,23 @@ int main(int argc, const char* argv[]) {
 			return 1;
 		}
 
-		catch (const wpp::FileError&) {
+		catch (const wpp::FileNotFoundError&) {
 			std::cerr << "error: file '" << fname << "' not found\n";
+			return 1;
+		}
+
+		catch (const wpp::NotFileError&) {
+			std::cerr << "error: '" << fname << "' is not a file\n";
+			return 1;
+		}
+
+		catch (const wpp::FileReadError&) {
+			std::cerr << "error: cannot read '" << fname << "'\n";
+			return 1;
+		}
+
+		catch (const wpp::SymlinkError&) {
+			std::cerr << "error: symlink '" << fname << "' resolves to itself\n";
 			return 1;
 		}
 
