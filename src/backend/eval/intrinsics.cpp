@@ -26,14 +26,28 @@ namespace wpp {
 		env.sources.push(file, source, modes::eval);
 
 		std::string str;
+		wpp::node_t root;
+
+		const auto old_state = env.state;
+		env.state |= wpp::ABORT_ERROR_RECOVERY;
 
 		try {
-			str = wpp::evaluate(wpp::parse(env), env, fn_env);
+			root = wpp::parse(env);
 		}
 
-		catch (wpp::Report& e) {
+		catch (const wpp::Report& e) {
+			wpp::error(report_modes::syntax, node_id, env, e.overview, e.detail, e.suggestion);
+		}
+
+		try {
+			str = wpp::evaluate(root, env, fn_env);
+		}
+
+		catch (const wpp::Report& e) {
 			wpp::error(report_modes::semantic, node_id, env, e.overview, e.detail, e.suggestion);
 		}
+
+		env.state = old_state;
 
 		return str;
 	}
