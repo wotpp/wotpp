@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 
+#include <misc/constants.hpp>
 #include <misc/util/util.hpp>
 #include <misc/flags.hpp>
 #include <structures/environment.hpp>
@@ -139,8 +140,13 @@ namespace wpp { namespace {
 		// Call function.
 		env.call_depth++;
 
-		if (flags & wpp::WARN_DEEP_RECURSION and env.call_depth >= 256 and not wpp::is_previously_seen_warning(WARN_DEEP_RECURSION, node_id, env))
-			wpp::warning(report_modes::semantic, node_id, env, "deep recursion", wpp::cat("the call stack has grown to a depth of >= 256"),
+		if (
+			flags & wpp::WARN_DEEP_RECURSION and
+			env.call_depth >= wpp::MAX_REC_DEPTH and
+			not wpp::is_previously_seen_warning(WARN_DEEP_RECURSION, node_id, env)
+		)
+			wpp::warning(report_modes::semantic, node_id, env, "deep recursion",
+				wpp::cat("the call stack has grown to a depth of >= ", wpp::MAX_REC_DEPTH),
 				"this may indicate recursion without an exit condition"
 			);
 

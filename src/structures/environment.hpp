@@ -42,11 +42,20 @@ namespace wpp {
 	};
 
 
+	struct Meta {
+		const wpp::Pos position;
+		const wpp::node_t parent;
+
+		Meta(const wpp::Pos& position_, const wpp::node_t parent_):
+			position(position_), parent(parent_) {}
+	};
+
+
 	using Variables = std::unordered_map<wpp::View, std::string>;
 	using Functions = std::unordered_map<wpp::View, std::map<size_t, std::vector<wpp::node_t>, std::greater<size_t>>>;
 
 	using Arguments = std::vector<std::unordered_map<wpp::View, std::string>>;
-	using Positions = std::vector<wpp::Pos>;
+	using ASTMeta = std::vector<wpp::Meta>;
 
 
 	using SearchPath = std::vector<std::filesystem::path>;
@@ -92,7 +101,7 @@ namespace wpp {
 		std::vector<std::vector<std::string>> stack{};
 		std::unordered_set<wpp::node_t> seen_warnings{};
 
-		wpp::Positions positions{};
+		wpp::ASTMeta ast_meta{};
 		wpp::Sources sources{};
 
 		const std::filesystem::path root{};
@@ -102,7 +111,10 @@ namespace wpp {
 		wpp::flags_t state{};
 
 		size_t call_depth{};
+		size_t rec_depth{};
 
+		// Dynamic dispatch. We change this function depending on whether or not colours
+		// are disabled.
 		decltype(&detail::lookup_colour_enabled) lookup_colour{&detail::lookup_colour_enabled};
 
 

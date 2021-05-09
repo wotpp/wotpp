@@ -265,7 +265,7 @@ namespace wpp {
 
 	template <typename... Ts>
 	inline wpp::Report generate_error(wpp::report_mode_type_t report_mode, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		return wpp::generate_error(report_mode, env.positions[node_id], env, std::forward<Ts>(args)...);
+		return wpp::generate_error(report_mode, env.ast_meta[node_id].position, env, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
@@ -289,7 +289,7 @@ namespace wpp {
 
 	template <typename... Ts>
 	inline wpp::Report generate_warning(wpp::report_mode_type_t report_mode, wpp::node_t node_id, wpp::Env& env, Ts&&... args) {
-		return wpp::generate_warning(report_mode, env.positions[node_id], env, std::forward<Ts>(args)...);
+		return wpp::generate_warning(report_mode, env.ast_meta[node_id].position, env, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
@@ -297,18 +297,30 @@ namespace wpp {
 		std::cerr << wpp::generate_warning(std::forward<Ts>(args)...).str();
 	}
 
-	template <typename T>
-	inline bool is_previously_seen_warning(T warning_type, wpp::node_t node_id, wpp::Env& env) {
+
+	template <typename T1, typename T2>
+	constexpr size_t combine(T1&& lhs, T2&& rhs) {
 		// https://stackoverflow.com/questions/56923254/c-map-or-unordered-map-when-key-is-two-integers
 		size_t hash = 0;
 
-		hash ^= warning_type + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-		hash ^= node_id + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+		hash ^= lhs + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+		hash ^= rhs + 0x9e3779b9 + (hash << 6) + (hash >> 2);
 
-		if (env.seen_warnings.find(hash) != env.seen_warnings.end())
+		return hash;
+	}
+
+
+	template <typename T>
+	inline bool is_previously_seen_warning(T warning_type, wpp::node_t node, wpp::Env& env) {
+		if (env.seen_warnings.find(wpp::combine(warning_type, node)) != env.seen_warnings.end())
 			return true;
 
-		env.seen_warnings.emplace(hash);
+		const node_t first = node;
+
+		while (env.seen_warnings.find(wpp::combine(warning_type, node)) == env.seen_warnings.end())
+			node = env.ast_meta[node].parent;
+
+		env.seen_warnings.emplace(wpp::combine(warning_type, first));
 
 		return false;
 	}

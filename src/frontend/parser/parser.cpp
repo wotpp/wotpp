@@ -3,6 +3,7 @@
 #include <limits>
 #include <algorithm>
 
+#include <misc/constants.hpp>
 #include <misc/fwddecl.hpp>
 #include <misc/util/util.hpp>
 #include <frontend/char.hpp>
@@ -113,29 +114,29 @@ namespace {
 
 namespace wpp { namespace {
 	// Forward declarations.
-	wpp::node_t normal_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t stringify_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t hex_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t bin_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t normal_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t stringify_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t hex_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t bin_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
 
-	wpp::node_t raw_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t para_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t code_string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t raw_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t para_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t code_string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
 
-	wpp::node_t expression(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t fninvoke(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t match(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t block(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t codeify(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t string(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t nnew(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t expression(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t fninvoke(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t match(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t block(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t codeify(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t string(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t nnew(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
 
-	wpp::node_t statement(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t drop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t let(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
-	wpp::node_t pop(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t statement(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t drop(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t let(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
+	wpp::node_t pop(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
 
-	wpp::node_t intrinsic(wpp::Lexer&, wpp::AST&, wpp::Positions&, wpp::Env&);
+	wpp::node_t intrinsic(wpp::node_t, wpp::Lexer&, wpp::AST&, wpp::ASTMeta&, wpp::Env&);
 }}
 
 
@@ -201,11 +202,11 @@ namespace wpp { namespace {
 
 // Parser
 namespace wpp { namespace {
-	wpp::node_t normal_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t normal_string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		auto& str = tree.get<String>(node).value;
 
@@ -230,11 +231,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t stringify(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t stringify(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		tree.get<String>(node).value = lex.advance().str();
 
@@ -242,11 +243,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t raw_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t raw_string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 		auto& str = tree.get<String>(node).value;
 
 		const auto delim = lex.advance().view.at(1);  // User defined delimiter.
@@ -283,11 +284,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t para_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t para_string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 		auto& str = tree.get<String>(node).value;
 
 		const auto delim = lex.advance(wpp::lexer_modes::string_para).view.at(1);  // User defined delimiter.
@@ -380,11 +381,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t code_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t code_string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 		auto& str = tree.get<String>(node).value;
 
 		const auto delim = lex.advance(wpp::lexer_modes::string_code).view.at(1);  // User defined delimiter.
@@ -530,13 +531,13 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t hex_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env&) {
+	wpp::node_t hex_string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env&) {
 		DBG();
 
 		const auto& [ptr, len] = lex.advance().view;
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 		auto& str = tree.get<String>(node).value;
 
 		size_t counter = 0; // index into string, doesnt count `_`.
@@ -565,11 +566,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t bin_string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env&) {
+	wpp::node_t bin_string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env&) {
 		DBG();
 
 		const wpp::node_t node = tree.add<String>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 		auto& str = tree.get<String>(node).value;
 
 		const auto& [ptr, len] = lex.advance().view;
@@ -605,44 +606,44 @@ namespace wpp { namespace {
 
 	// Parse a string.
 	// `"hey" 'hello' "a\nb\nc\n"`
-	wpp::node_t string(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t string(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		wpp::node_t node = wpp::NODE_EMPTY;
 
 		if (lex.peek() == TOKEN_QUOTE or lex.peek() == TOKEN_DOUBLEQUOTE)
-			node = normal_string(lex, tree, pos, env);
+			node = normal_string(parent, lex, tree, meta, env);
 
 		else if (lex.peek() == TOKEN_STRINGIFY)
-			node = stringify(lex, tree, pos, env);
+			node = stringify(parent, lex, tree, meta, env);
 
 		else if (lex.peek() == TOKEN_RAWSTR)
-			node = raw_string(lex, tree, pos, env);
+			node = raw_string(parent, lex, tree, meta, env);
 
 		else if (lex.peek() == TOKEN_CODESTR)
-			node = code_string(lex, tree, pos, env);
+			node = code_string(parent, lex, tree, meta, env);
 
 		else if (lex.peek() == TOKEN_PARASTR)
-			node = para_string(lex, tree, pos, env);
+			node = para_string(parent, lex, tree, meta, env);
 
 		else if (lex.peek() == TOKEN_HEX)
-			node = hex_string(lex, tree, pos, env);
+			node = hex_string(parent, lex, tree, meta, env);
 
 		else if (lex.peek() == TOKEN_BIN)
-			node = bin_string(lex, tree, pos, env);
+			node = bin_string(parent, lex, tree, meta, env);
 
 		return node;
 	}
 
 
 	// Parses a function.
-	wpp::node_t let(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t let(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		// Create `Fn` node ahead of time so we can insert member data
 		// directly instead of copying/moving it into a new node at the end.
 		const wpp::node_t node = tree.add<Fn>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		// Skip `let` keyword. The statement parser already checked
 		// for it before calling us.
@@ -659,7 +660,7 @@ namespace wpp { namespace {
 
 		// Variable definition
 		if (peek_is_expr(lex.peek())) {
-			const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+			const wpp::node_t expr = wpp::expression(parent, lex, tree, meta, env);
 			tree.replace<Var>(node, tree.get<Fn>(node).identifier, expr);
 			return node;
 		}
@@ -713,18 +714,18 @@ namespace wpp { namespace {
 		lex.advance();
 
 		// Parse the function body.
-		const wpp::node_t body = expression(lex, tree, pos, env);
+		const wpp::node_t body = expression(parent, lex, tree, meta, env);
 		tree.get<Fn>(node).body = body;
 
 		return node;
 	}
 
 
-	wpp::node_t codeify(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t codeify(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		wpp::node_t node = tree.add<Codeify>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		lex.advance(); // Skip !.
 
@@ -734,18 +735,18 @@ namespace wpp { namespace {
 				"insert an expression after `!`"
 			);
 
-		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+		const wpp::node_t expr = wpp::expression(parent, lex, tree, meta, env);
 		tree.get<Codeify>(node).expr = expr;
 
 		return node;
 	}
 
 
-	wpp::node_t drop(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t drop(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<Drop>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		lex.advance(); // Skip `drop`.
 
@@ -782,15 +783,15 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t intrinsic(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t intrinsic(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 		const wpp::Token tok = lex.advance();
 
 		wpp::node_t node = NODE_EMPTY;
 
-		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+		const wpp::node_t expr = wpp::expression(parent, lex, tree, meta, env);
 
 		if (tok == TOKEN_INTRINSIC_USE)
 			node = tree.add<IntrinsicUse>(expr);
@@ -808,12 +809,12 @@ namespace wpp { namespace {
 			node = tree.add<IntrinsicLog>(expr);
 
 		else if (tok == TOKEN_INTRINSIC_ASSERT) {
-			const wpp::node_t expr2 = wpp::expression(lex, tree, pos, env);
+			const wpp::node_t expr2 = wpp::expression(parent, lex, tree, meta, env);
 			node = tree.add<IntrinsicAssert>(expr, expr2);
 		}
 
 		else if (tok == TOKEN_INTRINSIC_PIPE) {
-			const wpp::node_t expr2 = wpp::expression(lex, tree, pos, env);
+			const wpp::node_t expr2 = wpp::expression(parent, lex, tree, meta, env);
 			node = tree.add<IntrinsicPipe>(expr, expr2);
 		}
 
@@ -821,11 +822,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t pop(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t pop(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<Pop>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		lex.advance(); // skip `pop`.
 
@@ -845,7 +846,7 @@ namespace wpp { namespace {
 		if (lex.peek() != TOKEN_RPAREN) {
 			// While there is an expression there is another parameter.
 			while (peek_is_expr(lex.peek())) {
-				wpp::node_t expr = expression(lex, tree, pos, env);
+				wpp::node_t expr = expression(parent, lex, tree, meta, env);
 				tree.get<Pop>(node).arguments.emplace_back(expr);
 
 				if (lex.peek() == TOKEN_COMMA)
@@ -884,11 +885,11 @@ namespace wpp { namespace {
 
 
 	// Parse a function call.
-	wpp::node_t fninvoke(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t fninvoke(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		wpp::node_t node = tree.add<FnInvoke>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		tree.get<FnInvoke>(node).identifier = lex.advance().view;
 
@@ -904,7 +905,7 @@ namespace wpp { namespace {
 		// While there is an expression there is another parameter.
 		while (peek_is_expr(lex.peek())) {
 			// Parse expr.
-			wpp::node_t expr = expression(lex, tree, pos, env);
+			wpp::node_t expr = expression(parent, lex, tree, meta, env);
 			tree.get<FnInvoke>(node).arguments.emplace_back(expr);
 
 			if (lex.peek() == TOKEN_COMMA)
@@ -923,11 +924,11 @@ namespace wpp { namespace {
 
 
 	// Parse a block.
-	wpp::node_t block(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t block(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<Block>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		lex.advance(); // Skip '{'.
 
@@ -949,7 +950,7 @@ namespace wpp { namespace {
 			do {
 				last_is_expr = peek_is_expr(lex.peek());
 
-				const wpp::node_t stmt = statement(lex, tree, pos, env);
+				const wpp::node_t stmt = statement(parent, lex, tree, meta, env);
 				tree.get<Block>(node).statements.emplace_back(stmt);
 			} while (peek_is_stmt(lex.peek()));
 		}
@@ -989,11 +990,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t match(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t match(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<Match>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		lex.advance(); // Skip `match`.
 
@@ -1006,7 +1007,7 @@ namespace wpp { namespace {
 			);
 
 
-		const auto expr = wpp::expression(lex, tree, pos, env); // Consume test expression.
+		const auto expr = wpp::expression(parent, lex, tree, meta, env); // Consume test expression.
 		tree.get<Match>(node).expr = expr;
 
 
@@ -1018,7 +1019,7 @@ namespace wpp { namespace {
 
 		// Collect all arms of the match.
 		while (peek_is_expr(lex.peek())) {
-			const auto arm = wpp::expression(lex, tree, pos, env);
+			const auto arm = wpp::expression(parent, lex, tree, meta, env);
 
 			if (lex.peek() != TOKEN_ARROW)
 				wpp::error(report_modes::syntax, lex.position(), env, "expected `->`",
@@ -1030,7 +1031,7 @@ namespace wpp { namespace {
 			if (not peek_is_expr(lex.peek()))
 				wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression after `->`");
 
-			const auto hand = wpp::expression(lex, tree, pos, env);
+			const auto hand = wpp::expression(parent, lex, tree, meta, env);
 
 			tree.get<Match>(node).cases.emplace_back(std::pair{ arm, hand });
 		}
@@ -1050,7 +1051,7 @@ namespace wpp { namespace {
 			if (not peek_is_expr(lex.peek()))
 				wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression after `->`");
 
-			const auto default_case = wpp::expression(lex, tree, pos, env);
+			const auto default_case = wpp::expression(parent, lex, tree, meta, env);
 			tree.get<Match>(node).default_case = default_case;
 		}
 
@@ -1070,11 +1071,11 @@ namespace wpp { namespace {
 	}
 
 
-	wpp::node_t nnew(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t nnew(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<New>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		lex.advance(); // Skip `new`.
 
@@ -1082,7 +1083,7 @@ namespace wpp { namespace {
 		if (not peek_is_expr(lex.peek()))
 			wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression to follow `new`");
 
-		const wpp::node_t expr = wpp::expression(lex, tree, pos, env);
+		const wpp::node_t expr = wpp::expression(parent, lex, tree, meta, env);
 		tree.get<New>(node).expr = expr;
 
 		return node;
@@ -1090,8 +1091,20 @@ namespace wpp { namespace {
 
 
 	// Parse an expression.
-	wpp::node_t expression(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t expression(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
+
+		env.rec_depth++;
+
+		if (
+			env.flags & wpp::WARN_DEEP_EXPRESSION and
+			env.rec_depth >= 64 and
+			not wpp::is_previously_seen_warning(WARN_DEEP_EXPRESSION, parent, env)
+		)
+			wpp::warning(report_modes::syntax, parent, env, "deep expression",
+				"the recursion depth has grown to >= 64",
+				"this may indicate deeply nested expressions"
+			);
 
 		// We use lhs to store the resulting expression
 		// from the following cases and if the next token
@@ -1103,48 +1116,49 @@ namespace wpp { namespace {
 		const auto lookahead = lex.peek();
 
 		if (lookahead == TOKEN_IDENTIFIER)
-			lhs = wpp::fninvoke(lex, tree, pos, env);
+			lhs = wpp::fninvoke(parent, lex, tree, meta, env);
 
 		else if (peek_is_string(lookahead))
-			lhs = wpp::string(lex, tree, pos, env);
+			lhs = wpp::string(parent, lex, tree, meta, env);
 
 		else if (peek_is_intrinsic_expr(lookahead))
-			lhs = wpp::intrinsic(lex, tree, pos, env);
+			lhs = wpp::intrinsic(parent, lex, tree, meta, env);
 
 		else if (lookahead == TOKEN_LBRACE)
-			lhs = wpp::block(lex, tree, pos, env);
+			lhs = wpp::block(parent, lex, tree, meta, env);
 
 		else if (lookahead == TOKEN_EVAL)
-			lhs = wpp::codeify(lex, tree, pos, env);
+			lhs = wpp::codeify(parent, lex, tree, meta, env);
 
 		else if (lookahead == TOKEN_MATCH)
-			lhs = wpp::match(lex, tree, pos, env);
+			lhs = wpp::match(parent, lex, tree, meta, env);
 
 		else if (lookahead == TOKEN_POP)
-			lhs = wpp::pop(lex, tree, pos, env);
+			lhs = wpp::pop(parent, lex, tree, meta, env);
 
 		else if (lookahead == TOKEN_NEW)
-			lhs = wpp::nnew(lex, tree, pos, env);
+			lhs = wpp::nnew(parent, lex, tree, meta, env);
 
 		else
 			wpp::error(report_modes::syntax, lex.position(), env, "expected expression", "expecting an expression to appear here");
 
+
 		if (lex.peek() == TOKEN_CAT) {
 			const wpp::node_t node = tree.add<Concat>();
-			pos.emplace_back(lex.position());
+			meta.emplace_back(lex.position(), parent);
 
 			lex.advance(); // Skip `..`.
 			tree.get<Concat>(node).lhs = lhs;
 
-			const node_t rhs = expression(lex, tree, pos, env);
+			const node_t rhs = expression(parent, lex, tree, meta, env);
 			tree.get<Concat>(node).rhs = rhs;
 
-			return node;
+			lhs = node;
 		}
 
 		else if (lex.peek() == TOKEN_LBRACKET) {
 			const wpp::node_t node = tree.add<Slice>();
-			pos.emplace_back(lex.position());
+			meta.emplace_back(lex.position(), parent);
 
 			tree.get<Slice>(node).expr = lhs;
 
@@ -1195,34 +1209,53 @@ namespace wpp { namespace {
 
 			lex.advance(lexer_modes::slice);
 
-			return node;
+			lhs = node;
 		}
+
+		env.rec_depth--;
 
 		return lhs;
 	}
 
 
 	// Parse a statement.
-	wpp::node_t statement(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t statement(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
+		env.rec_depth++;
+
+		if (
+			env.flags & wpp::WARN_DEEP_EXPRESSION and
+			env.rec_depth >= wpp::MAX_EXPR_DEPTH and
+			not wpp::is_previously_seen_warning(WARN_DEEP_EXPRESSION, parent, env)
+		)
+			wpp::warning(report_modes::syntax, parent, env, "deep expression",
+				wpp::cat("the nested expression depth has grown to >= ", wpp::MAX_EXPR_DEPTH),
+				"this may indicate deeply nested expressions"
+			);
+
+
 		const auto lookahead = lex.peek();
+		wpp::node_t node;
 
 		if (lookahead == TOKEN_LET)
-			return wpp::let(lex, tree, pos, env);
+			node = wpp::let(parent, lex, tree, meta, env);
 
 		else if (lookahead == TOKEN_DROP)
-			return wpp::drop(lex, tree, pos, env);
+			node = wpp::drop(parent, lex, tree, meta, env);
 
 		else if (peek_is_intrinsic_stmt(lookahead))
-			return wpp::intrinsic(lex, tree, pos, env);
+			node = wpp::intrinsic(parent, lex, tree, meta, env);
 
 		else if (peek_is_expr(lookahead))
-			return wpp::expression(lex, tree, pos, env);
+			node = wpp::expression(parent, lex, tree, meta, env);
 
-		wpp::error(report_modes::syntax, lex.position(), env, "expected statement", "expecting a statement to appear here");
+		else
+			wpp::error(report_modes::syntax, lex.position(), env, "expected statement", "expecting a statement to appear here");
 
-		return wpp::NODE_EMPTY;
+		env.rec_depth--;
+
+		return node;
 	}
 }}
 
@@ -1230,16 +1263,16 @@ namespace wpp { namespace {
 namespace wpp {
 	// Parse a document.
 	// A document is just a series of zero or more expressions.
-	wpp::node_t document(wpp::Lexer& lex, wpp::AST& tree, wpp::Positions& pos, wpp::Env& env) {
+	wpp::node_t document(wpp::node_t parent, wpp::Lexer& lex, wpp::AST& tree, wpp::ASTMeta& meta, wpp::Env& env) {
 		DBG();
 
 		const wpp::node_t node = tree.add<Document>();
-		pos.emplace_back(lex.position());
+		meta.emplace_back(lex.position(), parent);
 
 		// Consume expressions until we encounter eof or an error.
 		while (lex.peek() != TOKEN_EOF) {
 			try {
-				const wpp::node_t stmt = statement(lex, tree, pos, env);
+				const wpp::node_t stmt = statement(parent, lex, tree, meta, env);
 				tree.get<Document>(node).statements.emplace_back(stmt);
 			}
 
@@ -1256,7 +1289,7 @@ namespace wpp {
 				env.state |= wpp::ERROR_MODE_PARSE;
 
 				try {
-					wpp::statement(lex, tree, pos, env);
+					wpp::statement(parent, lex, tree, meta, env);
 
 				} catch (const wpp::Report&) {
 					lex.advance();

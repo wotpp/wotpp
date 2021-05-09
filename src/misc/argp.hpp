@@ -36,7 +36,7 @@ namespace wpp {
 	};
 
 
-	struct Meta {
+	struct Info {
 		const char* const version;
 		const char* const desc;
 	};
@@ -244,7 +244,7 @@ namespace wpp {
 
 
 	template <typename... Ts>
-	inline std::string generate_help(const char* const name, const Meta& meta, int padding, Ts&&... opts) {
+	inline std::string generate_help(const char* const name, const Info& meta, int padding, Ts&&... opts) {
 		const auto& [ver, desc] = meta;
 		std::string str;
 
@@ -326,7 +326,7 @@ namespace wpp {
 	// arguments.
 	template <typename... Ts>
 	inline bool argparser(
-		const Meta& meta,
+		const Info& meta,
 		const int argc, const char* argv[],
 		std::vector<const char*>* positional,
 		Ts&&... opts

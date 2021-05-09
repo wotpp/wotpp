@@ -33,7 +33,7 @@ int main(int argc, const char* argv[]) {
 	std::vector<const char*> positional;
 
 	if (wpp::argparser(
-		wpp::Meta{ver, desc},
+		wpp::Info{ver, desc},
 		argc, argv, &positional,
 		wpp::Opt{outputf,        "output file",                                       "--output",         "-o"},
 		wpp::Opt{warnings,       "toggle warnings",                                   "--warnings",       "-W"},
