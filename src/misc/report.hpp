@@ -317,7 +317,10 @@ namespace wpp {
 
 		const node_t first = node;
 
-		while (env.seen_warnings.find(wpp::combine(warning_type, node)) == env.seen_warnings.end())
+		while (
+			env.seen_warnings.find(wpp::combine(warning_type, node)) == env.seen_warnings.end() and
+			node != wpp::NODE_ROOT
+		)
 			node = env.ast_meta[node].parent;
 
 		env.seen_warnings.emplace(wpp::combine(warning_type, first));
