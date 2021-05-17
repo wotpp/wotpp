@@ -141,6 +141,7 @@ Thanks, in no particular order:
 - [Violetas](https://github.com/violetastcs)
 - [Moonsheep](https://github.com/jlagarespo)
 - [Samuel](https://github.com/swr06/)
+- [Qookie](https://github.com/qookei)
 
 And everyone else who I may have failed to mention over the years.
 
