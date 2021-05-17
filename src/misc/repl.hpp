@@ -59,6 +59,7 @@ namespace wpp {
 
 				} catch (const wpp::Report& e) {
 					std::cerr << e.str();
+					wpp::report_summary(env);
 				}
 
 				std::free(input);

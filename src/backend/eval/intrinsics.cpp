@@ -26,28 +26,18 @@ namespace wpp {
 		env.sources.push(file, source, modes::eval);
 
 		std::string str;
-		wpp::node_t root;
-
-		const auto old_state = env.state;
-		env.state |= wpp::ABORT_ERROR_RECOVERY;
 
 		try {
-			root = wpp::parse(env);
+			str = wpp::evaluate(wpp::parse(env, node_id), env, fn_env);
 		}
 
 		catch (const wpp::Report& e) {
-			wpp::error(report_modes::syntax, node_id, env, e.overview, e.detail, e.suggestion);
-		}
+			env.state |=
+				wpp::ABORT_EVALUATION |
+				wpp::ERROR_MODE_EVAL;
 
-		try {
-			str = wpp::evaluate(root, env, fn_env);
+			wpp::error(e.report_mode, node_id, env, e.overview, e.detail, e.suggestion);
 		}
-
-		catch (const wpp::Report& e) {
-			wpp::error(report_modes::semantic, node_id, env, e.overview, e.detail, e.suggestion);
-		}
-
-		env.state = old_state;
 
 		return str;
 	}
@@ -146,7 +136,13 @@ namespace wpp {
 				wpp::error(report_modes::semantic, node_id, env, "empty path", "`file` must be supplied a non-empty string");
 
 			try {
-				return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
+				try {
+					return wpp::read_file(std::filesystem::relative(std::filesystem::path{fname}));
+				}
+
+				catch (const std::filesystem::filesystem_error&) {
+					throw wpp::FileReadError{};
+				}
 			}
 
 			catch (const wpp::FileNotFoundError&) {
@@ -204,25 +200,23 @@ namespace wpp {
 			std::string source;
 
 			try {
-				// Store current path and get the path of the new file.
-				old_path = std::filesystem::current_path();
-				new_path = old_path / wpp::get_file_path(fname, env.path);
+				try {
+					// Store current path and get the path of the new file.
+					old_path = std::filesystem::current_path();
+					new_path = old_path / wpp::get_file_path(fname, env.path);
 
-				// Don't source something we've already seen.
-				if (env.sources.is_previously_seen(new_path))
-					return "";
+					// Don't source something we've already seen.
+					if (env.sources.is_previously_seen(new_path))
+						return "";
 
-				std::filesystem::current_path(new_path.parent_path());
-			}
+					std::filesystem::current_path(new_path.parent_path());
 
-			catch (const wpp::FileNotFoundError&) {
-				wpp::error(report_modes::semantic, node_id, env, "could not find file", wpp::cat("file '", fname, "' does not exist or could not be found"));
-			}
+					source = wpp::read_file(old_path / new_path);
+				}
 
-
-
-			try {
-				source = wpp::read_file(old_path / new_path);
+				catch (const std::filesystem::filesystem_error&) {
+					throw wpp::FileReadError{};
+				}
 			}
 
 			catch (const wpp::FileNotFoundError&) {
@@ -249,8 +243,19 @@ namespace wpp {
 				);
 			}
 
-			env.sources.push(new_path, source, wpp::modes::source);
-			str = wpp::evaluate(wpp::parse(env), env, fn_env);
+			try {
+				env.sources.push(new_path, source, wpp::modes::source);
+				str = wpp::evaluate(wpp::parse(env, node_id), env, fn_env);
+			}
+
+			catch (const wpp::Report& e) {
+				env.state |=
+					wpp::ABORT_EVALUATION |
+					wpp::ERROR_MODE_EVAL;
+				;
+
+				throw;
+			}
 
 			std::filesystem::current_path(old_path);
 

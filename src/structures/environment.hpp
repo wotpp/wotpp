@@ -37,7 +37,7 @@ namespace wpp {
 
 
 	struct Pos {
-		const wpp::Source& source;   // Source associated with this position.
+		const wpp::Source* source;   // Source associated with this position.
 		wpp::View view;
 	};
 
@@ -92,6 +92,11 @@ namespace wpp {
 	};
 
 
+	struct ScopedEnv {
+		wpp::node_t root{};
+	};
+
+
 	struct Env {
 		wpp::AST ast{};
 
@@ -112,6 +117,8 @@ namespace wpp {
 
 		size_t call_depth{};
 		size_t rec_depth{};
+
+		size_t report_count{};
 
 		// Dynamic dispatch. We change this function depending on whether or not colours
 		// are disabled.

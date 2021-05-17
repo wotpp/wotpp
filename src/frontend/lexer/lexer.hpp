@@ -39,7 +39,6 @@ namespace wpp {
 		TOKEN(TOKEN_CAT) \
 		TOKEN(TOKEN_ARROW) \
 		TOKEN(TOKEN_STAR) \
-		TOKEN(TOKEN_BAR) \
 		TOKEN(TOKEN_STRINGIFY) \
 		TOKEN(TOKEN_EVAL) \
 		TOKEN(TOKEN_COLON) \
@@ -119,8 +118,8 @@ namespace wpp {
 			lookahead({ptr, 1}, TOKEN_NONE),
 			lookahead_mode(mode_)
 		{
-			if (not wpp::validate_utf8(ptr)) {
-				wpp::error(report_modes::encoding, wpp::Pos{env.sources.top(), wpp::View{ ptr, 1 }}, env,
+			if (not utf8::validate(ptr)) {
+				wpp::error(report_modes::encoding, position_from_view(wpp::View{ ptr, 1 }), env,
 					"invalid UTF-8",
 					"malformed bytes appear in source"
 				);
@@ -139,7 +138,12 @@ namespace wpp {
 
 		wpp::Pos position() const {
 			DBG();
-			return { env.sources.top(), lookahead.view };
+			return { &env.sources.top(), lookahead.view };
+		}
+
+		wpp::Pos position_from_view(const wpp::View& v) const {
+			DBG();
+			return { &env.sources.top(), v };
 		}
 
 
@@ -165,7 +169,7 @@ namespace wpp {
 			char c = *ptr;
 
 			while (n--)
-				ptr += wpp::size_utf8(ptr);
+				ptr = utf8::next(ptr);
 
 			return c;
 		}

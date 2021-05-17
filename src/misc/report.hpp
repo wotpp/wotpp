@@ -33,6 +33,9 @@ namespace wpp {
 	}
 
 
+	inline void report_summary(wpp::Env& env) {
+		std::cerr << env.report_count << " report(s) generated\n";
+	}
 
 
 	struct SourceLocation {
@@ -46,7 +49,7 @@ namespace wpp {
 
 		int line = 1, column = 1;
 
-		for (; ptr < end; ptr += wpp::size_utf8(ptr)) {
+		for (; ptr < end; ptr = utf8::next(ptr)) {
 			const int cmp = (*ptr == '\n');
 			column = (column * not cmp) + 1;
 			line += cmp;
@@ -72,7 +75,7 @@ namespace wpp {
 
 		const auto& [source, view] = pos;
 		const auto& [offset, length] = view;
-		const auto& [file, base, mode] = source;
+		const auto& [file, base, mode] = *source;
 		const auto& [line, column] = sloc;
 
 		std::string str;
@@ -117,7 +120,7 @@ namespace wpp {
 
 		const auto& [source, view] = pos;
 		const auto& [offset, length] = view;
-		const auto& [file, base, mode] = source;
+		const auto& [file, base, mode] = *source;
 
 		std::string str;
 
@@ -152,22 +155,23 @@ namespace wpp {
 		// Strip whitespace from beginning.
 		if (wpp::is_whitespace(printout_begin)) {
 			do
-				printout_begin += wpp::size_utf8(printout_begin);
+				printout_begin = utf8::next(printout_begin);
 			while (wpp::is_whitespace(printout_begin));
 		}
 
 		// Strip whitespace from end.
 		if (wpp::is_whitespace(printout_end)) {
 			do
-				printout_end = wpp::prev_char_utf8(base, printout_end);
+				printout_end = utf8::prev(printout_end);
 			while (wpp::is_whitespace(printout_end));
 		}
 
 		const auto printout_str = std::string(printout_begin, printout_end - printout_begin + 1);
 		const auto column_str = wpp::cat(indent, sloc.line);
-		const auto detail_str = wpp::cat(std::string(offset - printout_begin, ' '), colour, "⤷ ", env.lookup_colour(ANSI_RESET), detail);
+		const auto detail_str = wpp::cat(std::string(offset - printout_begin, ' '), colour, "^ ", env.lookup_colour(ANSI_RESET), detail);
 
 		str = wpp::cat(
+			std::string(column_str.size(), ' '), " |\n",
 			column_str, " | ", printout_str, "\n",
 			std::string(column_str.size(), ' '), " | ",
 			detail_str, "\n"
@@ -191,7 +195,7 @@ namespace wpp {
 		wpp::report_mode_type_t report_mode;
 
 		wpp::Pos pos;
-		wpp::Env& env;
+		wpp::Env* env_p;
 
 		std::string overview;
 		std::string detail;
@@ -201,9 +205,13 @@ namespace wpp {
 		std::string str() const {
 			DBG();
 
+			auto& env = *env_p;
+
+			env.report_count++;
+
 			const auto& [source, view] = pos;
 			const auto& [offset, length] = view;
-			const auto& [file, base, mode] = source;
+			const auto& [file, base, mode] = *source;
 
 			const auto sloc = wpp::calculate_coordinates(base, offset);
 
@@ -212,16 +220,24 @@ namespace wpp {
 			const char* mode_str = modes::mode_to_str[mode];
 
 			const char* colour = env.lookup_colour(ANSI_FG_RED);
+			const char* symbol = nullptr;
 
 
-			if (report_type == report_types::error)
+			if (report_type == report_types::error) {
 				colour = env.lookup_colour(ANSI_FG_RED);
+				symbol = "[!]";
+			}
 
-			else if (report_type == report_types::warning)
+			else if (report_type == report_types::warning) {
 				colour = env.lookup_colour(ANSI_FG_BLUE);
+				symbol = "[*]";
+			}
 
 
-			const std::string report_str = wpp::cat("(", mode_str, ") ", colour, report_mode_str, " ", report_type_str, env.lookup_colour(ANSI_RESET));
+			const std::string report_str = wpp::cat(
+				colour, symbol, env.lookup_colour(ANSI_RESET), " (", mode_str, ") ", colour, report_mode_str, " ", report_type_str,
+				env.lookup_colour(ANSI_RESET)
+			);
 
 
 			std::string snippet_str;
@@ -260,7 +276,7 @@ namespace wpp {
 		const std::string& suggestion = ""
 	) {
 		DBG();
-		return wpp::Report{ report_types::error, report_mode, pos, env, overview, detail, suggestion };
+		return wpp::Report{ report_types::error, report_mode, pos, &env, overview, detail, suggestion };
 	}
 
 	template <typename... Ts>
@@ -284,7 +300,7 @@ namespace wpp {
 		const std::string& suggestion = ""
 	) {
 		DBG();
-		return wpp::Report{ report_types::warning, report_mode, pos, env, overview, detail, suggestion };
+		return wpp::Report{ report_types::warning, report_mode, pos, &env, overview, detail, suggestion };
 	}
 
 	template <typename... Ts>
@@ -312,20 +328,23 @@ namespace wpp {
 
 	template <typename T>
 	inline bool is_previously_seen_warning(T warning_type, wpp::node_t node, wpp::Env& env) {
-		if (env.seen_warnings.find(wpp::combine(warning_type, node)) != env.seen_warnings.end())
-			return true;
+		// std::cerr << warning_type << " " << node << " " << wpp::combine(warning_type, node) << " " <<
+		// 	(env.seen_warnings.find(wpp::combine(warning_type, node)) != env.seen_warnings.end()) << '\n';
 
 		const node_t first = node;
 
-		while (
-			env.seen_warnings.find(wpp::combine(warning_type, node)) == env.seen_warnings.end() and
-			node != wpp::NODE_ROOT
-		)
+		while (env.seen_warnings.find(wpp::combine(warning_type, node)) == env.seen_warnings.end()) {
+			// std::cerr << node << ": found\n";
+			if (node == wpp::NODE_ROOT) {
+				// std::cerr << node << ": root\n";
+				env.seen_warnings.emplace(wpp::combine(warning_type, node));
+				return false;
+			}
+
 			node = env.ast_meta[node].parent;
+		}
 
-		env.seen_warnings.emplace(wpp::combine(warning_type, first));
-
-		return false;
+		return true;
 	}
 }
 

@@ -30,26 +30,6 @@ namespace wpp {
 	}
 
 
-	inline int view_to_int(const View& v) {
-		DBG();
-
-		int n = 0;
-		int mul = 1;
-
-		auto ptr = v.ptr;
-
-		if (*ptr == '-') {
-			mul = -1;
-			++ptr;
-		}
-
-		for (; ptr != v.ptr + v.length; ++ptr)
-			n = (n * 10) + (*ptr - '0');
-
-		return n * mul;
-	}
-
-
 	// std::string constructor does not allow repeating a string so
 	// this function implements it.
 	inline std::string repeat(const std::string& c, std::string::size_type n) {
@@ -124,40 +104,46 @@ namespace wpp {
 	// Read a file into a string relatively quickly.
 	inline std::string read_file(const std::filesystem::path& path) {
 		DBG();
+		try {
+			auto cur = path;
 
-		auto cur = path;
+			while (std::filesystem::is_symlink(cur)) {
+				const auto tmp = std::filesystem::read_symlink(cur);
 
-		while (std::filesystem::is_symlink(cur)) {
-			const auto tmp = std::filesystem::read_symlink(cur);
+				if (tmp == cur)
+					throw wpp::SymlinkError{};
 
-			if (tmp == cur)
-				throw wpp::SymlinkError{};
+				cur = tmp;
+			}
 
-			cur = tmp;
+			if (std::filesystem::is_directory(cur) or std::filesystem::is_other(cur))
+				throw wpp::NotFileError{};
+
+			if (not std::filesystem::exists(cur))
+				throw wpp::FileNotFoundError{};
+
+
+			std::ifstream is(cur, std::ios::binary);
+
+			if (not is.is_open())
+				throw wpp::FileReadError{};
+
+			std::stringstream ss;
+			ss << is.rdbuf();
+
+			return ss.str();
 		}
 
-		if (std::filesystem::is_directory(cur) or std::filesystem::is_other(cur))
-			throw wpp::NotFileError{};
-
-		if (not std::filesystem::exists(cur))
-			throw wpp::FileNotFoundError{};
-
-		std::ifstream is(cur);
-
-		if (not is.is_open())
+		catch (const std::filesystem::filesystem_error&) {
 			throw wpp::FileReadError{};
-
-		std::stringstream ss;
-		ss << is.rdbuf();
-
-		return ss.str();
+		}
 	}
 
 
 	// Write string to file.
 	inline void write_file(const std::filesystem::path& path, const std::string& contents) {
 		DBG();
-		auto file = std::ofstream(path);
+		auto file = std::ofstream(path, std::ios::binary);
 		file << contents;
 		file.close();
 	}
