@@ -418,15 +418,14 @@ namespace wpp { namespace {
 		DBG();
 		std::string str = evaluate(s.expr, env, fn_env);
 
-		int start = 0;
-		int stop = 0;
+		int start = 0, stop = 0;
 
 
 		if (s.set & Slice::SLICE_STOP)
-			stop = wpp::view_to_int(s.stop);
+			stop = wpp::dec_to_int_view(s.stop);
 
 		if (s.set & Slice::SLICE_START or s.set & Slice::SLICE_INDEX)
-			start = wpp::view_to_int(s.start);
+			start = wpp::dec_to_int_view(s.start);
 
 
 		if (start < 0)
@@ -434,6 +433,10 @@ namespace wpp { namespace {
 
 		if (stop < 0)
 			stop = str.size() + stop;
+
+
+		start = std::clamp(0ul, str.size() - 1, static_cast<std::string::size_type>(start));
+		stop = std::clamp(0ul, str.size() - 1, static_cast<std::string::size_type>(stop));
 
 
 		// Just get character at index.
@@ -445,11 +448,10 @@ namespace wpp { namespace {
 			auto ptr = begin;
 
 			// We need to loop here because we're dealing with UTF-8.
-			for (; ptr != end and i != start; ptr += size_utf8(ptr))
+			for (; ptr != end and i != start; ptr = utf8::next(ptr))
 				++i;
 
-			// Return the character;
-			return str.substr(i, size_utf8(ptr));
+			return str.substr(i, utf8::codepoint_size(ptr));
 		}
 
 		// If we have a stop index, remove chars from the end of the string.
@@ -460,7 +462,7 @@ namespace wpp { namespace {
 			int erase_from_back = 0;
 
 			// Translate stop index into UTF-8 index.
-			for (auto ptr = begin; ptr != end and erase_from_back != stop; ptr += size_utf8(ptr))
+			for (auto ptr = begin; ptr != end and erase_from_back != stop; ptr = utf8::next(ptr))
 				++erase_from_back;
 
 			str.erase(erase_from_back, std::string::npos);
@@ -474,7 +476,7 @@ namespace wpp { namespace {
 			int erase_from_front = 0;
 
 			// Translate start index into UTF-8 index.
-			for (auto ptr = begin; ptr != end and erase_from_front != start; ptr += size_utf8(ptr))
+			for (auto ptr = begin; ptr != end and erase_from_front != start; ptr = utf8::next(ptr))
 				++erase_from_front;
 
 			str.erase(0, erase_from_front);
@@ -545,40 +547,30 @@ namespace wpp { namespace {
 namespace wpp {
 	// The core of the evaluator.
 	std::string evaluate(const wpp::node_t node_id, wpp::Env& env, wpp::FnEnv* fn_env) {
-		try {
-			return wpp::visit(env.ast[node_id],
-				[&] (const IntrinsicRun& x)    { return eval_intrinsic_run    (node_id, x, env, fn_env); },
-				[&] (const IntrinsicPipe& x)   { return eval_intrinsic_pipe   (node_id, x, env, fn_env); },
-				[&] (const IntrinsicError& x)  { return eval_intrinsic_error  (node_id, x, env, fn_env); },
-				[&] (const IntrinsicLog& x)    { return eval_intrinsic_log    (node_id, x, env, fn_env); },
-				[&] (const IntrinsicAssert& x) { return eval_intrinsic_assert (node_id, x, env, fn_env); },
-				[&] (const IntrinsicFile& x)   { return eval_intrinsic_file   (node_id, x, env, fn_env); },
-				[&] (const IntrinsicUse& x)    { return eval_intrinsic_use    (node_id, x, env, fn_env); },
+		return wpp::visit(env.ast[node_id],
+			[&] (const IntrinsicRun& x)    { return eval_intrinsic_run    (node_id, x, env, fn_env); },
+			[&] (const IntrinsicPipe& x)   { return eval_intrinsic_pipe   (node_id, x, env, fn_env); },
+			[&] (const IntrinsicError& x)  { return eval_intrinsic_error  (node_id, x, env, fn_env); },
+			[&] (const IntrinsicLog& x)    { return eval_intrinsic_log    (node_id, x, env, fn_env); },
+			[&] (const IntrinsicAssert& x) { return eval_intrinsic_assert (node_id, x, env, fn_env); },
+			[&] (const IntrinsicFile& x)   { return eval_intrinsic_file   (node_id, x, env, fn_env); },
+			[&] (const IntrinsicUse& x)    { return eval_intrinsic_use    (node_id, x, env, fn_env); },
 
-				[&] (const FnInvoke& x) { return eval_fninvoke (node_id, x, env, fn_env); },
-				[&] (const Fn& x)       { return eval_fn       (node_id, x, env, fn_env); },
-				[&] (const Codeify& x)  { return eval_codeify  (node_id, x, env, fn_env); },
-				[&] (const VarRef& x)   { return eval_varref   (node_id, x, env, fn_env); },
-				[&] (const Var& x)      { return eval_var      (node_id, x, env, fn_env); },
-				[&] (const Pop& x)      { return eval_pop      (node_id, x, env, fn_env); },
-				[&] (const New& x)      { return eval_new      (node_id, x, env, fn_env); },
-				[&] (const Drop& x)     { return eval_drop     (node_id, x, env, fn_env); },
-				[&] (const String& x)   { return eval_string   (node_id, x, env, fn_env); },
-				[&] (const Concat& x)   { return eval_cat      (node_id, x, env, fn_env); },
-				[&] (const Slice& x)    { return eval_slice    (node_id, x, env, fn_env); },
-				[&] (const Block& x)    { return eval_block    (node_id, x, env, fn_env); },
-				[&] (const Match& x)    { return eval_match    (node_id, x, env, fn_env); },
-				[&] (const Document& x) { return eval_document (node_id, x, env, fn_env); }
-			);
-		}
-
-		catch (const wpp::Report& e) {
-			env.state |=
-				wpp::ABORT_EVALUATION |
-				wpp::ERROR_MODE_EVAL;
-
-			throw;
-		}
+			[&] (const FnInvoke& x) { return eval_fninvoke (node_id, x, env, fn_env); },
+			[&] (const Fn& x)       { return eval_fn       (node_id, x, env, fn_env); },
+			[&] (const Codeify& x)  { return eval_codeify  (node_id, x, env, fn_env); },
+			[&] (const VarRef& x)   { return eval_varref   (node_id, x, env, fn_env); },
+			[&] (const Var& x)      { return eval_var      (node_id, x, env, fn_env); },
+			[&] (const Pop& x)      { return eval_pop      (node_id, x, env, fn_env); },
+			[&] (const New& x)      { return eval_new      (node_id, x, env, fn_env); },
+			[&] (const Drop& x)     { return eval_drop     (node_id, x, env, fn_env); },
+			[&] (const String& x)   { return eval_string   (node_id, x, env, fn_env); },
+			[&] (const Concat& x)   { return eval_cat      (node_id, x, env, fn_env); },
+			[&] (const Slice& x)    { return eval_slice    (node_id, x, env, fn_env); },
+			[&] (const Block& x)    { return eval_block    (node_id, x, env, fn_env); },
+			[&] (const Match& x)    { return eval_match    (node_id, x, env, fn_env); },
+			[&] (const Document& x) { return eval_document (node_id, x, env, fn_env); }
+		);
 	}
 }
 

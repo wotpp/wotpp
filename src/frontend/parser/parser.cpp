@@ -176,8 +176,8 @@ namespace wpp { namespace {
 			// the second nibble so the first nibble is the first 4 bits
 			// and the second nibble is the last 4 bits.
 			str = static_cast<uint8_t>(
-				wpp::hex_to_digit(first_nibble) << 4 |
-				wpp::hex_to_digit(second_nibble)
+				wpp::hex_to_int_digit(first_nibble) << 4 |
+				wpp::hex_to_int_digit(second_nibble)
 			);
 		}
 
@@ -312,7 +312,9 @@ namespace wpp { namespace {
 
 		while (true) {
 			if (lex.peek(wpp::lexer_modes::string_para) == TOKEN_EOF)
-				wpp::error(report_modes::syntax, node, env, "unterminated string", "reached EOF while parsing paragraph string literal that begins here");
+				wpp::error(report_modes::syntax, node, env, "unterminated string",
+					"reached EOF while parsing paragraph string literal that begins here"
+				);
 
 			// If we encounter ' or ", we check one character ahead to see
 			// if it matches the user defined delimiter, it if does,
@@ -551,11 +553,11 @@ namespace wpp { namespace {
 
 			// Odd index, shift digit by 4 and or it with last character.
 			if (counter & 1)
-				str.back() |= wpp::hex_to_digit(c) << 4;
+				str.back() |= wpp::hex_to_int_digit(c) << 4;
 
 			// Even index, push back digit.
 			else
-				str.push_back(wpp::hex_to_digit(c));
+				str.push_back(wpp::hex_to_int_digit(c));
 
 			counter++;
 		}
@@ -1284,17 +1286,29 @@ namespace wpp {
 				if (env.state & wpp::ABORT_ERROR_RECOVERY)
 					throw; // Propagate error.
 
-				// If this is a parser error, print it and attempt to continue parsing.
-				std::cerr << e.str();
-
 				env.state |= wpp::ERROR_MODE_PARSE;
 
-				try {
-					wpp::statement(parent, lex, tree, meta, env);
+				lex.advance();
 
-				} catch (const wpp::Report&) {
-					lex.advance();
+				wpp::Report last_report = e;
+
+				while (lex.peek() != TOKEN_EOF) {
+					try {
+						wpp::statement(parent, lex, tree, meta, env);
+
+					} catch (const wpp::Report& e) {
+						// We have to check for MAX_ERRORS - 1 because this error will be reported also.
+						if (env.report_count >= wpp::MAX_ERRORS - 1)
+							throw;
+
+						std::cerr << last_report.str();
+
+						last_report = e;
+						lex.advance();
+					}
 				}
+
+				throw last_report;
 			}
 		}
 

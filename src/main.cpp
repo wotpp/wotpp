@@ -54,7 +54,7 @@ int main(int argc, const char* argv[]) {
 		return 0;
 
 
-	wpp::flags_t flags = 0;
+	wpp::flags_t flags = wpp::FLAG_DEFAULT;
 
 	for (const auto& x: warnings) {
 		// Set warnings flags.
@@ -147,7 +147,7 @@ int main(int argc, const char* argv[]) {
 
 	for (const auto& fname: positional) {
 		// Set current path to path of file.
-		const auto path = initial_path / std::filesystem::path{fname};
+		auto path = initial_path / std::filesystem::path{fname};
 		std::filesystem::current_path(path.parent_path());
 
 		wpp::Env env{ initial_path, search_path, flags };
@@ -165,6 +165,7 @@ int main(int argc, const char* argv[]) {
 
 		catch (const wpp::Report& e) {
 			std::cerr << e.str();
+			wpp::report_summary(env);
 			return 1;
 		}
 
