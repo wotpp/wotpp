@@ -435,8 +435,8 @@ namespace wpp { namespace {
 			stop = str.size() + stop;
 
 
-		start = std::clamp(0ul, str.size() - 1, static_cast<std::string::size_type>(start));
-		stop = std::clamp(0ul, str.size() - 1, static_cast<std::string::size_type>(stop));
+		start = std::clamp(static_cast<std::string::size_type>(start), 0ul, str.size() - 1);
+		stop = std::clamp(static_cast<std::string::size_type>(stop), 0ul, str.size() - 1);
 
 
 		// Just get character at index.
