@@ -126,6 +126,9 @@ $ afl-fuzz -i tests -x tests/wotpp.dict -o findings ./build/w++ @@
 [wot-goodies](https://github.com/jlagarespo/wot-goodies)
 > A collection of interesting snippets of Wot++ code.
 
+[wotpp-hs](https://github.com/jlagarespo/wotpp-hs)
+> A reimagining of Wot++ written in Haskell.
+
 [waas](https://github.com/iCiaran/waas)
 > A site where you can upload wot++ files and download the compiled output.
 
